@@ -1,7 +1,8 @@
 node_modules/
-dist/
-release/
-build/
+/apps/desktop/dist/
+/dist/
+/apps/desktop/release/
+/build/
 __pycache__/
 *.pyc
 .pytest_cache/
