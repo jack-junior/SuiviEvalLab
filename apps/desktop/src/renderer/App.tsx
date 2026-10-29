@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
-import { appInfo, AppInfo, call, isSimulated, Proportion, Versions } from "./api";
+import { appInfo, AppInfo, call, EngineCallError, isSimulated, Proportion, Versions } from "./api";
+import { Lang, useI18n } from "./i18n";
+import type { MessageKey } from "./i18n/messages";
 
 type Health = "waiting" | "ready" | "error";
-
-const formatNumber = (x: number, d = 1) =>
-  x.toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
-const formatPercent = (x: number) => `${formatNumber(x * 100)}\u202F%`;
 
 function StatusIcon({ state }: { state: Health }) {
   if (state === "ready")
@@ -33,30 +31,49 @@ function StatusIcon({ state }: { state: Health }) {
 function StatusLabel({ state, label }: { state: Health; label: string }) {
   const className = state === "ready" ? "st-ok" : state === "error" ? "st-late" : "st-mid";
   return (
-    <span className={`status ${className}`}>
+    <span className={`status ${className}`} data-testid={`status-${state}`}>
       <StatusIcon state={state} />
       {label}
     </span>
   );
 }
 
-const STEPS = ["Vue d'ensemble", "Cadre de résultats", "Indicateurs", "Données", "Rapport"];
+const STEPS: MessageKey[] = ["nav.overview", "nav.framework", "nav.indicators", "nav.data", "nav.report"];
+const LANGS: { code: Lang; label: string; name: string }[] = [
+  { code: "fr", label: "FR", name: "Français" },
+  { code: "en", label: "EN", name: "English" },
+];
+
+/** Engine errors are stored as keys and translated at render time, so they follow the language. */
+interface UiError {
+  key: string;
+  detail: string;
+}
+
+const toUiError = (e: unknown): UiError =>
+  e instanceof EngineCallError ? { key: e.key, detail: e.message } : { key: "unknown", detail: String(e) };
 
 export function App() {
+  const { t, lang, setLang, hasKey, percent } = useI18n();
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [versions, setVersions] = useState<Versions | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<UiError | null>(null);
   const [result, setResult] = useState<Proportion | null>(null);
   const [computing, setComputing] = useState(false);
-  const [computeError, setComputeError] = useState<string | null>(null);
+  const [computeError, setComputeError] = useState<UiError | null>(null);
   const [design, setDesign] = useState<"survey" | "simple">("survey");
   const [showScript, setShowScript] = useState(false);
   const [folded, setFolded] = useState(false);
 
+  const describe = (err: UiError) => {
+    const key = `errors.${err.key}`;
+    return hasKey(key) ? t(key, { detail: err.detail }) : t("errors.unknown", { detail: err.detail });
+  };
+
   const loadVersions = () =>
     call<Versions>("system.versions")
       .then(setVersions)
-      .catch((e: Error) => setError(e.message));
+      .catch((e: unknown) => setError(toUiError(e)));
 
   const checkEngines = () => {
     setError(null);
@@ -74,15 +91,17 @@ export function App() {
   const runDemo = () => {
     setComputing(true);
     setComputeError(null);
-    call<Proportion>("demo.proportion", { design: design })
+    call<Proportion>("demo.proportion", { design })
       .then((r) => setResult(r))
-      .catch((e: Error) => setComputeError(e.message))
+      .catch((e: unknown) => setComputeError(toUiError(e)))
       .finally(() => setComputing(false));
   };
 
   const pythonState: Health = error ? "error" : versions ? "ready" : "waiting";
   const rState: Health = error || versions?.r_error ? "error" : versions?.r ? "ready" : "waiting";
   const allReady = pythonState === "ready" && rState === "ready";
+  const statusText = (state: Health) =>
+    state === "ready" ? t("status.ready") : state === "error" ? t("status.error") : t("status.waiting");
 
   const toggleTheme = () => {
     const r = document.documentElement;
@@ -90,9 +109,14 @@ export function App() {
     r.dataset.theme = dark ? "light" : "dark";
   };
 
+  const methodText = (r: Proportion) => {
+    const key = `method.${r.method_key}`;
+    return hasKey(key) ? t(key) : r.method;
+  };
+
   return (
     <div className={`app${folded ? " folded" : ""}`}>
-      <aside className="side" aria-label="Navigation">
+      <aside className="side" aria-label={t("nav.label")}>
         <div className="side-top">
           <span className="mark fold-hide">
             SuiviEval<span>Lab</span>
@@ -100,7 +124,7 @@ export function App() {
           <button
             className="icon-btn"
             onClick={() => setFolded(!folded)}
-            aria-label="Replier la barre latérale"
+            aria-label={t("side.fold")}
             aria-expanded={!folded}
           >
             <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
@@ -110,21 +134,35 @@ export function App() {
           </button>
         </div>
         <div className="fold-hide">
-          <div className="group-title">Projet</div>
-          <nav aria-label="Étapes du projet">
-            <a href="#demarrage" aria-current="page">
-              Démarrage
+          <div className="group-title">{t("nav.project")}</div>
+          <nav aria-label={t("nav.steps")}>
+            <a href="#start" aria-current="page">
+              {t("nav.start")}
             </a>
             {STEPS.map((step) => (
-              <span key={step} className="nav-off" title="Disponible dans une prochaine version">
-                {step}
+              <span key={step} className="nav-off" title={t("nav.soon")}>
+                {t(step)}
               </span>
             ))}
           </nav>
         </div>
         <div className="side-foot">
-          <span className="small muted fold-hide">Version {info?.version ?? "0.1.0"}</span>
-          <button className="icon-btn" onClick={toggleTheme} aria-label="Changer de thème">
+          <div className="lang fold-hide" role="group" aria-label={t("side.language")}>
+            {LANGS.map((l) => (
+              <button
+                key={l.code}
+                className="lang-btn"
+                aria-pressed={lang === l.code}
+                onClick={() => setLang(l.code)}
+                title={l.name}
+                data-testid={`lang-${l.code}`}
+                lang={l.code}
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
+          <button className="icon-btn" onClick={toggleTheme} aria-label={t("side.theme")} data-testid="theme">
             <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
               <circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" strokeWidth="1.4" />
               <path d="M9 3a6 6 0 0 1 0 12z" fill="currentColor" />
@@ -136,112 +174,127 @@ export function App() {
       <div className="main">
         <div className="bar">
           <div className="crumb">
-            SuiviEvalLab <span aria-hidden="true">/</span> <b>Démarrage</b>
+            SuiviEvalLab <span aria-hidden="true">/</span> <b>{t("start.title")}</b>
           </div>
-          <span className="saved">{isSimulated ? "Aperçu, moteurs simulés" : "Hors ligne"}</span>
+          <span className="saved">
+            {isSimulated ? t("app.preview") : t("app.offline")}
+            <span className="muted" style={{ marginLeft: 12 }}>
+              {t("side.version", { version: info?.version ?? "0.1.0" })}
+            </span>
+          </span>
         </div>
         <div className="col">
           <div className="inner">
             <div>
-              <h1>Démarrage</h1>
-              <p className="lead">
-                Cette première version vérifie que l'application et ses deux moteurs de calcul fonctionnent sur votre
-                ordinateur, sans connexion internet.
-              </p>
+              <h1>{t("start.title")}</h1>
+              <p className="lead">{t("start.lead")}</p>
             </div>
 
             <section>
               <div className="section-head">
-                <h2>Moteurs de calcul</h2>
+                <h2>{t("engines.title")}</h2>
                 <button className="btn" onClick={checkEngines}>
-                  Vérifier à nouveau
+                  {t("engines.recheck")}
                 </button>
               </div>
               <div className="list">
                 <div className="row">
-                  <span className="t">Interface</span>
+                  <span className="t">{t("engines.ui")}</span>
                   <span className="s">Electron {info?.electron ?? ""}</span>
                   <span className="v">
-                    <StatusLabel state="ready" label="Prête" />
+                    <StatusLabel state="ready" label={t("status.readyFeminine")} />
                   </span>
                 </div>
                 <div className="row">
-                  <span className="t">Moteur Python</span>
+                  <span className="t">{t("engines.python")}</span>
                   <span className="s">
                     {versions
-                      ? `Python ${versions.python}, polars ${versions.polars}, moteur ${versions.engine}`
-                      : (error ?? "Démarrage en cours")}
+                      ? t("engines.pythonDetail", {
+                          python: versions.python,
+                          polars: versions.polars,
+                          engine: versions.engine,
+                        })
+                      : error
+                        ? describe(error)
+                        : t("engines.starting")}
                   </span>
                   <span className="v">
-                    <StatusLabel
-                      state={pythonState}
-                      label={pythonState === "ready" ? "Prêt" : pythonState === "error" ? "Erreur" : "En attente"}
-                    />
+                    <StatusLabel state={pythonState} label={statusText(pythonState)} />
                   </span>
                 </div>
                 <div className="row">
-                  <span className="t">Moteur statistique R</span>
+                  <span className="t">{t("engines.r")}</span>
                   <span className="s">
                     {versions?.r
-                      ? `R ${versions.r.r}, survey ${versions.r.packages.survey ?? "absent"}, nanoarrow ${versions.r.packages.nanoarrow ?? "absent"}`
-                      : (versions?.r_error ?? (error ? "Indisponible" : "Démarrage en cours, quelques secondes"))}
+                      ? t("engines.rDetail", {
+                          r: versions.r.r,
+                          survey: versions.r.packages.survey ?? t("engines.missing"),
+                          nanoarrow: versions.r.packages.nanoarrow ?? t("engines.missing"),
+                        })
+                      : (versions?.r_error ?? (error ? t("engines.unavailable") : t("engines.rStarting")))}
                   </span>
                   <span className="v">
-                    <StatusLabel
-                      state={rState}
-                      label={rState === "ready" ? "Prêt" : rState === "error" ? "Erreur" : "En attente"}
-                    />
+                    <StatusLabel state={rState} label={statusText(rState)} />
                   </span>
                 </div>
               </div>
               {info?.logs && (pythonState === "error" || rState === "error") && (
                 <p className="small muted" style={{ marginTop: 12 }}>
-                  Journal du moteur : {info.logs}
+                  {t("engines.logs", { path: info.logs })}
                 </p>
               )}
             </section>
 
             <section className="stack">
-              <h2>Calcul de démonstration</h2>
+              <h2>{t("demo.title")}</h2>
               <p className="muted" style={{ margin: 0 }}>
-                Proportion de filles de 6 à 11 ans scolarisées, sur 612 ménages fictifs. Le calcul est fait par R, comme
-                le seront tous les calculs de l'application.
+                {t("demo.lead")}
               </p>
-              <div className="chips" role="group" aria-label="Type de calcul">
+              <div className="chips" role="group" aria-label={t("demo.designLabel")}>
                 <button className="chip" aria-pressed={design === "survey"} onClick={() => setDesign("survey")}>
-                  Avec plan d'enquête
+                  {t("demo.survey")}
                 </button>
                 <button className="chip" aria-pressed={design === "simple"} onClick={() => setDesign("simple")}>
-                  Échantillon simple
+                  {t("demo.simple")}
                 </button>
               </div>
               <div>
-                <button className="btn primary" onClick={runDemo} disabled={!allReady || computing}>
-                  {computing ? "Calcul en cours" : "Lancer le calcul"}
+                <button
+                  className="btn primary"
+                  onClick={runDemo}
+                  disabled={!allReady || computing}
+                  data-testid="run-demo"
+                >
+                  {computing ? t("demo.running") : t("demo.run")}
                 </button>
               </div>
               {computeError && (
                 <div className="hint hint-err" role="alert">
                   <StatusIcon state="error" />
                   <div>
-                    <div className="t">Le calcul n'a pas abouti</div>
-                    <div className="small">{computeError}</div>
+                    <div className="t">{t("demo.failed")}</div>
+                    <div className="small">{describe(computeError)}</div>
                   </div>
                 </div>
               )}
               {result && (
                 <div className="result">
-                  <span className="figure">{formatPercent(result.estimate)}</span>
-                  <span className="muted">
-                    Intervalle de confiance à {formatNumber(result.level * 100, 0)} % : {formatPercent(result.ci_low)} à{" "}
-                    {formatPercent(result.ci_high)}
+                  <span className="figure" data-testid="figure">
+                    {percent(result.estimate)}
+                  </span>
+                  <span className="muted" data-testid="ci">
+                    {t("demo.ci", {
+                      level: percent(result.level, 0),
+                      low: percent(result.ci_low),
+                      high: percent(result.ci_high),
+                    })}
                   </span>
                   <span className="small muted">
-                    {result.successes} filles scolarisées sur {result.n}. {result.method}.
+                    {t("demo.counts", { x: result.successes, n: result.n })} {methodText(result)}.
                   </span>
                   <div>
                     <button className="btn" onClick={() => setShowScript(!showScript)} aria-expanded={showScript}>
-                      {showScript ? "Masquer le script R" : "Voir le script R"}
+                      {showScript ? t("demo.hideScript") : t("demo.showScript")}
                     </button>
                   </div>
                   {showScript && <pre className="code-block">{result.script}</pre>}

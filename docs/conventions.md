@@ -8,11 +8,18 @@ Rules every contribution follows. When in doubt, follow the existing code and as
 |---|---|
 | Code, identifiers, code comments, docstrings | English |
 | Commit messages, branch names, pull requests, issues, developer docs | English |
-| Interface text | French first, English as second language (the app becomes bilingual) |
+| Interface text | French and English, chosen by the user (French is the reference) |
 | User documentation | French and English |
 | Demo data values (village names, answer labels) | French, as in real field data |
 
-Interface strings currently live in the components. When internationalisation lands, they move to translation catalogues; do not translate them in place before that.
+Interface strings live in `apps/desktop/src/renderer/i18n/messages.ts`, never in components. Components call `t("key")` from `useI18n()`. Rules:
+
+- Every key exists in both catalogues. The English catalogue is typed against the French one, so a missing key fails `npm run typecheck`.
+- Placeholders use `{name}` and are filled with `t("key", { name })`. Do not build sentences by concatenation: word order differs between languages.
+- Numbers and percentages go through `number()` and `percent()` from `useI18n()`, which follow the interface locale (fr-FR or en-GB).
+- The engines do not produce interface text. An error the user may see carries a translation key in `data.key` (for example `r_timeout`), and the interface maps it to `errors.<key>`. Results carry keys too (for example `method_key`). Engine messages themselves are in English and meant for logs.
+- The chosen language is stored per user; the first start follows the system language.
+- End-to-end tests select elements with `data-testid`, never with displayed text.
 
 ## 2. Repository layout
 
@@ -73,7 +80,8 @@ The reference is the clickable prototype and the "Identité SuiviEvalLab" design
 - **No em dash or en dash** used as a separator, and no decorative middle dot. Use a comma, a colon, parentheses or a new sentence.
 - No emoji, no exclamation marks, no greetings, no sales adjectives, no "sparkle" icon for automated features: say what the feature does.
 - Results: magnitude first, then significance. « Est passé de 52,0 % à 63,4 %, soit une hausse de 11,4 points. »
-- Numbers follow the locale: `63,4 %`, `1 184` in French (narrow no-break space before `%`).
+- Numbers follow the locale: `63,4 %`, `1 184` in French (narrow no-break space before `%`), `63.4%`, `1,184` in English.
+- English text follows the same rules: plain verbs on buttons ("Import a file", "Generate the Word report"), British spelling, sentence case.
 
 ## 8. Dependencies and licences
 

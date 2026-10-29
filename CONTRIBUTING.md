@@ -99,3 +99,9 @@ Never attach real personal data of programme beneficiaries to an issue.
 ## 6. Licence
 
 By contributing, you agree that your contribution is licensed under the GPL-3.0-or-later licence of the project.
+
+## Releasing
+
+1. Set the new version in `apps/desktop/package.json` and merge it into `main`.
+2. Tag that commit `v<version>` (for example `v0.2.0`) and push the tag.
+3. The Release workflow builds the installer, runs the smoke and end-to-end tests, and publishes a GitHub release with the installer and `SHA256SUMS.txt`. Versions below 1.0 are marked as pre-releases. The release notes template is `.github/release/notes.md`.

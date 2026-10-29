@@ -5,7 +5,8 @@
 # See docs/statistics.md, section 3.
 #
 # Also returns the R script that reproduces the computation exactly.
-# The `method` text is user-facing (French for now, translated later).
+# `method_key` lets the interface show the method in the user's language;
+# `method` keeps a readable label for logs and reports.
 
 sme_proportion <- function(path, var, success, level = 0.95,
                            weights = NULL, strata = NULL, cluster = NULL) {
@@ -23,6 +24,7 @@ sme_proportion <- function(path, var, success, level = 0.95,
     est <- unname(test$estimate)
     ci <- as.numeric(test$conf.int)
     methode <- "Intervalle de Wilson (prop.test, sans correction de continuité)"
+    method_key <- "wilson"
     script <- sprintf(
       'donnees <- as.data.frame(nanoarrow::read_nanoarrow("%s"))\nx <- sum(donnees$%s == "%s", na.rm = TRUE)\nn <- sum(!is.na(donnees$%s))\nprop.test(x, n, conf.level = %s, correct = FALSE)',
       basename(path), var, success, var, level
@@ -37,6 +39,7 @@ sme_proportion <- function(path, var, success, level = 0.95,
     est <- as.numeric(res)
     ci <- as.numeric(attr(res, "ci"))
     methode <- "Proportion pondérée, plan d'enquête (survey::svyciprop, méthode logit)"
+    method_key <- "survey_logit"
     script <- sprintf(
       'library(survey)\ndonnees <- as.data.frame(nanoarrow::read_nanoarrow("%s"))\ndonnees$succes <- as.numeric(donnees$%s == "%s")\nplan <- svydesign(ids = %s, strata = %s, weights = %s, data = donnees, nest = TRUE)\nsvyciprop(~succes, plan, method = "logit", level = %s)',
       basename(path), var, success,
@@ -55,6 +58,7 @@ sme_proportion <- function(path, var, success, level = 0.95,
     n = n,
     successes = x,
     method = methode,
+    method_key = method_key,
     script = script
   )
 }

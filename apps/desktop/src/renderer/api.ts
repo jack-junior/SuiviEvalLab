@@ -2,7 +2,17 @@
 // In the app, window.sme is provided by the preload script. Opened in a plain browser
 // (development preview), the interface falls back to simulated responses.
 
-export type CallResult<T> = { ok: true; result: T } | { ok: false; error: string };
+export type CallResult<T> = { ok: true; result: T } | { ok: false; error: string; key?: string };
+
+/** Error from the engines: `key` is translated by the interface, `message` is the technical detail. */
+export class EngineCallError extends Error {
+  constructor(
+    message: string,
+    public readonly key: string = "unknown",
+  ) {
+    super(message);
+  }
+}
 
 interface SmeBridge {
   call: (method: string, params?: Record<string, unknown>) => Promise<CallResult<unknown>>;
@@ -33,6 +43,7 @@ export interface Proportion {
   n: number;
   successes: number;
   method: string;
+  method_key: "wilson" | "survey_logit";
   script: string;
 }
 
@@ -63,13 +74,14 @@ const simulated: SmeBridge = {
       return {
         ok: true,
         result: {
-          estimate: 0.6205,
+          estimate: 0.6204,
           ci_low: 0.5821,
           ci_high: 0.6574,
           level: 0.95,
           n: 612,
           successes: 381,
-          method: "Proportion pondérée, plan d'enquête (survey::svyciprop, méthode logit)",
+          method: "survey::svyciprop (logit)",
+          method_key: "survey_logit",
           script:
             'library(survey)\nplan <- svydesign(ids = ~village, strata = ~zone, weights = ~poids, data = donnees, nest = TRUE)\nsvyciprop(~succes, plan, method = "logit", level = 0.95)',
         },
@@ -78,7 +90,7 @@ const simulated: SmeBridge = {
     return { ok: true, result: { pong: true } };
   },
   async info() {
-    return { version: "0.1.0", electron: "aperçu", packaged: false, logs: "" };
+    return { version: "0.1.0", electron: "preview", packaged: false, logs: "" };
   },
 };
 
@@ -87,7 +99,7 @@ const bridge: SmeBridge = (typeof window !== "undefined" && window.sme) || simul
 
 export async function call<T>(method: string, params?: Record<string, unknown>): Promise<T> {
   const res = (await bridge.call(method, params)) as CallResult<T>;
-  if (!res.ok) throw new Error(res.error);
+  if (!res.ok) throw new EngineCallError(res.error, res.key);
   return res.result;
 }
 

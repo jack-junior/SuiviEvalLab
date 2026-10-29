@@ -61,10 +61,10 @@ class RBridge:
             return self._ready
         rscript = find_rscript()
         if not rscript:
-            raise RpcError("R est introuvable. Vérifiez l'installation de SuiviEvalLab.")
+            raise RpcError("R cannot be found.", data={"key": "r_not_found"})
         worker = r_dir() / "worker.R"
         if not worker.exists():
-            raise RpcError(f"Le moteur R est incomplet : {worker} manquant.")
+            raise RpcError(f"The R engine is incomplete: {worker} is missing.", data={"key": "r_incomplete"})
         log.info("Starting R: %s %s", rscript, worker)
         env = dict(os.environ)
         env.setdefault("R_LIBS_USER", "")  # ignore any personal R library
@@ -85,10 +85,10 @@ class RBridge:
             msg = self._responses.get(timeout=READY_TIMEOUT)
         except queue.Empty:
             self.stop()
-            raise RpcError("R n'a pas démarré à temps.") from None
+            raise RpcError("R did not start in time.", data={"key": "r_start_timeout"}) from None
         if msg.get("ready") is not True:
             self.stop()
-            raise RpcError("R a renvoyé un message de démarrage inattendu.", data=msg)
+            raise RpcError("Unexpected R start message.", data={"key": "r_bad_start", "message": msg})
         self._ready = msg
         log.info("R ready: %s", msg.get("r_version"))
         return msg
@@ -138,15 +138,15 @@ class RBridge:
             except queue.Empty:
                 log.error("Timeout for %s, restarting R", fn)
                 self.stop()
-                raise RpcError(f"Le calcul R « {fn} » a dépassé {int(timeout)} s.") from None
+                raise RpcError(f"R call {fn!r} exceeded {int(timeout)} s.", data={"key": "r_timeout"}) from None
             if msg.get("closed"):
                 self.stop()
-                raise RpcError("Le moteur R s'est arrêté pendant le calcul.")
+                raise RpcError("The R engine stopped during the call.", data={"key": "r_stopped"})
             if msg.get("id") != req_id:
                 self.stop()
-                raise RpcError("Réponse R désynchronisée.", data=msg)
+                raise RpcError("R response out of sync.", data={"key": "r_desync", "message": msg})
             if "error" in msg:
-                raise RpcError(f"Erreur R : {msg['error']}")
+                raise RpcError(str(msg["error"]), data={"key": "r_error"})
             return msg.get("result")
 
     def write_table(self, df: pl.DataFrame, name: str) -> str:

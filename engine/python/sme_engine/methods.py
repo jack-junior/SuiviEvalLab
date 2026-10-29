@@ -41,7 +41,7 @@ def register(server: Server, bridge: RBridge) -> None:
         """Share of girls attending school, with or without a survey design."""
         design = params.get("design", "survey")
         if design not in ("simple", "survey"):
-            raise RpcError("design doit valoir « simple » ou « survey »", INVALID_PARAMS)
+            raise RpcError('design must be "simple" or "survey"', INVALID_PARAMS, data={"key": "invalid_design"})
         df = demo.girls_6_11()
         path = bridge.write_table(df, "demo_girls")
         args: dict[str, Any] = {"path": path, "var": "scolarise", "success": "Oui", "level": 0.95}

@@ -19,9 +19,11 @@ interface Pending {
   timer: NodeJS.Timeout;
 }
 
+// Errors carry a stable `key` that the interface translates; `message` is a technical fallback.
 export class EngineError extends Error {
   constructor(
     message: string,
+    public readonly key: string = "unknown",
     public readonly code: number = -32000,
   ) {
     super(message);
@@ -59,7 +61,7 @@ export class EngineClient {
     proc.on("error", (err) => this.log(`Impossible de lancer le moteur : ${err.message}`));
     proc.on("exit", (code) => {
       this.log(`Moteur arrêté (code ${code})`);
-      this.failAll(new EngineError("Le moteur de calcul s'est arrêté."));
+      this.failAll(new EngineError("Engine stopped", "engine_stopped"));
       this.proc = null;
       if (!this.stopping && this.restarts < 3) {
         this.restarts += 1;
@@ -70,14 +72,14 @@ export class EngineClient {
 
   call<T = unknown>(method: string, params: Record<string, unknown> = {}, timeoutMs = 180_000): Promise<T> {
     if (!this.proc || !this.proc.stdin || this.proc.stdin.destroyed) {
-      return Promise.reject(new EngineError("Le moteur de calcul n'est pas disponible."));
+      return Promise.reject(new EngineError("Engine unavailable", "engine_unavailable"));
     }
     const id = this.nextId++;
     const line = JSON.stringify({ jsonrpc: "2.0", id, method, params });
     return new Promise<T>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
-        reject(new EngineError(`Délai dépassé pour « ${method} ».`));
+        reject(new EngineError(`Timeout for ${method}`, "timeout"));
       }, timeoutMs);
       this.pending.set(id, { resolve: resolve as (v: unknown) => void, reject, timer });
       this.proc!.stdin!.write(line + "\n", "utf8");
@@ -95,7 +97,7 @@ export class EngineClient {
     let msg: {
       id?: number;
       result?: unknown;
-      error?: { code: number; message: string };
+      error?: { code: number; message: string; data?: { key?: string } };
       method?: string;
       params?: unknown;
     };
@@ -113,7 +115,7 @@ export class EngineClient {
     if (!p) return;
     this.pending.delete(msg.id);
     clearTimeout(p.timer);
-    if (msg.error) p.reject(new EngineError(msg.error.message, msg.error.code));
+    if (msg.error) p.reject(new EngineError(msg.error.message, msg.error.data?.key ?? "unknown", msg.error.code));
     else p.resolve(msg.result);
   }
 

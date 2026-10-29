@@ -79,14 +79,14 @@ app.whenReady().then(() => {
 
   ipcMain.handle("engine:call", async (_e, method: unknown, params: unknown) => {
     if (typeof method !== "string" || !ALLOWED.has(method)) {
-      return { ok: false, error: "Action non autorisée." };
+      return { ok: false, error: "Not allowed", key: "not_allowed" };
     }
     try {
       const result = await engine!.call(method, (params as Record<string, unknown>) ?? {});
       return { ok: true, result };
     } catch (err) {
-      const message = err instanceof EngineError || err instanceof Error ? err.message : String(err);
-      return { ok: false, error: message };
+      if (err instanceof EngineError) return { ok: false, error: err.message, key: err.key };
+      return { ok: false, error: err instanceof Error ? err.message : String(err), key: "unknown" };
     }
   });
   ipcMain.handle("app:info", () => ({

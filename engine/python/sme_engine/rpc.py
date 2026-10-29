@@ -1,7 +1,7 @@
 """Line-delimited JSON-RPC 2.0 server over stdin and stdout.
 
-User-facing messages (returned in errors) are in French for now; they will move
-to translation catalogs when the interface becomes bilingual.
+Error messages are in English and meant for logs. Errors the interface shows
+carry a translation key in `data.key`; the interface owns the wording.
 """
 
 from __future__ import annotations
@@ -66,22 +66,22 @@ class Server:
         try:
             request = json.loads(line)
         except json.JSONDecodeError as exc:
-            return _error(None, PARSE_ERROR, f"Requête illisible : {exc.msg}")
+            return _error(None, PARSE_ERROR, f"Unreadable request: {exc.msg}")
 
         if not isinstance(request, dict) or request.get("jsonrpc") != "2.0" or "method" not in request:
             return _error(
-                request.get("id") if isinstance(request, dict) else None, INVALID_REQUEST, "Requête JSON-RPC invalide"
+                request.get("id") if isinstance(request, dict) else None, INVALID_REQUEST, "Invalid JSON-RPC request"
             )
 
         req_id = request.get("id")
         name = request["method"]
         params = request.get("params") or {}
         if not isinstance(params, dict):
-            return _error(req_id, INVALID_PARAMS, "Les paramètres doivent être un objet")
+            return _error(req_id, INVALID_PARAMS, "Params must be an object")
 
         handler = self._methods.get(name)
         if handler is None:
-            return _error(req_id, METHOD_NOT_FOUND, f"Méthode inconnue : {name}")
+            return _error(req_id, METHOD_NOT_FOUND, f"Unknown method: {name}")
 
         try:
             result = handler(params)
@@ -89,7 +89,7 @@ class Server:
             return _error(req_id, exc.code, str(exc), exc.data)
         except Exception as exc:  # noqa: BLE001 - the engine must never crash on a request
             log.error("Internal error in %s\n%s", name, traceback.format_exc())
-            return _error(req_id, INTERNAL_ERROR, f"Erreur interne : {exc}")
+            return _error(req_id, INTERNAL_ERROR, f"Internal error: {exc}", {"key": "internal"})
 
         if req_id is None:
             return None

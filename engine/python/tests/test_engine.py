@@ -40,7 +40,7 @@ def test_unknown_method():
     server, _ = make_server()
     resp = call(server, "does.not.exist")
     assert resp["error"]["code"] == -32601
-    assert "Méthode inconnue" in resp["error"]["message"]
+    assert "Unknown method" in resp["error"]["message"]
 
 
 def test_unreadable_request():
@@ -53,6 +53,7 @@ def test_invalid_params():
     server, _ = make_server()
     resp = call(server, "demo.proportion", {"design": "other"})
     assert resp["error"]["code"] == -32602
+    assert resp["error"]["data"]["key"] == "invalid_design"
 
 
 @needs_r
@@ -64,6 +65,7 @@ def test_python_r_chain_survey_design():
         assert 0 < res["ci_low"] < res["estimate"] < res["ci_high"] < 1
         assert res["n"] == 612
         assert "svyciprop" in res["script"]
+        assert res["method_key"] == "survey_logit"
     finally:
         bridge.stop()
 
@@ -74,6 +76,7 @@ def test_python_r_chain_simple_matches_wilson():
     server, bridge = make_server()
     try:
         res = call(server, "demo.proportion", {"design": "simple"})["result"]
+        assert res["method_key"] == "wilson"
         x, n, z = res["successes"], res["n"], 1.959963984540054
         p = x / n
         center = (p + z * z / (2 * n)) / (1 + z * z / n)

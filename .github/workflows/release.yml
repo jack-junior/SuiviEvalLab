@@ -1,0 +1,94 @@
+name: Release
+
+# Publishes a GitHub release when a version tag (v0.1.0, v0.2.0, ...) is pushed.
+# The installer is built, smoke-tested and end-to-end tested here, then
+# attached to the release with its SHA-256 checksum. Versions below 1.0 are
+# marked as pre-releases.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish the Windows installer
+    runs-on: windows-2022
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Cache embedded runtimes
+        uses: actions/cache@v4
+        with:
+          path: build/cache
+          key: runtimes-${{ hashFiles('tools/windows/prepare-runtimes.ps1') }}
+
+      - name: Prepare embedded Python and R
+        shell: pwsh
+        run: ./tools/windows/prepare-runtimes.ps1
+
+      - name: Smoke test with the embedded engines
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force build/runtime/engine/python | Out-Null
+          Copy-Item -Recurse -Force engine/python/sme_engine build/runtime/engine/python/
+          Copy-Item -Recurse -Force engine/r build/runtime/engine/
+          python tools/smoke_test.py --python build/runtime/python/python.exe --rscript build/runtime/R/bin/Rscript.exe --rdir build/runtime/engine/r
+          $code = $LASTEXITCODE
+          Remove-Item -Recurse -Force build/runtime/engine
+          if ($code -ne 0) { exit $code }
+
+      - name: Build the installer
+        working-directory: apps/desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: |
+          npm ci --no-audit --no-fund
+          npm run dist:win
+
+      - name: End-to-end test of the installed app
+        shell: pwsh
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+        run: |
+          npm install --no-save --no-audit --no-fund --no-package-lock playwright@1.64.0
+          node tools/e2e/electron-smoke.mjs apps/desktop/release/win-unpacked/SuiviEvalLab.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Check that the tag matches the app version
+        shell: pwsh
+        run: |
+          $version = (Get-Content apps/desktop/package.json -Raw | ConvertFrom-Json).version
+          if ("v$version" -ne "${{ github.ref_name }}") {
+            Write-Error "Tag ${{ github.ref_name }} does not match package.json version $version"
+            exit 1
+          }
+
+      - name: Publish the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag.TrimStart("v")
+          $exe = Get-ChildItem apps/desktop/release/*.exe | Select-Object -First 1
+          $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
+          "$hash  $($exe.Name)" | Out-File -Encoding ascii SHA256SUMS.txt
+          (Get-Content .github/release/notes.md -Raw).Replace("<version>", $version) | Out-File -Encoding utf8 notes.md
+          $flags = @()
+          if ($version.StartsWith("0.")) { $flags += "--prerelease" }
+          gh release create $tag $exe.FullName SHA256SUMS.txt --title "SuiviEvalLab $version" --notes-file notes.md @flags
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "::notice title=Release::$tag published, $($exe.Name), sha256 $hash"

@@ -403,3 +403,28 @@ h2 {
     transition: none !important;
   }
 }
+
+.lang {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  background: var(--survol);
+}
+.lang-btn {
+  height: 26px;
+  min-width: 34px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--encre-2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lang-btn[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--encre);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
