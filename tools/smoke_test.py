@@ -1,8 +1,8 @@
-"""Test de fumée : lance le moteur comme l'application installée et vérifie la chaîne complète.
+"""Smoke test: starts the engine like the installed app and checks the full chain.
 
     python tools/smoke_test.py --python build/runtime/python/python.exe --rscript build/runtime/R/bin/Rscript.exe
 
-Sans argument, utilise le Python courant et le Rscript du PATH.
+Without arguments, uses the current Python and the Rscript on the PATH.
 """
 
 from __future__ import annotations
@@ -21,18 +21,26 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--python", default=sys.executable)
     ap.add_argument("--rscript", default=None)
-    ap.add_argument("--rdir", default=str(ROOT / "engine" / "r"),
-                    help="Dossier du moteur R (worker.R et R/)")
+    ap.add_argument("--rdir", default=str(ROOT / "engine" / "r"), help="R engine folder (worker.R and R/)")
     a = ap.parse_args()
 
-    env = dict(os.environ, PYTHONIOENCODING="utf-8", SME_R_DIR=str(Path(a.rdir).resolve()),
-               PYTHONPATH=str(ROOT / "engine" / "python"))
+    env = dict(
+        os.environ,
+        PYTHONIOENCODING="utf-8",
+        SME_R_DIR=str(Path(a.rdir).resolve()),
+        PYTHONPATH=str(ROOT / "engine" / "python"),
+    )
     if a.rscript:
         env["SME_RSCRIPT"] = str(Path(a.rscript).resolve())
 
     proc = subprocess.Popen(
-        [a.python, "-X", "utf8", "-m", "sme_engine"], cwd=ROOT / "engine" / "python", env=env,
-        stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, encoding="utf-8",
+        [a.python, "-X", "utf8", "-m", "sme_engine"],
+        cwd=ROOT / "engine" / "python",
+        env=env,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
     )
     requests = [
         ("system.ping", {}),
@@ -48,11 +56,18 @@ def main() -> int:
         resume = json.dumps(rep.get("result", rep.get("error")), ensure_ascii=False)
         print(method, resume[:300])
         if os.environ.get("GITHUB_ACTIONS"):
-            # Annotation visible dans le résumé de la construction.
-            court = resume if method != "demo.proportion" else (
-                f"estimation {rep['result']['estimate']:.4f}, IC [{rep['result']['ci_low']:.4f} ; "
-                f"{rep['result']['ci_high']:.4f}], n {rep['result']['n']}" if "result" in rep else resume)
-            print(f"::notice title=Test de fumée {method}::{court[:400]}")
+            # Annotation shown in the build summary.
+            court = (
+                resume
+                if method != "demo.proportion"
+                else (
+                    f"estimation {rep['result']['estimate']:.4f}, IC [{rep['result']['ci_low']:.4f} ; "
+                    f"{rep['result']['ci_high']:.4f}], n {rep['result']['n']}"
+                    if "result" in rep
+                    else resume
+                )
+            )
+            print(f"::notice title=Smoke test {method}::{court[:400]}")
         if "error" in rep or (method == "system.versions" and "r_error" in rep["result"]):
             ok = False
         if method == "demo.proportion" and "result" in rep:
@@ -60,7 +75,7 @@ def main() -> int:
             ok = ok and r["n"] == 612 and 0 < r["ci_low"] < r["estimate"] < r["ci_high"] < 1
     proc.stdin.close()
     proc.wait(timeout=30)
-    print("SUCCÈS" if ok else "ÉCHEC")
+    print("SUCCESS" if ok else "FAILURE")
     return 0 if ok else 1
 
 

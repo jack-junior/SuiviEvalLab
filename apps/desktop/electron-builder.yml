@@ -8,18 +8,18 @@ files:
   - package.json
 asar: true
 extraResources:
-  # Python embarqué (préparé par tools/windows/prepare-runtimes.ps1)
+  # Embedded Python (prepared by tools/windows/prepare-runtimes.ps1)
   - from: ../../build/runtime/python
     to: python
-  # R embarqué avec ses packages
+  # Embedded R with its packages
   - from: ../../build/runtime/R
     to: R
-  # Moteur métier Python
+  # Python business engine
   - from: ../../engine/python/sme_engine
     to: engine/python/sme_engine
     filter:
       - "**/*.py"
-  # Moteur statistique R
+  # R statistical engine
   - from: ../../engine/r
     to: engine/r
     filter:

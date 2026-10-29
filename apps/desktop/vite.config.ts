@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// L'interface est servie depuis des fichiers locaux : chemins relatifs, aucun appel réseau.
+// The interface is served from local files: relative paths, no network calls.
 export default defineConfig({
   root: "src/renderer",
   base: "./",

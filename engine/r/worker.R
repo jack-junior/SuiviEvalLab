@@ -1,9 +1,9 @@
-# Moteur statistique de SuiviEvalLab.
+# SuiviEvalLab statistical engine.
 #
-# Processus R persistant piloté par le moteur Python. Il lit une commande JSON
-# par ligne sur l'entrée standard : {"id": 1, "fn": "proportion", "args": {...}}
-# et répond sur la sortie standard : {"id": 1, "result": ...} ou {"id": 1, "error": "..."}.
-# Les messages de diagnostic partent sur la sortie d'erreur.
+# Persistent R process driven by the Python engine. Reads one JSON command per
+# line on stdin: {"id": 1, "fn": "proportion", "args": {...}}
+# and answers on stdout: {"id": 1, "result": ...} or {"id": 1, "error": "..."}.
+# Diagnostics go to stderr.
 
 local({
   args <- commandArgs(trailingOnly = TRUE)

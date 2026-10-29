@@ -1,51 +1,33 @@
 # SuiviEvalLab
 
-Poste de travail de bureau pour les professionnels du suivi-évaluation : du cadre logique au rapport Word, sur votre ordinateur, sans connexion internet, avec la rigueur statistique de R.
+**FR** : Poste de travail de bureau pour les professionnels du suivi-évaluation : du cadre logique au rapport Word, sur votre ordinateur, sans connexion internet, avec la rigueur statistique de R.
 
-*A desktop workstation for monitoring and evaluation professionals: from the logframe to the Word report, offline, with the statistical rigour of R.*
+**EN**: A desktop workstation for monitoring and evaluation professionals: from the logframe to the Word report, offline, with the statistical rigour of R.
 
-## État du projet
+## Status
 
-Version **0.1, étape 0 (fondations)**. Cette version vérifie que l'application et ses deux moteurs de calcul fonctionnent sur Windows. Elle ne contient pas encore les fonctions métier.
+Version **0.1.0**, step 0 (foundations): the Windows app starts, its Python and R engines run, and a demo computation goes through the whole chain. Business features start with step 1. See the [roadmap](docs/roadmap.md).
 
-| Étape | Contenu | État |
-|---|---|---|
-| 0. Fondations | Application Windows, moteurs Python et R embarqués, calcul de démonstration | En cours |
-| 1. Démonstrateur | Parcours complet en version simple sur un projet exemple | À venir |
-| 2 à 6 | Cadre, indicateurs, données, statistiques, rapport, bêta | À venir |
+## Install (Windows 10 and 11)
 
-## Installer (Windows 10 et 11)
+1. Open the **Actions** tab, pick the latest green run on `main`, download the `SuiviEvalLab-installation-windows` artifact (GitHub sign-in required).
+2. Unzip it and run `SuiviEvalLab-<version>-installation.exe`.
+3. The installer is not signed yet. If Windows shows "Windows protected your PC", click **More info**, then **Run anyway**.
 
-1. Ouvrez l'onglet **Actions** du dépôt, choisissez la dernière construction réussie, et téléchargez l'artefact `SuiviEvalLab-installation-windows`.
-2. Décompressez-le et lancez `SuiviEvalLab-0.1.0-installation.exe`.
-3. L'installateur n'est pas encore signé : Windows peut afficher « Windows a protégé votre ordinateur ». Cliquez sur **Informations complémentaires**, puis **Exécuter quand même**.
+No administrator rights needed. Python and R are included.
 
-Aucun droit administrateur n'est nécessaire. Python et R sont inclus : rien d'autre à installer.
+## Develop
 
-## Architecture
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and workflow, [docs/conventions.md](docs/conventions.md) for the rules, and [docs/architecture.md](docs/architecture.md) for how the pieces fit.
 
 ```
-apps/desktop      Interface (Electron, React, TypeScript)
-engine/python     Moteur métier (Python) : fichiers, nettoyage, rapports, orchestration
-engine/r          Moteur statistique (R) : tous les calculs statistiques
-tools/            Construction des moteurs embarqués, tests de fumée
-```
-
-L'interface dialogue avec le moteur Python en JSON-RPC sur l'entrée et la sortie standard. Le moteur Python pilote un processus R persistant ; les tableaux de données passent au format Arrow IPC. Aucune communication réseau entre les composants.
-
-## Développer
-
-Prérequis : Node.js 22, Python 3.12 ou plus, R 4.4 avec les packages de `engine/r/packages.txt`.
-
-```bash
-# Moteurs
-cd engine/python && pip install -r requirements.txt pytest && python -m pytest
-Rscript engine/r/tests/test_proportion.R
-
-# Interface
-cd apps/desktop && npm ci && npm start
+apps/desktop      Electron + React + TypeScript interface
+engine/python     Business engine (Python)
+engine/r          Statistical engine (R)
+tools/            Build scripts, smoke and end-to-end tests
+docs/             Developer documentation and decision records
 ```
 
 ## Licence
 
-GPL-3.0-or-later. Voir [LICENSE](LICENSE).
+GPL-3.0-or-later. See [LICENSE](LICENSE).

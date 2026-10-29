@@ -1,6 +1,6 @@
-// Accès aux moteurs depuis l'interface.
-// Dans l'application, window.sme est fourni par le preload. Ouverte dans un simple
-// navigateur (aperçu de développement), l'interface utilise des réponses simulées.
+// Engine access from the interface.
+// In the app, window.sme is provided by the preload script. Opened in a plain browser
+// (development preview), the interface falls back to simulated responses.
 
 export type CallResult<T> = { ok: true; result: T } | { ok: false; error: string };
 
@@ -51,7 +51,10 @@ const simulated: SmeBridge = {
       return {
         ok: true,
         result: {
-          engine: "0.1.0", python: "3.12", polars: "2.0.0", platform: "Aperçu navigateur",
+          engine: "0.1.0",
+          python: "3.12",
+          polars: "2.0.0",
+          platform: "Aperçu navigateur",
           r: { r: "4.4.3", packages: { survey: "4.5", jsonlite: "2.0.0", nanoarrow: "0.8.0" } },
         },
       };
@@ -60,9 +63,15 @@ const simulated: SmeBridge = {
       return {
         ok: true,
         result: {
-          estimate: 0.6205, ci_low: 0.5821, ci_high: 0.6574, level: 0.95, n: 612, successes: 381,
+          estimate: 0.6205,
+          ci_low: 0.5821,
+          ci_high: 0.6574,
+          level: 0.95,
+          n: 612,
+          successes: 381,
           method: "Proportion pondérée, plan d'enquête (survey::svyciprop, méthode logit)",
-          script: "library(survey)\nplan <- svydesign(ids = ~village, strata = ~zone, weights = ~poids, data = donnees, nest = TRUE)\nsvyciprop(~succes, plan, method = \"logit\", level = 0.95)",
+          script:
+            'library(survey)\nplan <- svydesign(ids = ~village, strata = ~zone, weights = ~poids, data = donnees, nest = TRUE)\nsvyciprop(~succes, plan, method = "logit", level = 0.95)',
         },
       };
     }

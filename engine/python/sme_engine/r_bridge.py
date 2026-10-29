@@ -1,9 +1,8 @@
-"""Pont vers le moteur statistique R.
+"""Bridge to the R statistical engine.
 
-Un processus R persistant (worker.R) reçoit des commandes JSON, une par ligne,
-et répond de la même façon. Les tableaux de données ne passent jamais en JSON :
-ils sont écrits au format Arrow IPC dans le dossier de travail, et R les lit
-avec le package nanoarrow.
+A persistent R process (worker.R) receives JSON commands, one per line, and
+answers the same way. Data tables never travel as JSON: they are written as
+Arrow IPC streams in the working directory and read by R with nanoarrow.
 """
 
 from __future__ import annotations
@@ -18,7 +17,7 @@ import subprocess
 import tempfile
 import threading
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import polars as pl
 
@@ -30,8 +29,8 @@ DEFAULT_TIMEOUT = 120.0
 READY_TIMEOUT = 60.0
 
 
-def find_rscript() -> Optional[str]:
-    """Trouve Rscript : variable SME_RSCRIPT d'abord (R embarqué), sinon le PATH."""
+def find_rscript() -> str | None:
+    """Locate Rscript: SME_RSCRIPT first (embedded R), then the PATH."""
     explicit = os.environ.get("SME_RSCRIPT")
     if explicit:
         return explicit if Path(explicit).exists() else None
@@ -39,7 +38,7 @@ def find_rscript() -> Optional[str]:
 
 
 def r_dir() -> Path:
-    """Dossier du code R de SuiviEvalLab (worker.R et R/)."""
+    """Folder holding the R code (worker.R and R/)."""
     explicit = os.environ.get("SME_R_DIR")
     if explicit:
         return Path(explicit)
@@ -47,17 +46,17 @@ def r_dir() -> Path:
 
 
 class RBridge:
-    def __init__(self, workdir: Optional[Path] = None):
-        self._proc: Optional[subprocess.Popen[str]] = None
-        self._responses: "queue.Queue[Dict[str, Any]]" = queue.Queue()
+    def __init__(self, workdir: Path | None = None):
+        self._proc: subprocess.Popen[str] | None = None
+        self._responses: queue.Queue[dict[str, Any]] = queue.Queue()
         self._lock = threading.Lock()
         self._ids = itertools.count(1)
-        self._ready: Optional[Dict[str, Any]] = None
+        self._ready: dict[str, Any] | None = None
         self.workdir = workdir or Path(tempfile.mkdtemp(prefix="sme-"))
 
-    # Démarrage et arrêt -------------------------------------------------
+    # Start and stop -----------------------------------------------------------
 
-    def start(self) -> Dict[str, Any]:
+    def start(self) -> dict[str, Any]:
         if self._proc and self._proc.poll() is None and self._ready:
             return self._ready
         rscript = find_rscript()
@@ -66,13 +65,18 @@ class RBridge:
         worker = r_dir() / "worker.R"
         if not worker.exists():
             raise RpcError(f"Le moteur R est incomplet : {worker} manquant.")
-        log.info("Démarrage de R : %s %s", rscript, worker)
+        log.info("Starting R: %s %s", rscript, worker)
         env = dict(os.environ)
-        env.setdefault("R_LIBS_USER", "")  # ignorer une bibliothèque R personnelle
+        env.setdefault("R_LIBS_USER", "")  # ignore any personal R library
         self._proc = subprocess.Popen(
             [rscript, "--vanilla", str(worker), str(r_dir())],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            text=True, encoding="utf-8", bufsize=1, env=env,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            bufsize=1,
+            env=env,
         )
         self._responses = queue.Queue()
         threading.Thread(target=self._read_stdout, daemon=True).start()
@@ -81,12 +85,12 @@ class RBridge:
             msg = self._responses.get(timeout=READY_TIMEOUT)
         except queue.Empty:
             self.stop()
-            raise RpcError("R n'a pas démarré à temps.")
+            raise RpcError("R n'a pas démarré à temps.") from None
         if msg.get("ready") is not True:
             self.stop()
             raise RpcError("R a renvoyé un message de démarrage inattendu.", data=msg)
         self._ready = msg
-        log.info("R prêt : %s", msg.get("r_version"))
+        log.info("R ready: %s", msg.get("r_version"))
         return msg
 
     def stop(self) -> None:
@@ -98,7 +102,7 @@ class RBridge:
             except Exception:  # noqa: BLE001
                 proc.kill()
 
-    # Lecture des flux ------------------------------------------------------
+    # Stream readers -----------------------------------------------------------
 
     def _read_stdout(self) -> None:
         proc = self._proc
@@ -110,7 +114,7 @@ class RBridge:
             try:
                 self._responses.put(json.loads(line))
             except json.JSONDecodeError:
-                log.warning("Sortie R ignorée : %s", line[:200])
+                log.warning("Ignored R output: %s", line[:200])
         self._responses.put({"closed": True})
 
     def _read_stderr(self) -> None:
@@ -119,10 +123,9 @@ class RBridge:
         for line in proc.stderr:
             log.info("[R] %s", line.rstrip())
 
-    # Appels -----------------------------------------------------------------
+    # Calls --------------------------------------------------------------------
 
-    def call(self, fn: str, args: Optional[Dict[str, Any]] = None,
-             timeout: float = DEFAULT_TIMEOUT) -> Any:
+    def call(self, fn: str, args: dict[str, Any] | None = None, timeout: float = DEFAULT_TIMEOUT) -> Any:
         with self._lock:
             self.start()
             assert self._proc and self._proc.stdin
@@ -133,9 +136,9 @@ class RBridge:
             try:
                 msg = self._responses.get(timeout=timeout)
             except queue.Empty:
-                log.error("Délai dépassé pour %s, redémarrage de R", fn)
+                log.error("Timeout for %s, restarting R", fn)
                 self.stop()
-                raise RpcError(f"Le calcul R « {fn} » a dépassé {int(timeout)} s.")
+                raise RpcError(f"Le calcul R « {fn} » a dépassé {int(timeout)} s.") from None
             if msg.get("closed"):
                 self.stop()
                 raise RpcError("Le moteur R s'est arrêté pendant le calcul.")
@@ -147,9 +150,9 @@ class RBridge:
             return msg.get("result")
 
     def write_table(self, df: pl.DataFrame, name: str) -> str:
-        """Écrit un tableau au format Arrow IPC (flux) pour R et renvoie son chemin."""
+        """Write a table as an Arrow IPC stream for R and return its path."""
         self.workdir.mkdir(parents=True, exist_ok=True)
         path = self.workdir / f"{name}.arrows"
-        # CompatLevel.oldest : chaînes Arrow classiques (large_utf8), lisibles par nanoarrow.
+        # CompatLevel.oldest: classic Arrow strings (large_utf8) that nanoarrow can read.
         df.write_ipc_stream(path, compression="uncompressed", compat_level=pl.CompatLevel.oldest())
         return str(path)

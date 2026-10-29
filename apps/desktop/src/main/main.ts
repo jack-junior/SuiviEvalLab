@@ -1,10 +1,10 @@
-// Processus principal Electron : fenêtre, moteurs, échanges sécurisés avec l'interface.
+// Electron main process: window, engines, secure exchanges with the interface.
 
 import { app, BrowserWindow, ipcMain, Menu, shell } from "electron";
 import path from "node:path";
 import { EngineClient, EngineError, EngineLaunch } from "./engine";
 
-// Méthodes du moteur que l'interface a le droit d'appeler (liste blanche).
+// Engine methods the interface is allowed to call (allowlist).
 const ALLOWED = new Set(["system.ping", "system.versions", "r.ping", "demo.proportion"]);
 
 let engine: EngineClient | null = null;
@@ -12,7 +12,7 @@ let win: BrowserWindow | null = null;
 
 function engineLaunch(): EngineLaunch {
   if (app.isPackaged) {
-    // Version installée : Python et R sont embarqués dans les ressources.
+    // Installed app: Python and R are embedded in the resources.
     const res = process.resourcesPath;
     return {
       command: path.join(res, "python", "python.exe"),
@@ -26,7 +26,7 @@ function engineLaunch(): EngineLaunch {
       },
     };
   }
-  // Développement : moteurs du dépôt, Python et R du système.
+  // Development: engines from the repository, system Python and R.
   const root = path.resolve(__dirname, "..", "..", "..", "..");
   const enginePy = path.join(root, "engine", "python");
   return {
@@ -59,7 +59,7 @@ function createWindow(): void {
     },
   });
   win.once("ready-to-show", () => win?.show());
-  // Aucun lien ne s'ouvre dans l'application : les liens externes vont au navigateur.
+  // No link opens inside the app: external links go to the browser.
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith("https://")) void shell.openExternal(url);
     return { action: "deny" };
@@ -70,8 +70,10 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
-  engine = new EngineClient(engineLaunch(), path.join(app.getPath("userData"), "logs", "moteur.log"), (method, params) =>
-    win?.webContents.send("engine:event", { method, params }),
+  engine = new EngineClient(
+    engineLaunch(),
+    path.join(app.getPath("userData"), "logs", "moteur.log"),
+    (method, params) => win?.webContents.send("engine:event", { method, params }),
   );
   engine.start();
 

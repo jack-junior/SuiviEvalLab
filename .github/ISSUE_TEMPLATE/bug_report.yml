@@ -1,0 +1,39 @@
+name: Bug report
+description: Something does not work or a number looks wrong
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Open ...\n2. Click ...\n3. See ..."
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Critical (wrong number, data loss or corruption)
+        - Major (main feature unusable)
+        - Minor (workaround exists)
+        - Cosmetic
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version and Windows version
+      placeholder: "SuiviEvalLab 0.1.0, Windows 11"
+  - type: textarea
+    id: data
+    attributes:
+      label: Data and expected value (for calculation issues)
+      description: Anonymised data only. Never attach personal data of beneficiaries.

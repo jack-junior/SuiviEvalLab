@@ -1,4 +1,5 @@
-// Client du moteur Python : processus enfant, JSON-RPC 2.0 ligne par ligne.
+// Python engine client: child process, line-delimited JSON-RPC 2.0.
+// Error messages are user-facing (French for now, moved to i18n later).
 
 import { ChildProcess, spawn } from "node:child_process";
 import { createInterface } from "node:readline";
@@ -19,7 +20,10 @@ interface Pending {
 }
 
 export class EngineError extends Error {
-  constructor(message: string, public readonly code: number = -32000) {
+  constructor(
+    message: string,
+    public readonly code: number = -32000,
+  ) {
     super(message);
   }
 }
@@ -88,7 +92,13 @@ export class EngineClient {
   }
 
   private onLine(line: string): void {
-    let msg: { id?: number; result?: unknown; error?: { code: number; message: string }; method?: string; params?: unknown };
+    let msg: {
+      id?: number;
+      result?: unknown;
+      error?: { code: number; message: string };
+      method?: string;
+      params?: unknown;
+    };
     try {
       msg = JSON.parse(line);
     } catch {
@@ -119,7 +129,7 @@ export class EngineClient {
     try {
       appendFileSync(this.logFile, `${new Date().toISOString()} ${text}\n`, "utf8");
     } catch {
-      /* journal indisponible : on continue */
+      /* log unavailable: keep going */
     }
   }
 }

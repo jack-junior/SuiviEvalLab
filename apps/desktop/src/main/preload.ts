@@ -1,4 +1,4 @@
-// Pont minimal et typé entre l'interface et le processus principal.
+// Minimal, typed bridge between the interface and the main process.
 
 import { contextBridge, ipcRenderer } from "electron";
 

@@ -1,0 +1,23 @@
+name: Feature request
+description: Propose a new feature or an improvement
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Need
+      description: Who needs this, in which M&E task, and what they do today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What the app should do. Screenshots or sketches welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Methodological notes
+      description: References, formulas, donor requirements, if any.

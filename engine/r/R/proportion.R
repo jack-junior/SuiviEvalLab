@@ -1,10 +1,11 @@
-# Proportion avec intervalle de confiance.
+# Proportion with confidence interval.
 #
-# Échantillon simple : intervalle de Wilson, via prop.test(correct = FALSE).
-# Plan d'enquête (poids, strates, grappes) : survey::svyciprop, méthode logit.
-# Voir le catalogue statistique, section 3.
+# Simple random sample: Wilson interval, via prop.test(correct = FALSE).
+# Survey design (weights, strata, clusters): survey::svyciprop, logit method.
+# See docs/statistics.md, section 3.
 #
-# Renvoie aussi le script R qui reproduit exactement le calcul.
+# Also returns the R script that reproduces the computation exactly.
+# The `method` text is user-facing (French for now, translated later).
 
 sme_proportion <- function(path, var, success, level = 0.95,
                            weights = NULL, strata = NULL, cluster = NULL) {

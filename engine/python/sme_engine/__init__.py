@@ -1,8 +1,7 @@
-"""Moteur métier de SuiviEvalLab.
+"""SuiviEvalLab business engine.
 
-Le moteur est un processus enfant lancé par l'application de bureau. Il reçoit
-des requêtes JSON-RPC 2.0 sur son entrée standard (une requête par ligne) et
-répond sur sa sortie standard. Les journaux partent sur la sortie d'erreur.
+The engine is a child process started by the desktop app. It reads JSON-RPC 2.0
+requests on stdin (one per line) and writes responses on stdout. Logs go to stderr.
 """
 
 __version__ = "0.1.0"

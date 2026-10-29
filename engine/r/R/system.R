@@ -1,4 +1,4 @@
-# Fonctions système du moteur R.
+# System functions of the R engine.
 
 sme_ping <- function() {
   list(pong = TRUE)
@@ -17,7 +17,7 @@ sme_versions <- function() {
   )
 }
 
-# Lit un tableau écrit par le moteur Python (flux Arrow IPC).
+# Read a table written by the Python engine (Arrow IPC stream).
 sme_read_table <- function(path) {
   if (!file.exists(path)) stop("Fichier de données introuvable : ", path)
   as.data.frame(nanoarrow::read_nanoarrow(path))
