@@ -17,6 +17,182 @@ export class EngineCallError extends Error {
 interface SmeBridge {
   call: (method: string, params?: Record<string, unknown>) => Promise<CallResult<unknown>>;
   info: () => Promise<AppInfo>;
+  pick?: (kind: PickKind, defaultName?: string) => Promise<Picked | null>;
+  recents?: () => Promise<Recent[]>;
+  recentToken?: (file: string) => Promise<string | null>;
+  openFile?: (token: string) => Promise<boolean>;
+}
+
+export type PickKind = "project-save" | "project-open" | "data-open" | "report-save" | "csv-save";
+export interface Picked {
+  token: string;
+  name: string;
+}
+export interface Recent {
+  path: string;
+  name: string;
+  opened_at: string;
+  exists: boolean;
+}
+
+// ----- Project model (mirrors engine/python/sme_engine) -----------------------------
+
+export type Level = "impact" | "outcome" | "output" | "activity";
+export type Round = "baseline" | "midline" | "endline" | "monitoring";
+
+export interface FrameworkNode {
+  id: string;
+  parent_id: string | null;
+  level: Level;
+  title: string;
+  description: string;
+  code: string;
+  depth: number;
+  children: number;
+}
+
+export interface Indicator {
+  id: string;
+  node_id: string;
+  name: string;
+  definition: string;
+  unit: "percent" | "mean";
+  direction: "increase" | "decrease";
+  column: string | null;
+  success_values: string[];
+  disaggregation: string | null;
+  baseline_manual: number | null;
+  target: number | null;
+  unit_label: string;
+  source: string;
+}
+
+export interface ColumnInfo {
+  name: string;
+  type: "number" | "text";
+  missing: number;
+  distinct: number;
+  rows: number;
+  min?: number;
+  max?: number;
+}
+
+export interface Design {
+  weights: string | null;
+  strata: string[];
+  cluster: string | null;
+}
+
+export type RuleKind = "duplicates" | "recode" | "range" | "exclude";
+export interface Rule {
+  id: string;
+  dataset_id: string;
+  kind: RuleKind;
+  note: string;
+  enabled: boolean;
+  columns?: string[];
+  column?: string;
+  from?: string[];
+  to?: string | null;
+  min?: number | null;
+  max?: number | null;
+  values?: (string | null)[];
+  effect?: { applied: boolean; rows_removed: number; cells_changed: number } | null;
+}
+
+export interface Dataset {
+  id: string;
+  name: string;
+  round: Round;
+  source_name: string;
+  sheet: string | null;
+  imported_at: string;
+  rows: number;
+  clean_rows: number;
+  na_values: string[];
+  id_column: string | null;
+  design: Design;
+  attribution?: string;
+  columns: ColumnInfo[];
+  rules: Rule[];
+}
+
+export interface ProjectInfo {
+  path: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  counts: Record<Level, number>;
+}
+
+export interface Snapshot {
+  project: ProjectInfo;
+  framework: FrameworkNode[];
+  indicators: Indicator[];
+  datasets: Dataset[];
+}
+
+export interface Inspection {
+  file_name: string;
+  sheets: string[];
+  sheet: string;
+  columns: string[];
+  sample: (string | null)[][];
+  design: Design;
+  id_column: string | null;
+}
+
+export interface Estimate {
+  estimate: number | null;
+  ci_low: number | null;
+  ci_high: number | null;
+  se?: number | null;
+  n: number;
+  successes?: number;
+  level?: number;
+  method_key?: string;
+  script?: string;
+  by?: (Estimate & { group: string; error?: string })[];
+  error_key?: string;
+  detail?: string;
+}
+
+export interface Comparison {
+  a: Estimate;
+  b: Estimate;
+  a_id: string;
+  b_id: string;
+  difference: number;
+  ci_low: number;
+  ci_high: number;
+  p_value: number;
+  test_key: string;
+  effect_size: number | null;
+  effect_key: string;
+  error_key?: string;
+}
+
+export type Status = "achieved" | "on_track" | "late" | "unknown";
+
+export interface Summary {
+  baseline: number | null;
+  baseline_source: "data" | "manual" | null;
+  current: number | null;
+  current_round: Round | null;
+  target: number | null;
+  achievement: number | null;
+  status: Status;
+}
+
+export interface IndicatorAnalysis extends Summary {
+  indicator: Indicator;
+  rounds: { dataset_id: string; round: Round; name: string; result: Estimate }[];
+  comparison: Comparison | null;
+}
+
+export interface OverviewRow extends Summary {
+  indicator_id: string;
+  node_id: string;
 }
 
 export interface AppInfo {
@@ -104,3 +280,7 @@ export async function call<T>(method: string, params?: Record<string, unknown>):
 }
 
 export const appInfo = () => bridge.info();
+export const pick = (kind: PickKind, defaultName?: string) => bridge.pick?.(kind, defaultName) ?? Promise.resolve(null);
+export const recents = () => bridge.recents?.() ?? Promise.resolve([]);
+export const recentToken = (file: string) => bridge.recentToken?.(file) ?? Promise.resolve(null);
+export const openFile = (token: string) => bridge.openFile?.(token) ?? Promise.resolve(false);

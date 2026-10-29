@@ -19,6 +19,7 @@ extraResources:
     to: engine/python/sme_engine
     filter:
       - "**/*.py"
+      - "examples/*.xlsx"
   # R statistical engine
   - from: ../../engine/r
     to: engine/r

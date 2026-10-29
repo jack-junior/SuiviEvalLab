@@ -20,7 +20,7 @@ No component opens a network port. Each engine runs in its own process, so a cra
 |---|---|
 | Screens, forms, previews | Interface |
 | Window, menus, file dialogs, engine supervision, updates | Host |
-| Project file (SQLite, planned), import, data cleaning, Word report, orchestration | Python engine |
+| Project file (SQLite `.sme`), import, data cleaning, Word report, orchestration | Python engine |
 | Indicators, confidence intervals, survey designs, tests, report charts, reproducible R scripts | R engine |
 
 ## Key files
@@ -30,13 +30,28 @@ No component opens a network port. Each engine runs in its own process, so a cra
 | `apps/desktop/src/main/main.ts` | Window, engine launch (dev vs installed), IPC allowlist |
 | `apps/desktop/src/main/engine.ts` | JSON-RPC client for the Python engine |
 | `apps/desktop/src/main/preload.ts` | `window.sme` bridge exposed to the interface |
-| `apps/desktop/src/renderer/` | React interface |
+| `apps/desktop/src/renderer/` | React interface: `App.tsx` (shell), `screens/`, `ui.tsx`, `state.tsx`, `i18n/` |
 | `engine/python/sme_engine/rpc.py` | JSON-RPC server |
 | `engine/python/sme_engine/r_bridge.py` | Persistent R worker, Arrow IPC exchange |
-| `engine/python/sme_engine/methods.py` | Methods exposed to the interface |
+| `engine/python/sme_engine/methods.py` | System and demo methods; registers the others |
+| `engine/python/sme_engine/service.py` | Project, framework, indicator, data, cleaning, analysis and report methods |
+| `engine/python/sme_engine/project.py` | `.sme` file: SQLite schema, framework tree, positioned JSON records |
+| `engine/python/sme_engine/datasets.py` | Excel, Kobo and CSV import (everything kept as text), column description, design guess |
+| `engine/python/sme_engine/cleaning.py` | Cleaning journal: four rule kinds applied in order to a copy of the raw data |
+| `engine/python/sme_engine/indicators.py` | Indicator validation, achievement rate and status |
+| `engine/python/sme_engine/report.py` | Word report (python-docx), French and English text |
+| `engine/python/sme_engine/example.py` | Example project on real REACH data (`examples/`) |
 | `engine/r/worker.R` | R command loop |
 | `engine/r/R/*.R` | Statistical functions (`sme_*`) |
 | `tools/windows/prepare-runtimes.ps1` | Embedded Python and R for the installer |
+
+## Project file
+
+A project is one SQLite file with the `.sme` extension (`PRAGMA application_id` marks it). Every change is written at once; there is no save button. Tables: `meta`, `framework_node`, `indicator`, `dataset` (the raw table as Parquet, never modified) and `cleaning_rule`. Indicators, datasets and rules keep their settings as JSON in a `spec` column, validated by the Python engine. Cleaned data and results are recomputed from the raw data and the journal, and cached in memory.
+
+## Files and the interface
+
+The interface never sends a file path. File dialogs run in the host (`dialog:pick`), which returns a token; the host swaps the token for the path when the engine is called (`file_token`). End-to-end tests answer dialogs through `SME_E2E_DIALOGS`.
 
 ## Installed layout (Windows)
 

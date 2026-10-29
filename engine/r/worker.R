@@ -26,7 +26,10 @@ sme_send <- function(x) {
 sme_dispatch <- list(
   ping = function(args) sme_ping(),
   versions = function(args) sme_versions(),
-  proportion = function(args) do.call(sme_proportion, args)
+  proportion = function(args) do.call(sme_proportion, args),
+  estimate = function(args) do.call(sme_estimate, args),
+  compare = function(args) do.call(sme_compare, args),
+  chart = function(args) do.call(sme_chart, args)
 )
 
 sme_send(list(ready = TRUE, r_version = R.version$version.string))

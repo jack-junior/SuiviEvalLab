@@ -1,11 +1,118 @@
 // Electron main process: window, engines, secure exchanges with the interface.
 
-import { app, BrowserWindow, ipcMain, Menu, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
+import { randomUUID } from "node:crypto";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { EngineClient, EngineError, EngineLaunch } from "./engine";
 
-// Engine methods the interface is allowed to call (allowlist).
-const ALLOWED = new Set(["system.ping", "system.versions", "r.ping", "demo.proportion"]);
+// Engine methods the interface is allowed to call (allowlist). Methods that read or
+// write files never receive a path from the interface: they receive a `file_token`
+// obtained from a file dialog, which the main process swaps for the real path.
+const ALLOWED = new Set([
+  "system.ping",
+  "system.versions",
+  "r.ping",
+  "demo.proportion",
+  "project.create",
+  "project.open",
+  "project.close",
+  "project.get",
+  "project.rename",
+  "framework.add",
+  "framework.update",
+  "framework.delete",
+  "framework.move",
+  "indicator.save",
+  "indicator.delete",
+  "indicator.move",
+  "dataset.inspect",
+  "dataset.import",
+  "dataset.update",
+  "dataset.delete",
+  "dataset.export",
+  "dataset.preview",
+  "dataset.column_values",
+  "cleaning.add",
+  "cleaning.update",
+  "cleaning.delete",
+  "cleaning.move",
+  "analysis.indicator",
+  "analysis.overview",
+  "report.generate",
+]);
+
+// Paths chosen by the user in a dialog, by token. Tokens live for the session.
+const pickedFiles = new Map<string, string>();
+
+type DialogKind = "project-save" | "project-open" | "data-open" | "report-save" | "csv-save";
+
+// End-to-end tests answer dialogs through SME_E2E_DIALOGS (paths separated by "|").
+const e2eAnswers = (process.env.SME_E2E_DIALOGS ?? "").split("|").filter(Boolean);
+
+async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token: string; name: string } | null> {
+  let chosen: string | undefined;
+  if (e2eAnswers.length > 0) {
+    chosen = e2eAnswers.shift();
+  } else if (win) {
+    const docs = app.getPath("documents");
+    if (kind === "project-save" || kind === "report-save" || kind === "csv-save") {
+      const filter = {
+        "project-save": { name: "SuiviEvalLab", extensions: ["sme"], file: "Projet.sme" },
+        "report-save": { name: "Word", extensions: ["docx"], file: "Rapport.docx" },
+        "csv-save": { name: "CSV", extensions: ["csv"], file: "Donnees.csv" },
+      }[kind];
+      const res = await dialog.showSaveDialog(win, {
+        defaultPath: path.join(docs, defaultName ?? filter.file),
+        filters: [{ name: filter.name, extensions: filter.extensions }],
+      });
+      chosen = res.canceled ? undefined : res.filePath;
+    } else {
+      const isProject = kind === "project-open";
+      const res = await dialog.showOpenDialog(win, {
+        defaultPath: docs,
+        properties: ["openFile"],
+        filters: isProject
+          ? [{ name: "SuiviEvalLab", extensions: ["sme"] }]
+          : [{ name: "Excel, CSV", extensions: ["xlsx", "xlsm", "xls", "csv"] }],
+      });
+      chosen = res.canceled ? undefined : res.filePaths[0];
+    }
+  }
+  if (!chosen) return null;
+  const token = randomUUID();
+  pickedFiles.set(token, chosen);
+  return { token, name: path.basename(chosen) };
+}
+
+// Recent projects, kept in the user profile.
+const recentFile = () => path.join(app.getPath("userData"), "recent-projects.json");
+
+function readRecents(): { path: string; name: string; opened_at: string }[] {
+  try {
+    const list = JSON.parse(readFileSync(recentFile(), "utf8"));
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function rememberProject(file: string, name: string): void {
+  const list = readRecents().filter((r) => r.path !== file);
+  list.unshift({ path: file, name, opened_at: new Date().toISOString() });
+  try {
+    writeFileSync(recentFile(), JSON.stringify(list.slice(0, 10), null, 2), "utf8");
+  } catch {
+    /* recents are a convenience only */
+  }
+}
+
+function tokenForRecent(file: string): string | null {
+  if (!readRecents().some((r) => r.path === file)) return null;
+  const token = randomUUID();
+  pickedFiles.set(token, file);
+  return token;
+}
 
 let engine: EngineClient | null = null;
 let win: BrowserWindow | null = null;
@@ -81,13 +188,43 @@ app.whenReady().then(() => {
     if (typeof method !== "string" || !ALLOWED.has(method)) {
       return { ok: false, error: "Not allowed", key: "not_allowed" };
     }
+    const args: Record<string, unknown> = { ...((params as Record<string, unknown>) ?? {}) };
+    delete args.path; // paths only ever come from a dialog token
+    if (typeof args.file_token === "string") {
+      const file = pickedFiles.get(args.file_token);
+      if (!file) return { ok: false, error: "Unknown file token", key: "file_token" };
+      args.path = file;
+      delete args.file_token;
+    }
     try {
-      const result = await engine!.call(method, (params as Record<string, unknown>) ?? {});
+      const result = await engine!.call(method, args);
+      if ((method === "project.create" || method === "project.open" || method === "project.rename") && result) {
+        const info = (result as { project?: { path: string; name: string } }).project;
+        if (info) {
+          rememberProject(info.path, info.name);
+          win?.setTitle(`${info.name} - SuiviEvalLab`);
+        }
+      }
+      if (method === "project.close") win?.setTitle("SuiviEvalLab");
       return { ok: true, result };
     } catch (err) {
       if (err instanceof EngineError) return { ok: false, error: err.message, key: err.key };
       return { ok: false, error: err instanceof Error ? err.message : String(err), key: "unknown" };
     }
+  });
+  ipcMain.handle("dialog:pick", (_e, kind: unknown, defaultName: unknown) => {
+    const kinds: DialogKind[] = ["project-save", "project-open", "data-open", "report-save", "csv-save"];
+    if (typeof kind !== "string" || !kinds.includes(kind as DialogKind)) return null;
+    return pickFile(kind as DialogKind, typeof defaultName === "string" ? defaultName.slice(0, 120) : undefined);
+  });
+  ipcMain.handle("project:recents", () => readRecents().map((r) => ({ ...r, exists: existsSync(r.path) })));
+  ipcMain.handle("project:recent-token", (_e, file: unknown) =>
+    typeof file === "string" ? tokenForRecent(file) : null,
+  );
+  ipcMain.handle("file:reveal", (_e, token: unknown) => {
+    const file = typeof token === "string" ? pickedFiles.get(token) : undefined;
+    if (file) void shell.openPath(file);
+    return Boolean(file);
   });
   ipcMain.handle("app:info", () => ({
     version: app.getVersion(),

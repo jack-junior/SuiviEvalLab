@@ -22,8 +22,11 @@ type Vars = Record<string, string | number>;
 interface I18n {
   lang: Lang;
   setLang: (lang: Lang) => void;
-  t: (key: MessageKey, vars?: Vars) => string;
+  // Keys built at run time (levels.${level}) are accepted; tools/check-i18n.mjs checks them.
+  t: (key: MessageKey | (string & {}), vars?: Vars) => string;
   hasKey: (key: string) => key is MessageKey;
+  /** Count text: uses `${key}_one` or `${key}_other` (French: 0 and 1 take the singular). */
+  tn: (key: string, n: number, vars?: Vars) => string;
   number: (x: number, digits?: number) => string;
   percent: (share: number, digits?: number) => string;
 }
@@ -53,10 +56,16 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       lang,
       setLang,
       t: (key, vars) => {
-        const text = catalogue[key] ?? key;
+        const text = catalogue[key as MessageKey] ?? key;
         return vars ? text.replace(/\{(\w+)\}/g, (m, name: string) => (name in vars ? String(vars[name]) : m)) : text;
       },
       hasKey: (key): key is MessageKey => key in catalogue,
+      tn: (key, n, vars) => {
+        const one = lang === "fr" ? Math.abs(n) < 2 : n === 1;
+        const text = catalogue[`${key}_${one ? "one" : "other"}` as MessageKey] ?? key;
+        const all: Vars = { n: n.toLocaleString(locale), ...vars };
+        return text.replace(/\{(\w+)\}/g, (m, name: string) => (name in all ? String(all[name]) : m));
+      },
       number: (x, digits = 1) =>
         x.toLocaleString(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits }),
       percent: (share, digits = 1) =>
