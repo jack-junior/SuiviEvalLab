@@ -111,7 +111,12 @@ jobs:
           [ -n "$exe" ] || fail "No installer found in apps/desktop/release"
           name=$(basename "$exe")
           (cd "$(dirname "$exe")" && sha256sum "$name") > SHA256SUMS.txt || fail "sha256sum failed"
-          sed "s/<version>/$version/g" .github/release/notes.md > notes.md || fail "Cannot write the release notes"
+          # The notes template is read from the commit of this workflow run, so a
+          # manual retry of an older tag still uses the current template.
+          gh api "repos/$REPO/contents/.github/release-notes.md?ref=$GITHUB_SHA" \
+            -H "Accept: application/vnd.github.raw" > notes-template.md \
+            || fail "Cannot read .github/release-notes.md at $GITHUB_SHA"
+          sed "s/<version>/$version/g" notes-template.md > notes.md || fail "Cannot write the release notes"
 
           if gh release view "$tag" --repo "$REPO" > /dev/null 2>&1; then
             echo "::notice title=Release::$tag already exists, uploading the installer again"
