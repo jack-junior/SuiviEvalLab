@@ -16,12 +16,14 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Search HDX
-        run: python3 tools/datasets/explore_hdx.py tools/datasets/hdx-candidates.md
+      - name: Download and describe the datasets
+        run: |
+          pip install --quiet openpyxl==3.1.5
+          python3 tools/datasets/fetch_and_describe.py datasets/raw
       - name: Commit the report
         run: |
           git config user.name "gayi komi selassi"
           git config user.email "43295042+jack-junior@users.noreply.github.com"
-          git add tools/datasets/hdx-candidates.md
-          git commit -m "chore(data): HDX candidate report" || exit 0
+          git add tools/datasets/structure.md datasets/raw
+          git commit -m "chore(data): test datasets and structure report" || exit 0
           git push
