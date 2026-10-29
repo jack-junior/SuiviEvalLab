@@ -1,107 +1,66 @@
-import { useEffect, useState } from "react";
-import { appInfo, AppInfo, call, EngineCallError, isSimulated, Proportion, Versions } from "./api";
+// Application shell: sidebar navigation, top bar, and the screen for the current view.
+
+import { useCallback, useEffect, useState } from "react";
+import { appInfo, AppInfo, call, EngineCallError, Versions } from "./api";
 import { Lang, useI18n } from "./i18n";
-import type { MessageKey } from "./i18n/messages";
+import { Analysis } from "./screens/Analysis";
+import { Data } from "./screens/Data";
+import { Engines, EngineStatus } from "./screens/Engines";
+import { Framework } from "./screens/Framework";
+import { Home } from "./screens/Home";
+import { Indicators } from "./screens/Indicators";
+import { Overview } from "./screens/Overview";
+import { Report } from "./screens/Report";
+import { useProject, View } from "./state";
+import { Icon } from "./ui";
 
-type Health = "waiting" | "ready" | "error";
-
-function StatusIcon({ state }: { state: Health }) {
-  if (state === "ready")
-    return (
-      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-        <circle cx="7" cy="7" r="5.6" fill="none" stroke="currentColor" strokeWidth="1.4" />
-        <path d="M4.6 7.2l1.7 1.7 3.2-3.4" fill="none" stroke="currentColor" strokeWidth="1.4" />
-      </svg>
-    );
-  if (state === "error")
-    return (
-      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-        <path d="M7 1.8l5.4 9.6H1.6z" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-        <path d="M7 5.6v2.6" stroke="currentColor" strokeWidth="1.4" />
-      </svg>
-    );
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-      <circle cx="7" cy="7" r="5.6" fill="none" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M7 4v3.2l2 1.3" fill="none" stroke="currentColor" strokeWidth="1.4" />
-    </svg>
-  );
-}
-
-function StatusLabel({ state, label }: { state: Health; label: string }) {
-  const className = state === "ready" ? "st-ok" : state === "error" ? "st-late" : "st-mid";
-  return (
-    <span className={`status ${className}`} data-testid={`status-${state}`}>
-      <StatusIcon state={state} />
-      {label}
-    </span>
-  );
-}
-
-const STEPS: MessageKey[] = ["nav.overview", "nav.framework", "nav.indicators", "nav.data", "nav.report"];
 const LANGS: { code: Lang; label: string; name: string }[] = [
   { code: "fr", label: "FR", name: "Français" },
   { code: "en", label: "EN", name: "English" },
 ];
 
-/** Engine errors are stored as keys and translated at render time, so they follow the language. */
-interface UiError {
-  key: string;
-  detail: string;
-}
-
-const toUiError = (e: unknown): UiError =>
-  e instanceof EngineCallError ? { key: e.key, detail: e.message } : { key: "unknown", detail: String(e) };
+const NAV: { view: View; icon: string }[] = [
+  { view: "overview", icon: "gauge" },
+  { view: "framework", icon: "tree" },
+  { view: "indicators", icon: "target" },
+  { view: "data", icon: "table" },
+  { view: "analysis", icon: "chart" },
+  { view: "report", icon: "doc" },
+];
 
 export function App() {
-  const { t, lang, setLang, hasKey, percent } = useI18n();
+  const { t, lang, setLang } = useI18n();
+  const { snap, setSnap, view, go, busy, run } = useProject();
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [versions, setVersions] = useState<Versions | null>(null);
-  const [error, setError] = useState<UiError | null>(null);
-  const [result, setResult] = useState<Proportion | null>(null);
-  const [computing, setComputing] = useState(false);
-  const [computeError, setComputeError] = useState<UiError | null>(null);
-  const [design, setDesign] = useState<"survey" | "simple">("survey");
-  const [showScript, setShowScript] = useState(false);
+  const [engineError, setEngineError] = useState<{ key: string; detail: string } | null>(null);
   const [folded, setFolded] = useState(false);
 
-  const describe = (err: UiError) => {
-    const key = `errors.${err.key}`;
-    return hasKey(key) ? t(key, { detail: err.detail }) : t("errors.unknown", { detail: err.detail });
-  };
-
-  const loadVersions = () =>
+  const fetchVersions = useCallback(() => {
     call<Versions>("system.versions")
       .then(setVersions)
-      .catch((e: unknown) => setError(toUiError(e)));
-
-  const checkEngines = () => {
-    setError(null);
-    setVersions(null);
-    void loadVersions();
-  };
+      .catch((e: unknown) =>
+        setEngineError(
+          e instanceof EngineCallError ? { key: e.key, detail: e.message } : { key: "unknown", detail: String(e) },
+        ),
+      );
+  }, []);
 
   useEffect(() => {
     appInfo()
       .then(setInfo)
       .catch(() => undefined);
-    void loadVersions();
-  }, []);
+    fetchVersions();
+  }, [fetchVersions]);
 
-  const runDemo = () => {
-    setComputing(true);
-    setComputeError(null);
-    call<Proportion>("demo.proportion", { design })
-      .then((r) => setResult(r))
-      .catch((e: unknown) => setComputeError(toUiError(e)))
-      .finally(() => setComputing(false));
+  const loadVersions = () => {
+    setEngineError(null);
+    setVersions(null);
+    fetchVersions();
   };
 
-  const pythonState: Health = error ? "error" : versions ? "ready" : "waiting";
-  const rState: Health = error || versions?.r_error ? "error" : versions?.r ? "ready" : "waiting";
-  const allReady = pythonState === "ready" && rState === "ready";
-  const statusText = (state: Health) =>
-    state === "ready" ? t("status.ready") : state === "error" ? t("status.error") : t("status.waiting");
+  const ready = !!versions?.r && !engineError && !versions?.r_error;
+  const engineState = engineError || versions?.r_error ? "error" : ready ? "ready" : "waiting";
 
   const toggleTheme = () => {
     const r = document.documentElement;
@@ -109,10 +68,17 @@ export function App() {
     r.dataset.theme = dark ? "light" : "dark";
   };
 
-  const methodText = (r: Proportion) => {
-    const key = `method.${r.method_key}`;
-    return hasKey(key) ? t(key) : r.method;
+  const closeProject = async () => {
+    await run("project.close");
+    setSnap(null);
+    go("overview");
   };
+
+  const counts: Partial<Record<View, number>> = snap
+    ? { framework: snap.framework.length, indicators: snap.indicators.length, data: snap.datasets.length }
+    : {};
+  const showEngines = view === "engines";
+  const title = showEngines ? t("engines.title") : snap ? t(`nav.${view}`) : t("nav.home");
 
   return (
     <div className={`app${folded ? " folded" : ""}`}>
@@ -133,175 +99,133 @@ export function App() {
             </svg>
           </button>
         </div>
-        <div className="fold-hide">
-          <div className="group-title">{t("nav.project")}</div>
-          <nav aria-label={t("nav.steps")}>
-            <a href="#start" aria-current="page">
-              {t("nav.start")}
-            </a>
-            {STEPS.map((step) => (
-              <span key={step} className="nav-off" title={t("nav.soon")}>
-                {t(step)}
-              </span>
-            ))}
-          </nav>
-        </div>
-        <div className="side-foot">
-          <div className="lang fold-hide" role="group" aria-label={t("side.language")}>
-            {LANGS.map((l) => (
-              <button
-                key={l.code}
-                className="lang-btn"
-                aria-pressed={lang === l.code}
-                onClick={() => setLang(l.code)}
-                title={l.name}
-                data-testid={`lang-${l.code}`}
-                lang={l.code}
-              >
-                {l.label}
-              </button>
-            ))}
+
+        {snap ? (
+          <div className="fold-hide side-project">
+            <div className="group-title">{t("nav.project")}</div>
+            <div className="project-name" title={snap.project.path} data-testid="project-name">
+              {snap.project.name}
+            </div>
+            <nav aria-label={t("nav.steps")}>
+              {NAV.map((n) => (
+                <a
+                  key={n.view}
+                  href={`#${n.view}`}
+                  aria-current={view === n.view ? "page" : undefined}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    go(n.view);
+                  }}
+                  data-testid={`nav-${n.view}`}
+                >
+                  <Icon name={n.icon} />
+                  <span className="nav-label">{t(`nav.${n.view}`)}</span>
+                  {counts[n.view] !== undefined && <span className="nav-count">{counts[n.view]}</span>}
+                </a>
+              ))}
+            </nav>
+            <button className="link side-close" onClick={closeProject} data-testid="close-project">
+              {t("nav.close")}
+            </button>
           </div>
-          <button className="icon-btn" onClick={toggleTheme} aria-label={t("side.theme")} data-testid="theme">
-            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-              <circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" strokeWidth="1.4" />
-              <path d="M9 3a6 6 0 0 1 0 12z" fill="currentColor" />
-            </svg>
+        ) : (
+          <nav className="fold-hide" aria-label={t("nav.steps")}>
+            <a
+              href="#home"
+              aria-current={!showEngines ? "page" : undefined}
+              onClick={(e) => {
+                e.preventDefault();
+                go("overview");
+              }}
+            >
+              <Icon name="home" />
+              <span className="nav-label">{t("nav.home")}</span>
+            </a>
+          </nav>
+        )}
+
+        <div className="side-foot">
+          <button
+            className="engine-pill fold-hide"
+            onClick={() => go("engines")}
+            data-testid="engines-link"
+            title={t("engines.title")}
+          >
+            <EngineStatus
+              state={engineState}
+              label={
+                engineState === "ready"
+                  ? t("engines.allReady")
+                  : engineState === "error"
+                    ? t("engines.problem")
+                    : t("engines.starting")
+              }
+            />
           </button>
+          <div className="side-foot-row">
+            <div className="lang fold-hide" role="group" aria-label={t("side.language")}>
+              {LANGS.map((l) => (
+                <button
+                  key={l.code}
+                  className="lang-btn"
+                  aria-pressed={lang === l.code}
+                  onClick={() => setLang(l.code)}
+                  title={l.name}
+                  data-testid={`lang-${l.code}`}
+                  lang={l.code}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
+            <button className="icon-btn" onClick={toggleTheme} aria-label={t("side.theme")} data-testid="theme">
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                <circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" strokeWidth="1.4" />
+                <path d="M9 3a6 6 0 0 1 0 12z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
         </div>
       </aside>
 
       <div className="main">
         <div className="bar">
           <div className="crumb">
-            SuiviEvalLab <span aria-hidden="true">/</span> <b>{t("start.title")}</b>
+            SuiviEvalLab <span aria-hidden="true">/</span>{" "}
+            {snap && !showEngines && (
+              <>
+                {snap.project.name} <span aria-hidden="true">/</span>{" "}
+              </>
+            )}
+            <b>{title}</b>
           </div>
-          <span className="saved">
-            {isSimulated ? t("app.preview") : t("app.offline")}
-            <span className="muted" style={{ marginLeft: 12 }}>
-              {t("side.version", { version: info?.version ?? "0.1.0" })}
-            </span>
+          <span className="saved" data-testid="save-state">
+            {busy && busy !== "overview" && busy !== "analysis"
+              ? t("app.working")
+              : snap
+                ? t("app.saved")
+                : t("app.offline")}
+            <span className="muted version">{t("side.version", { version: info?.version ?? "" })}</span>
           </span>
         </div>
-        <div className="col">
-          <div className="inner">
-            <div>
-              <h1>{t("start.title")}</h1>
-              <p className="lead">{t("start.lead")}</p>
-            </div>
-
-            <section>
-              <div className="section-head">
-                <h2>{t("engines.title")}</h2>
-                <button className="btn" onClick={checkEngines}>
-                  {t("engines.recheck")}
-                </button>
-              </div>
-              <div className="list">
-                <div className="row">
-                  <span className="t">{t("engines.ui")}</span>
-                  <span className="s">Electron {info?.electron ?? ""}</span>
-                  <span className="v">
-                    <StatusLabel state="ready" label={t("status.readyFeminine")} />
-                  </span>
-                </div>
-                <div className="row">
-                  <span className="t">{t("engines.python")}</span>
-                  <span className="s">
-                    {versions
-                      ? t("engines.pythonDetail", {
-                          python: versions.python,
-                          polars: versions.polars,
-                          engine: versions.engine,
-                        })
-                      : error
-                        ? describe(error)
-                        : t("engines.starting")}
-                  </span>
-                  <span className="v">
-                    <StatusLabel state={pythonState} label={statusText(pythonState)} />
-                  </span>
-                </div>
-                <div className="row">
-                  <span className="t">{t("engines.r")}</span>
-                  <span className="s">
-                    {versions?.r
-                      ? t("engines.rDetail", {
-                          r: versions.r.r,
-                          survey: versions.r.packages.survey ?? t("engines.missing"),
-                          nanoarrow: versions.r.packages.nanoarrow ?? t("engines.missing"),
-                        })
-                      : (versions?.r_error ?? (error ? t("engines.unavailable") : t("engines.rStarting")))}
-                  </span>
-                  <span className="v">
-                    <StatusLabel state={rState} label={statusText(rState)} />
-                  </span>
-                </div>
-              </div>
-              {info?.logs && (pythonState === "error" || rState === "error") && (
-                <p className="small muted" style={{ marginTop: 12 }}>
-                  {t("engines.logs", { path: info.logs })}
-                </p>
-              )}
-            </section>
-
-            <section className="stack">
-              <h2>{t("demo.title")}</h2>
-              <p className="muted" style={{ margin: 0 }}>
-                {t("demo.lead")}
-              </p>
-              <div className="chips" role="group" aria-label={t("demo.designLabel")}>
-                <button className="chip" aria-pressed={design === "survey"} onClick={() => setDesign("survey")}>
-                  {t("demo.survey")}
-                </button>
-                <button className="chip" aria-pressed={design === "simple"} onClick={() => setDesign("simple")}>
-                  {t("demo.simple")}
-                </button>
-              </div>
-              <div>
-                <button
-                  className="btn primary"
-                  onClick={runDemo}
-                  disabled={!allReady || computing}
-                  data-testid="run-demo"
-                >
-                  {computing ? t("demo.running") : t("demo.run")}
-                </button>
-              </div>
-              {computeError && (
-                <div className="hint hint-err" role="alert">
-                  <StatusIcon state="error" />
-                  <div>
-                    <div className="t">{t("demo.failed")}</div>
-                    <div className="small">{describe(computeError)}</div>
-                  </div>
-                </div>
-              )}
-              {result && (
-                <div className="result">
-                  <span className="figure" data-testid="figure">
-                    {percent(result.estimate)}
-                  </span>
-                  <span className="muted" data-testid="ci">
-                    {t("demo.ci", {
-                      level: percent(result.level, 0),
-                      low: percent(result.ci_low),
-                      high: percent(result.ci_high),
-                    })}
-                  </span>
-                  <span className="small muted">
-                    {t("demo.counts", { x: result.successes, n: result.n })} {methodText(result)}.
-                  </span>
-                  <div>
-                    <button className="btn" onClick={() => setShowScript(!showScript)} aria-expanded={showScript}>
-                      {showScript ? t("demo.hideScript") : t("demo.showScript")}
-                    </button>
-                  </div>
-                  {showScript && <pre className="code-block">{result.script}</pre>}
-                </div>
-              )}
-            </section>
-          </div>
+        <div className={view === "analysis" && snap ? "col col-split" : "col"}>
+          {showEngines ? (
+            <Engines info={info} versions={versions} error={engineError} onRecheck={loadVersions} />
+          ) : !snap ? (
+            <Home enginesReady={ready} />
+          ) : view === "framework" ? (
+            <Framework />
+          ) : view === "indicators" ? (
+            <Indicators />
+          ) : view === "data" ? (
+            <Data />
+          ) : view === "analysis" ? (
+            <Analysis />
+          ) : view === "report" ? (
+            <Report />
+          ) : (
+            <Overview />
+          )}
         </div>
       </div>
     </div>

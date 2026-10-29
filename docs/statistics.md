@@ -27,13 +27,20 @@ Summary of the statistical catalogue. Every method below is computed in R.
 
 | Measure | Simple sample | Survey design |
 |---|---|---|
-| Proportion | Wilson interval, `prop.test(correct = FALSE)` (implemented in `sme_proportion`) | `svyciprop(method = "logit")` (implemented); `beta` near 0 or 1 (planned) |
-| Mean | `t.test` | `svymean` + `confint(df = degf())` |
+| Proportion | Wilson interval, `prop.test(correct = FALSE)` (implemented in `sme_estimate`) | `svyciprop(method = "logit")` (implemented); `beta` near 0 or 1 (planned) |
+| Mean | `t.test` (implemented in `sme_estimate`) | `svymean` + `confint(df = degf())` (implemented) |
 | Median | order-statistic interval | `svyquantile(ci = TRUE)` |
 | Total | `sum` | `svytotal` |
 | Ratio | delta method on `svydesign(ids = ~1)` | `svyratio` |
 
 **Achievement rate** = (achieved − baseline) / (target − baseline) × 100. Without baseline: achieved / target (increase) or target / achieved (decrease). Status: achieved ≥ 90 %, on track ≥ 60 %, behind < 60 %.
+
+### Implemented in version 0.2 (`engine/r/R/estimate.R`)
+
+- `sme_estimate`: proportion or mean of an indicator, with its 95 % interval, overall and by breakdown group (each group estimated on the subset of the same design). Several stratification columns are combined with `interaction()`. Lonely PSUs: `survey.lonely.psu = "adjust"`.
+- `sme_compare`: two independent rounds (baseline and endline). With a design, each round is estimated on its own design and the difference uses SE = sqrt(SE_A² + SE_B²) with a z test. Without a design: `prop.test` on two samples (proportions) or Welch `t.test` (means). Effect size: Cohen's h (proportions) or Cohen's d (means).
+- A value already at or beyond the target in the planned direction is "achieved" whatever the achievement rate.
+- Missing values: the dataset's missing codes (`NA`, empty, and others listed per dataset) and the cleaning journal decide what is missing; missing outcomes are left out of the denominator.
 
 ## 4. Test assistant
 

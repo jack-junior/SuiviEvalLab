@@ -20,3 +20,8 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# Text catalogues (report wording, example project) keep one sentence per line.
+"sme_engine/report.py" = ["E501"]
+"sme_engine/example.py" = ["E501"]

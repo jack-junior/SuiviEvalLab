@@ -1,7 +1,7 @@
 {
   "name": "suivievallab",
   "productName": "SuiviEvalLab",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Poste de travail du suivi-évaluation, du cadre logique au rapport Word",
   "license": "GPL-3.0-or-later",
   "author": "SuiviEvalLab",
@@ -15,7 +15,7 @@
     "dev:ui": "vite",
     "start": "npm run build && electron .",
     "dist:win": "npm run build && electron-builder --win nsis --publish never",
-    "lint": "eslint . && prettier --check .",
+    "lint": "eslint . && prettier --check . && node ../../tools/check-i18n.mjs",
     "format": "prettier --write ."
   },
   "dependencies": {

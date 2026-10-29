@@ -29,10 +29,23 @@ jobs:
         run: Rscript -e "p <- readLines('engine/r/packages.txt'); install.packages(p[nzchar(p) & !startsWith(p, '#')])"
 
       - name: R engine tests
-        run: Rscript engine/r/tests/test_proportion.R
+        run: |
+          Rscript engine/r/tests/test_proportion.R
+          Rscript engine/r/tests/test_estimate.R
+
+      - name: Cache the original survey files
+        uses: actions/cache@v4
+        with:
+          path: build/hdx
+          key: hdx-${{ hashFiles('tools/datasets/sources.json') }}
+
+      - name: Download the original survey files (robustness tests)
+        run: python tools/datasets/fetch.py build/hdx
 
       - name: Python engine lint and tests
         working-directory: engine/python
+        env:
+          SME_FULL_DATA: ${{ github.workspace }}/build/hdx
         run: |
           pip install -r requirements.txt "pytest==9.1.1" "ruff==0.17.0"
           python -m ruff check . ../../tools

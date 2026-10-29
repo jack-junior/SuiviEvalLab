@@ -7,7 +7,7 @@ Primary users, in order: M&E officers in local NGOs, MEAL managers in internatio
 | Step | Content | Status |
 |---|---|---|
 | 0. Foundations | Windows app, embedded Python and R, demo computation, CI with installer and end-to-end test | Done (v0.1.0) |
-| 1. Demonstrator | The full path in a simple version on the education example: logframe, indicators with baseline and target, Excel or Kobo import, four cleaning rules, indicators with confidence intervals from R, one baseline versus endline test, Word report from a bundled template | Next |
+| 1. Demonstrator | The full path in a simple version on the education example: logframe, indicators with baseline and target, Excel or Kobo import, four cleaning rules, indicators with confidence intervals from R, one baseline versus endline test, Word report from a bundled template | In review (v0.2.0) |
 | 2. Framework and indicators | Framework templates, custom levels and fields, guided calculation rules, monitoring plan export | Planned |
 | 3. Data and cleaning | Excel, CSV, SPSS, Stata, Kobo/ODK with XLSForm, quality diagnosis, full rule journal, merges | Planned |
 | 4. Statistics | Test assistant (11 question types), survey designs, effect sizes, sample size, validation suite | Planned |

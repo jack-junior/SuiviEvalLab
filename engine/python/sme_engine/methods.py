@@ -8,12 +8,15 @@ from typing import Any
 
 import polars as pl
 
-from . import __version__, demo
+from . import __version__, demo, service
+from .project import Workspace
 from .r_bridge import RBridge
 from .rpc import INVALID_PARAMS, RpcError, Server
 
 
 def register(server: Server, bridge: RBridge) -> None:
+    service.register(server, Workspace(), bridge)
+
     @server.method("system.ping")
     def ping(_: dict[str, Any]) -> dict[str, Any]:
         return {"pong": True}

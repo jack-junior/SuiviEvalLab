@@ -6,12 +6,16 @@
 
 ## Status
 
-Version **0.1.0**, step 0 (foundations): the Windows app starts, its Python and R engines run, and a demo computation goes through the whole chain. Business features start with step 1. See the [roadmap](docs/roadmap.md).
+Version **0.2.0**, the first complete path (MVP): results framework, indicators, import of Excel, Kobo or CSV data, cleaning journal, indicators estimated in R with their confidence intervals and survey design, baseline and endline comparison, and a Word report in French or English. An example project runs on real public survey data. See the [roadmap](docs/roadmap.md).
+
+## Example data
+
+The example project uses extracts of the REACH Initiative Iraq Multi-Cluster Needs Assessments VII (2019) and VIII (2020), published on the Humanitarian Data Exchange under CC BY 4.0. Details in [engine/python/sme_engine/examples/README.md](engine/python/sme_engine/examples/README.md).
 
 ## Install (Windows 10 and 11)
 
-1. Open the **Actions** tab, pick the latest green run on `main`, download the `SuiviEvalLab-installation-windows` artifact (GitHub sign-in required).
-2. Unzip it and run `SuiviEvalLab-<version>-installation.exe`.
+1. Download `SuiviEvalLab-<version>-installation.exe` from the [Releases](../../releases) page.
+2. Run it.
 3. The installer is not signed yet. If Windows shows "Windows protected your PC", click **More info**, then **Run anyway**.
 
 No administrator rights needed. Python and R are included.
