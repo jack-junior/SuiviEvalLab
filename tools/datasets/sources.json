@@ -1,0 +1,18 @@
+[
+  {"id": "irq_mcna7_2019", "licence": "CC BY 4.0", "publisher": "REACH Initiative / Assessment Working Group Iraq",
+   "title": "Iraq Multi Cluster Needs Assessment VII (2019), household dataset without personal information",
+   "page": "https://data.humdata.org/dataset/reach-iraq-mcna-vii-dataset",
+   "url": "https://data.humdata.org/dataset/76469da4-94ea-4760-82be-00a3ae2ef75e/resource/32112c5a-3d6a-4240-8527-c14487023cc6/download/awg_irq_dataset_mcna_vii_september2019_public_nopi.xlsx"},
+  {"id": "irq_mcna8_2020", "licence": "CC BY 4.0", "publisher": "REACH Initiative",
+   "title": "Iraq Multi Cluster Needs Assessment VIII (2020), household dataset without personal information",
+   "page": "https://data.humdata.org/dataset/0f850d6e-2a67-4204-af08-c0237e59020f",
+   "url": "https://data.humdata.org/dataset/0f850d6e-2a67-4204-af08-c0237e59020f/resource/6f040e1f-6de0-40aa-acd7-e2b12f2a4da7/download/reach_irq_mcna-viii-2020-nopi_dataset-090221.xlsx"},
+  {"id": "bgd_wash_baseline_2018", "licence": "CC BY 4.0", "publisher": "REACH Initiative / UNICEF",
+   "title": "Bangladesh REACH-UNICEF WASH household baseline survey, in camps, April 2018",
+   "page": "https://data.humdata.org/dataset/6f7cb50e-bf04-46a5-8e3b-0f90dca5ac94",
+   "url": "https://data.humdata.org/dataset/6f7cb50e-bf04-46a5-8e3b-0f90dca5ac94/resource/36cf46b5-48dc-4ef1-9638-f87e30076256/download/bgd_dataset_wash-hh-baseline-survey_incamp_april-2018.xlsx"},
+  {"id": "bgd_wash_followup_2018", "licence": "CC BY 4.0", "publisher": "REACH Initiative / UNICEF",
+   "title": "Bangladesh REACH-UNICEF WASH household survey, monsoon follow-up, October 2018",
+   "page": "https://data.humdata.org/dataset/2198d0ed-faaf-405d-bcdd-8ba5bdcdf6c1",
+   "url": "https://data.humdata.org/dataset/2198d0ed-faaf-405d-bcdd-8ba5bdcdf6c1/resource/7ceefc7d-03b7-404b-97e9-ac65d8b709ef/download/reach_bgd_dataset_wash-hh-monsoon-follow-up_october-2018.xlsx"}
+]
