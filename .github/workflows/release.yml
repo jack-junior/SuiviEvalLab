@@ -4,10 +4,18 @@ name: Release
 # The installer is built, smoke-tested and end-to-end tested here, then
 # attached to the release with its SHA-256 checksum. Versions below 1.0 are
 # marked as pre-releases.
+#
+# To retry a failed release without moving the tag, run this workflow by hand
+# from the Actions tab and enter the existing tag (for example v0.1.0).
 
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing version tag to publish, for example v0.1.0"
+        required: true
 
 permissions:
   contents: write
@@ -18,8 +26,11 @@ jobs:
     runs-on: windows-2022
     env:
       PYTHONUTF8: "1"
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-python@v5
         with:
@@ -71,8 +82,8 @@ jobs:
         shell: pwsh
         run: |
           $version = (Get-Content apps/desktop/package.json -Raw | ConvertFrom-Json).version
-          if ("v$version" -ne "${{ github.ref_name }}") {
-            Write-Error "Tag ${{ github.ref_name }} does not match package.json version $version"
+          if ("v$version" -ne $env:RELEASE_TAG) {
+            Write-Error "Tag $env:RELEASE_TAG does not match package.json version $version"
             exit 1
           }
 
@@ -81,14 +92,34 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "${{ github.ref_name }}"
+          $tag = $env:RELEASE_TAG
           $version = $tag.TrimStart("v")
+          $repo = "${{ github.repository }}"
           $exe = Get-ChildItem apps/desktop/release/*.exe | Select-Object -First 1
+          if (-not $exe) { "::error title=Release::No installer found in apps/desktop/release"; exit 1 }
           $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
           "$hash  $($exe.Name)" | Out-File -Encoding ascii SHA256SUMS.txt
           (Get-Content .github/release/notes.md -Raw).Replace("<version>", $version) | Out-File -Encoding utf8 notes.md
-          $flags = @()
-          if ($version.StartsWith("0.")) { $flags += "--prerelease" }
-          gh release create $tag $exe.FullName SHA256SUMS.txt --title "SuiviEvalLab $version" --notes-file notes.md @flags
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          # Every gh failure is reported as an annotation, readable without the raw logs.
+          function Invoke-Gh {
+            $out = & gh @args 2>&1
+            $code = $LASTEXITCODE
+            $out | ForEach-Object { Write-Host $_ }
+            if ($code -ne 0) {
+              $msg = ($out | Out-String).Trim() -replace "`r?`n", " | "
+              "::error title=gh $($args[0]) $($args[1])::exit $code, $msg"
+              exit $code
+            }
+          }
+
+          $existing = gh release view $tag --repo $repo --json tagName 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            "::notice title=Release::$tag already exists, uploading the installer again"
+            Invoke-Gh release upload $tag $exe.FullName SHA256SUMS.txt --repo $repo --clobber
+          } else {
+            $flags = @()
+            if ($version.StartsWith("0.")) { $flags += "--prerelease" }
+            Invoke-Gh release create $tag $exe.FullName SHA256SUMS.txt --repo $repo --verify-tag --title "SuiviEvalLab $version" --notes-file notes.md @flags
+          }
           "::notice title=Release::$tag published, $($exe.Name), sha256 $hash"
