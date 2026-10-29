@@ -1,0 +1,2518 @@
+# Test dataset structure
+
+## irq_mcna7_2019
+Iraq Multi Cluster Needs Assessment VII (2019), household dataset without personal information  
+22866330 bytes, sha256 `307485249fb3c61c2304ff8a97ff32f79575555b0896aa9d95ab11815cd57b91`
+
+### sheet `READ_ME`: about 14 rows, 2 columns
+
+- `REACH IRAQ | MCNA VII DATASET`: All analysis should be weighted accordin | Items | Project Background
+- `None`:  | Description | The seventh round of Iraq's Multi-Cluste
+
+### sheet `MCNA VII Coverage`: about 65 rows, 7 columns
+
+- `Governorate`: Anbar | Anbar | Anbar
+- `Districts`: Falluja | Kaim | Ramadi
+- `Who collected data`: REACH | NRC, MC, SIF | REACH
+- `In-camp IDP`: x |  | 
+- `Out of camp IDP`: x | Indicative  | x
+- `Returnee`: x | x | x
+- `Host`:  |  | 
+
+### sheet `MCNA VII Questionnaire`: about 347 rows, 5 columns
+
+- `type`: select_one governorate_mcna | select_one cluster | select_one yes_no
+- `Dataset Column Heading`: governorate_mcna | cluster_location_id | hhh
+- `Question`: 3. Current Governorate | 4. What is the ID number of your Locatio | 5.0 Are you the head of household? 
+- `Choices`: Al-Anbar
+Babil
+Baghdad
+Al-Bashrah
+Duhok
+ |  | Yes
+No
+- `Explanation of Column/Question, if unclear`:  |  | 
+
+### sheet `HH data - representative`: about 12888 rows, 436 columns
+
+- `X_uuid`: 9029b9ba-ac7b-4cf5-a41f-08e20342f465 | 94e5a612-f3f9-40a6-8d46-290add7ac2da | 270a95ae-70ea-48f1-a368-b7bf9830f228
+- `population_group`: returnee | returnee | returnee
+- `governorate_mcna`: al.anbar | al.anbar | al.anbar
+- `district`: al.kaim | haditha | haditha
+- `camp`: NA | NA | NA
+- `Household profile`:  |  | 
+- `consent`: yes | yes | yes
+- `displace_status`: yes | yes | yes
+- `displace_status_returnee`: yes | yes | yes
+- `displace_status_idp`:  |  | 
+- `return_date_returnee`: 2018-09-01 00:00:00 | 2017-11-01 00:00:00 | 2018-04-01 00:00:00
+- `return_durationdisplace`: 48 | 9 | 14
+- `displace_date_idp`:  |  | 
+- `idp_first_place`:  |  | 
+- `arrival_date_idp`:  |  | 
+- `Intentions`:  |  | 
+- `governorate_origin`:  |  | 
+- `displaced_again`:  |  | 
+- `movement_intentions`:  |  | 
+- `movement_intentions_b`: remain | remain | remain
+- `movement_intentions_b12`: remain | remain | remain
+- `movement_intentions_ret`:  |  | 
+- `movement_intentions12`:  |  | 
+- `reason_to_return_to_aoo.limited_services`: NA | NA | NA
+- `reason_to_return_to_aoo.security_stable`: NA | NA | NA
+- `reason_to_return_to_aoo.basic_services_availability`: NA | NA | NA
+- `reason_to_return_to_aoo.no_safe_in_area_of_displace`: NA | NA | NA
+- `reason_to_return_to_aoo.other_members_returned`: NA | NA | NA
+- `reason_to_return_to_aoo.facing_eviction`: NA | NA | NA
+- `reason_to_return_to_aoo.limited_livelihood_opportunities`: NA | NA | NA
+- `reason_to_return_to_aoo.livelihood_availability_there`: NA | NA | NA
+- `reason_to_return_to_aoo.lack_security_women`: NA | NA | NA
+- `reason_to_return_to_aoo.uxo`: NA | NA | NA
+- `reason_to_return_to_aoo.no_integrated_in_area_of_displace`: NA | NA | NA
+- `reason_to_return_to_aoo.forced_security`: NA | NA | NA
+- `reason_to_return_to_aoo.emotional_desire`: NA | NA | NA
+- `reason_to_return_to_aoo.fam_released`: NA | NA | NA
+- `reason_to_return_to_aoo.secure_house_land`: NA | NA | NA
+- `why_not_return.lack_livelihood_generating_income`: NA | NA | NA
+- `why_not_return.local_markets_not_working`: NA | NA | NA
+- `why_not_return.immediate_family_wont_return`: NA | NA | NA
+- `why_not_return.decline_to_answer`: NA | NA | NA
+- `why_not_return.hh_assets_stolen_damaged`: NA | NA | NA
+- `why_not_return.lack_of_education_oppotunities`: NA | NA | NA
+- `why_not_return.lack_court`: NA | NA | NA
+- `why_not_return.lack_of_security_forces`: NA | NA | NA
+- `why_not_return.basic_services_not_enough`: NA | NA | NA
+- `why_not_return.presence_of_mines`: NA | NA | NA
+- `why_not_return.house_damaged_destroyed`: NA | NA | NA
+- `why_not_return.movement_restrictions`: NA | NA | NA
+- `why_not_return.living_conditions_better`: NA | NA | NA
+- `why_not_return.no_transport_to_return`: NA | NA | NA
+- `why_not_return.desicrimination`: NA | NA | NA
+- `why_not_return.no_financial_money_to_return`: NA | NA | NA
+- `why_not_return.do_not_know`: NA | NA | NA
+- `why_not_return.no_personal_id`: NA | NA | NA
+- `why_not_return.house_land_occupied`: NA | NA | NA
+- `why_not_return.health_conditions`: NA | NA | NA
+- `why_not_return.fear_trauma`: NA | NA | NA
+- `why_not_return.lack_security_women`: NA | NA | NA
+- `why_not_return.children_enrolled_in_displacement`: NA | NA | NA
+- `Household Profile`:  |  | 
+- `num_hh_member_class`: 1 | 2 | 2
+- `num_family_member`: 1 | 6 | 5
+- `male_2_calc`: 0 | 0 | 0
+- `female_2_calc`: 0 | 0 | 1
+- `male_3_5_calc`: 0 | 1 | 1
+- `female_3_5_calc`: 0 | 1 | 0
+- `male_6_17_calc`: 0 | 1 | 1
+- `female_6_17_calc`: 0 | 1 | 0
+- `male_18_59_calc`: 1 | 1 | 1
+- `female_18_59_calc`: 0 | 1 | 1
+- `male_60_calc`: 0 | 0 | 0
+- `female_60_calc`: 0 | 0 | 0
+- `tot_child_012`: 0 | 3 | 3
+- `tot_child_1317`: 0 | 1 | 0
+- `tot_child`: 0 | 4 | 3
+- `tot_male`: 1 | 3 | 3
+- `tot_female`: 0 | 3 | 2
+- `tot_6_above`: 1 | 4 | 3
+- `calc_separated`: 0 | 0 | 0
+- `Education`:  |  | 
+- `reasons_not_attend.uninterested`: NA | NA | NA
+- `reasons_not_attend.cannot_go_physically`: NA | NA | NA
+- `reasons_not_attend.not_safe`: NA | NA | NA
+- `reasons_not_attend.parental_refusal`: NA | NA | NA
+- `reasons_not_attend.children_working`: NA | NA | NA
+- `reasons_not_attend.curriculum`: NA | NA | NA
+- `reasons_not_attend.lack_of_staff`: NA | NA | NA
+- `reasons_not_attend.overcrowded`: NA | NA | NA
+- `reasons_not_attend.impossible_to_enrol`: NA | NA | NA
+- `reasons_not_attend.cannot_afford`: NA | NA | NA
+- `reasons_not_attend.other`: NA | NA | NA
+- `reasons_not_attend.poor_infrastructure`: NA | NA | NA
+- `reasons_not_attend.school_closed`: NA | NA | NA
+- `no_school_no_docs`:  |  | 
+- `Livelihoods`:  |  | 
+- `employment_primary_barriers.none`: NA | NA | NA
+- `employment_primary_barriers.underqualified_for_jobs`: NA | NA | NA
+- `employment_primary_barriers.increased_competition`: NA | NA | NA
+- `employment_primary_barriers.jobs_far`: NA | NA | NA
+- `employment_primary_barriers.lack_of_connections`: NA | NA | NA
+- `employment_primary_barriers.only_low_available`: NA | NA | NA
+- `employment_primary_barriers.other`: NA | NA | NA
+- `Protection`:  |  | 
+- `hh_dispute`: yes | no | no
+- `property_damaged`: yes | yes | no
+- `applied_compensation`: no | yes | 
+- `received_compensation`:  | no | 
+- `previously_evicted`: no | yes | no
+- `own_land`: yes | no | no
+- `pds`: yes | yes | yes
+- `info_card`: yes | yes | yes
+- `death_certificate`: no | no | no
+- `guardianship`: no | no | no
+- `inheritance`: no | no | no
+- `trusteeship`: no | no | no
+- `passport_a18`: yes | yes | no
+- `id_card_a18`: yes | yes | no
+- `citizenship_a18`: yes | yes | yes
+- `birth_cert_a18`:  |  | yes
+- `school_cert_a18`: valid | valid | valid
+- `marriage_cert_a18`: valid | valid | valid
+- `divorce_cert_a18`: non_valid | non_valid | non_valid
+- `passport_u18`: no | no | no
+- `id_card_u18`: no | no | no
+- `citizenship_u18`: no | yes | yes
+- `birth_cert_u18`: yes | yes | yes
+- `marriage_cert_u18`: non_valid | valid | valid
+- `divorce_cert_u18`: non_valid | non_valid | non_valid
+- `birth_cert_missing_amount_u1`: NA | NA | NA
+- `birth_cert_missing_amount_a1`: NA | NA | NA
+- `id_card_missing_amount`: 1 | 4 | 3
+- `can_leave_camp`: NA | NA | NA
+- `restriction_clearance`: yes | yes | no
+- `restriction_documents`: yes | yes | yes
+- `restriction_time`: no | no | no
+- `restriction_reason`: no | no | no
+- `restriction_physical`: no | yes | no
+- `restriction_other`: no | no | no
+- `unsafe_areas.none`: 0 | 0 | 0
+- `unsafe_areas.do_not_know`: 0 | 1 | 0
+- `unsafe_areas.facilities`: 1 | 0 | 0
+- `unsafe_areas.water_points`: 1 | 0 | 0
+- `unsafe_areas.social_areas`: 0 | 0 | 0
+- `unsafe_areas.distribution_areas`: 1 | 0 | 0
+- `unsafe_areas.markets`: 1 | 0 | 1
+- `unsafe_areas.way_to_centers`: 0 | 0 | 0
+- `unsafe_areas.way_to_school`: 0 | 0 | 0
+- `family_separated`: no | no | no
+- `family_separated_reunification`:  |  | 
+- `voting_eligibility`: yes | yes | yes
+- `Food Security`:  |  | 
+- `cereals`: 3 | 6 | 7
+- `nuts_seed`: 4 | 4 | 2
+- `milk_dairy`: 5 | 7 | 7
+- `meat`: 2 | 2 | 1
+- `vegetables`: 5 | 5 | 7
+- `fruits`: 2 | 3 | 2
+- `oil_fats`: 5 | 7 | 7
+- `sweets`: 3 | 7 | 7
+- `spices_condiments`: 5 | 5 | 7
+- `cereals_source`: cash | cash_assistance | cash
+- `nuts_seed_source`: cash | credit | cash
+- `milk_dairy_source`: cash | credit | cash
+- `meat_source`: cash | cash | cash
+- `vegetables_source`: cash | cash | cash
+- `fruits_source`: cash | credit | cash
+- `oil_fats_source`: cash | voucher_pds | voucher_pds
+- `sweets_source`: cash | cash | cash
+- `spices_condiments_source`: cash | cash | cash
+- `cheaper_quality`: 2 | 2 | 2
+- `borrowing`: 0 | 3 | 0
+- `reduce_meals`: 0 | 0 | 0
+- `less_food`: 0 | 0 | 0
+- `less_adult`: 0 | 0 | 0
+- `selling_assets`: yes | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `borrow_debt`: yes | yes | no_nobody_in_hh_did
+- `selling_transportation_means`: yes | not_applicable | no_nobody_in_hh_did
+- `child_dropout_school`: yes | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `reduce_spending`: yes | yes | yes
+- `spending_savings`: yes | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `change_place`: yes | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `adult_risky`: yes | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `child_work`: yes | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `family_migrating`: yes | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `child_forced_marriage`: yes | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `Health`:  |  | 
+- `distance_health_service`: between_2km_5km | within_2km | within_2km
+- `distance_hospital`: between_2km_5km | within_2km | within_2km
+- `hospital_emergency_ser`: yes | yes | yes
+- `hospital_maternity_ser`: yes | yes | yes
+- `hospital_surgical_ser`: yes | yes | yes
+- `hospital_pediatric_ser`: yes | yes | yes
+- `women_specialised_services`: yes | yes | yes
+- `hh_member_distress`: no | no | no
+- `child_distress_number`: NA | NA | NA
+- `adult_distress_number`: NA | NA | NA
+- `health_accessed`: no | yes | yes
+- `health_barriers.no_offered_treatment`: NA | 0 | 0
+- `health_barriers.no_issues`: NA | 0 | 0
+- `health_barriers.unqualified_staff`: NA | 0 | 0
+- `health_barriers.no_referral_phc`: NA | 0 | 0
+- `health_barriers.refused_treatment`: NA | 0 | 0
+- `health_barriers.no_medicine`: NA | 1 | 1
+- `health_barriers.distance_to_treatmentcenter`: NA | 0 | 0
+- `health_barriers.cost`: NA | 0 | 0
+- `health_barriers.not_inclusive`: NA | 0 | 0
+- `health_barriers.civ_docs_problems`: NA | 0 | 0
+- `health_barriers.phc_closed`: NA | 0 | 0
+- `health_barriers.not_access`: NA | 0 | 0
+- `WASH`:  |  | 
+- `drinking_water_source.bottled_water`: 0 | 1 | 1
+- `drinking_water_source.unprot_spring`: 0 | 0 | 0
+- `drinking_water_source.surface_water`: 0 | 0 | 0
+- `drinking_water_source.water_trucking`: 0 | 0 | 0
+- `drinking_water_source.prot_spring`: 0 | 0 | 0
+- `drinking_water_source.unprot_tank`: 0 | 0 | 0
+- `drinking_water_source.other`: 0 | 0 | 0
+- `drinking_water_source.prot_tank`: 0 | 0 | 0
+- `drinking_water_source.unprot_well`: 0 | 0 | 0
+- `drinking_water_source.borehole`: 0 | 0 | 0
+- `drinking_water_source.network_comm`: 1 | 0 | 0
+- `drinking_water_source.illegal_connection`: 0 | 0 | 0
+- `drinking_water_source.network_private`: 1 | 0 | 0
+- `drinking_water_source.prot_well`: 0 | 0 | 0
+- `access_private_shared_watertank`: yes | yes | yes
+- `tank_capacity`: 2000 | 1500 | 1000
+- `refill_times`: 7 | 4 | 3
+- `people_share_tank`: 7 | 6 | 5
+- `treat_drink_water_why.not_clear`: 1 | NA | NA
+- `treat_drink_water_why.none`: 0 | NA | NA
+- `treat_drink_water_why.tastes_unpleasant`: 1 | NA | NA
+- `treat_drink_water_why.smells_unpleasant`: 1 | NA | NA
+- `latrines.none`: 0 | 0 | 0
+- `latrines.pit`: 0 | 0 | 0
+- `latrines.vip_pit`: 1 | 0 | 0
+- `latrines.other`: 0 | 0 | 0
+- `latrines.flush`: 0 | 1 | 1
+- `latrines.open`: 0 | 0 | 0
+- `shared_sanitation`: no | no | no
+- `access_hygiene_items`: yes | yes | yes
+- `use_of_soap.bathing`: 1 | 1 | 0
+- `use_of_soap.laundry`: 1 | 1 | 0
+- `use_of_soap.handwashing`: 1 | 0 | 1
+- `use_of_soap.other`: 0 | 0 | 0
+- `use_of_soap.dish_washing`: 1 | 1 | 0
+- `use_of_soap.not`: 0 | 0 | 0
+- `SNFI`:  |  | 
+- `shelter_type`: house | house | house
+- `hh_hosted`: no | no | no
+- `hh_risk_eviction`: no | no | no
+- `hh_main_risks.unaccepted_by_community`: NA | NA | NA
+- `hh_main_risks.authorities_request`: NA | NA | NA
+- `hh_main_risks.inadequate`: NA | NA | NA
+- `hh_main_risks.lack_funds`: NA | NA | NA
+- `hh_main_risks.owner_request`: NA | NA | NA
+- `hh_main_risks.no_longer_hosted`: NA | NA | NA
+- `hh_main_risks.other`: NA | NA | NA
+- `hh_main_risks.no_agreement`: NA | NA | NA
+- `hh_main_risks.occupied`: NA | NA | NA
+- `hh_main_risks.confiscation`: NA | NA | NA
+- `hh_main_risks.dispute`: NA | NA | NA
+- `shelter_issues.flood_landslide`: 0 | 0 | 0
+- `shelter_issues.waste_dumping`: 0 | 0 | 0
+- `shelter_issues.no_light`: 0 | 0 | 0
+- `shelter_issues.not_solid`: 0 | 0 | 0
+- `shelter_issues.insulation`: 0 | 0 | 0
+- `shelter_issues.uxo`: 0 | 0 | 0
+- `shelter_issues.no_fence`: 0 | 0 | 0
+- `shelter_issues.no_electrical`: 0 | 0 | 0
+- `shelter_issues.broken_windows`: 0 | 0 | 0
+- `shelter_issues.no_tenure`: 0 | 0 | 0
+- `shelter_issues.other`: 0 | 0 | 0
+- `shelter_issues.missing_cooking`: 0 | 0 | 0
+- `shelter_issues.low_high_ceilings`: 0 | 0 | 0
+- `shelter_issues.no_separated_rooms`: 0 | 0 | 0
+- `shelter_issues.openings_walls`: 0 | 0 | 0
+- `shelter_issues.fire`: 0 | 0 | 0
+- `shelter_issues.leaking`: 0 | 0 | 0
+- `shelter_issues.missing_washing`: 0 | 0 | 0
+- `shelter_issues.none`: 1 | 1 | 1
+- `shelter_issues.bends_structure`: 0 | 0 | 0
+- `shelter_issues.no_ventilation`: 0 | 0 | 0
+- `shelter_issues.insicure_isolated`: 0 | 0 | 0
+- `shelter_issues.no_space`: 0 | 0 | 0
+- `nfi_priority_needs.heating_fuel`: 0 | 0 | 0
+- `nfi_priority_needs.none`: 1 | 0 | 0
+- `nfi_priority_needs.winter_heaters`: 0 | 1 | 0
+- `nfi_priority_needs.water_storage`: 0 | 0 | 0
+- `nfi_priority_needs.clothing`: 0 | 0 | 0
+- `nfi_priority_needs.cooking_utensils_kitchen_set`: 0 | 0 | 0
+- `nfi_priority_needs.awc`: 0 | 0 | 1
+- `nfi_priority_needs.mattresses_sleeping_mats`: 0 | 1 | 1
+- `nfi_priority_needs.fuel_storage`: 0 | 0 | 0
+- `nfi_priority_needs.source_of_light`: 0 | 0 | 0
+- `nfi_priority_needs.fan`: 0 | 0 | 1
+- `nfi_priority_needs.cool_box`: 0 | 0 | 0
+- `nfi_priority_needs.bedding_items`: 0 | 0 | 0
+- `nfi_priority_needs.cooking_fuel`: 0 | 0 | 0
+- `nfi_priority_needs.blankets`: 0 | 1 | 1
+- `nfi_priority_needs.other`: 0 | 0 | 0
+- `nfi_priority_needs.cooking_stove`: 0 | 1 | 0
+- `shelter_better.improve_privacy`: 0 | 0 | 0
+- `shelter_better.improve_structure`: 0 | 0 | 0
+- `shelter_better.improve_tenure`: 0 | 0 | 0
+- `shelter_better.improve_infrastructure`: 0 | 0 | 0
+- `shelter_better.none`: 0 | 1 | 1
+- `shelter_better.protec_hazards`: 1 | 0 | 0
+- `shelter_better.improve_safety`: 1 | 0 | 0
+- `shelter_better.protect_climate`: 0 | 0 | 0
+- `shelter_better.other`: 0 | 0 | 0
+- `Education`:  |  | 
+- `primary_school_place`: within_2km | within_2km | within_2km
+- `secondary_school_place`: within_2km | within_2km | between_2_5
+- `education_level`: university | professional | secondary
+- `Livelihoods`:  |  | 
+- `rent_exp`: 0 | 200000 | 0
+- `shelter_exp`: 0 | 0 | 0
+- `food_exp`: 600000 | 180000 | 175000
+- `electric_exp`: 40000 | 25000 | 13000
+- `medical_exp`: 650000 | 11000 | 8000
+- `education_exp`: 0 | 15000 | 16000
+- `water_exp`: 0 | 6000 | 6000
+- `adult_cloth_exp`: 0 | 23000 | 20000
+- `child_cloth_exp`: 0 | 31000 | 35000
+- `nfi_exp`: 0 | 27000 | 22000
+- `transportation_exp`: 0 | 18000 | 18000
+- `communication_exp`: 50000 | 13000 | 12000
+- `debt_exp`: 0 | 0 | 0
+- `productive_assets_exp`: 0 | 0 | 0
+- `other_payment_exp`: 0 | 0 | 0
+- `tot_expenditure`: 1340000 | 549000 | 325000
+- `primary_livelihood.renting`: 0 | 0 | 0
+- `primary_livelihood.ngo_charity_assistance`: 0 | 0 | 0
+- `primary_livelihood.social_service`: 0 | 0 | 0
+- `primary_livelihood.employment`: 1 | 1 | 1
+- `primary_livelihood.selling_assets`: 0 | 0 | 0
+- `primary_livelihood.selling_assistance_received`: 0 | 0 | 0
+- `primary_livelihood.loans_debts`: 0 | 1 | 0
+- `primary_livelihood.support_from_community`: 0 | 0 | 0
+- `primary_livelihood.savings`: 1 | 0 | 0
+- `primary_livelihood.other`: 0 | 0 | 0
+- `primary_livelihood.retirement_pension`: 0 | 0 | 0
+- `primary_livelihood.illegal_activity`: 0 | 0 | 0
+- `primary_livelihood.remittences`: 0 | 0 | 0
+- `primary_livelihood.modm_cash_assistance`: 0 | 0 | 0
+- `employment_seasonal`: yes | yes | yes
+- `how_much_debt`: 0 | 149000 | 0
+- `reasons_for_debt`:  | basic_hh_expenditure | 
+- `market_place`: within_2km | within_2km | within_2km
+- `AAP`:  |  | 
+- `info_aid.uxo`: 0 | 0 | 0
+- `info_aid.none`: 0 | 0 | 0
+- `info_aid.property`: 0 | 0 | 0
+- `info_aid.electricity`: 0 | 0 | 0
+- `info_aid.housing`: 1 | 0 | 0
+- `info_aid.healthcare`: 0 | 1 | 0
+- `info_aid.legal`: 0 | 0 | 0
+- `info_aid.water`: 0 | 0 | 0
+- `info_aid.other`: 0 | 0 | 0
+- `info_aid.safety`: 1 | 0 | 1
+- `info_aid.livelihoods`: 0 | 1 | 1
+- `info_aid.aid`: 0 | 1 | 1
+- `info_aid.education`: 0 | 0 | 0
+- `info_aid.documentation`: 0 | 0 | 0
+- `info_provider.friends_not_been_in_aoo`: 0 | 1 | 0
+- `info_provider.ngo`: 0 | 0 | 0
+- `info_provider.mukhtars`: 0 | 1 | 0
+- `info_provider.schools`: 0 | 0 | 0
+- `info_provider.other`: 0 | 0 | 0
+- `info_provider.friends_visited_aoo`: 0 | 0 | 0
+- `info_provider.local_authorities`: 0 | 0 | 1
+- `info_provider.friends_in_aoo`: 1 | 0 | 1
+- `info_provider.national_authorities`: 0 | 1 | 1
+- `info_provider.religious`: 0 | 0 | 0
+- `info_provider.sector_leaders`: 0 | 0 | 0
+- `info_mode.notice_board`: 0 | 0 | 0
+- `info_mode.television`: 1 | 0 | 0
+- `info_mode.mobile`: 0 | 0 | 1
+- `info_mode.other_social`: 0 | 0 | 0
+- `info_mode.facebook_messenger`: 0 | 0 | 0
+- `info_mode.facebook_app`: 0 | 0 | 0
+- `info_mode.telephone`: 1 | 1 | 0
+- `info_mode.face_cmmunic`: 0 | 1 | 1
+- `info_mode.leaflet`: 0 | 0 | 0
+- `info_mode.other`: 0 | 0 | 0
+- `info_mode.viber`: 0 | 1 | 0
+- `info_mode.radio`: 0 | 0 | 0
+- `info_mode.direct_obs`: 0 | 0 | 1
+- `info_mode.whatsapp`: 0 | 0 | 0
+- `info_mode.loud_speakers`: 0 | 0 | 0
+- `info_mode.newspapers`: 0 | 0 | 0
+- `aid_received`: no | no | no
+- `aid_type.education`: NA | NA | NA
+- `aid_type.other_nfi`: NA | NA | NA
+- `aid_type.food`: NA | NA | NA
+- `aid_type.cash`: NA | NA | NA
+- `aid_type.water`: NA | NA | NA
+- `aid_type.shelter`: NA | NA | NA
+- `aid_type.protection`: NA | NA | NA
+- `aid_type.healthcare`: NA | NA | NA
+- `aid_type.fuel`: NA | NA | NA
+- `aid_type.seasonal_items`: NA | NA | NA
+- `aid_satisfaction`:  |  | 
+- `aid_not_satisfied.delays`: NA | NA | NA
+- `aid_not_satisfied.other`: NA | NA | NA
+- `aid_not_satisfied.quality`: NA | NA | NA
+- `aid_not_satisfied.quantity`: NA | NA | NA
+- `aid_workers_satisfied`: do_not_know | do_not_know | do_not_know
+- `aid_feedback.aid_worker_home`: 1 | 0 | 0
+- `aid_feedback.member_community`: 0 | 1 | 1
+- `aid_feedback.suggestion_box`: 0 | 0 | 0
+- `aid_feedback.sms`: 0 | 0 | 0
+- `aid_feedback.other`: 0 | 0 | 0
+- `aid_feedback.social_media`: 0 | 0 | 0
+- `aid_feedback.phone_call`: 0 | 0 | 1
+- `aid_feedback.letter`: 0 | 1 | 1
+- `aid_feedback.aid_worker_office`: 0 | 1 | 0
+- `aid_feedback.email`: 0 | 0 | 0
+- `community_decision_making`: do_not_know | no | no
+- `complaint_mechanisms`:  |  | 
+- `info_specific_needs`: no | no | yes
+- `info_specific_needs_who.mental_health`: NA | NA | 0
+- `info_specific_needs_who.disabilities`: NA | NA | 0
+- `info_specific_needs_who.illeterate`: NA | NA | 0
+- `info_specific_needs_who.unaccompanied`: NA | NA | 0
+- `info_specific_needs_who.other`: NA | NA | 0
+- `info_specific_needs_who.fmhh`: NA | NA | 1
+- `info_specific_needs_who.health_condition`: NA | NA | 0
+- `info_specific_needs_who.single_women`: NA | NA | 0
+- `info_specific_needs_who.age`: NA | NA | 0
+- `info_specific_needs_who.protection_need`: NA | NA | 0
+- `thanks`: NA | NA | NA
+- `X_uuid`: 9029b9ba-ac7b-4cf5-a41f-08e20342f465 | 94e5a612-f3f9-40a6-8d46-290add7ac2da | 270a95ae-70ea-48f1-a368-b7bf9830f228
+- `weights`: 44.5285714285714 | 44.2830188679245 | 44.2830188679245
+
+### sheet `HH data - indicative`: about 200 rows, 436 columns
+
+- `X_uuid`: 97977ff9-687f-42fc-bbf3-de196b144e03 | 53544ffe-7599-4d90-927a-1884bc2e0762 | 027a688e-3ab5-449a-bbff-9017d92c0682
+- `population_group`: idp_out_camp | idp_out_camp | idp_out_camp
+- `governorate_mcna`: erbil | erbil | erbil
+- `district`: rawanduz | rawanduz | rawanduz
+- `camp`: NA | NA | NA
+- `Household profile`:  |  | 
+- `consent`: yes | yes | yes
+- `displace_status`: no | no | no
+- `displace_status_returnee`:  |  | 
+- `displace_status_idp`: yes | yes | yes
+- `return_date_returnee`:  |  | 
+- `return_durationdisplace`: NA | NA | NA
+- `displace_date_idp`: 2015-04-01 00:00:00 | 2016-04-01 00:00:00 | 2017-01-01 00:00:00
+- `idp_first_place`: yes | yes | yes
+- `arrival_date_idp`: 2015-04-01 00:00:00 | 2016-04-01 00:00:00 | 2018-02-01 00:00:00
+- `Intentions`:  |  | 
+- `governorate_origin`: baghdad | ninewa | al.anbar
+- `displaced_again`: no | no | no
+- `movement_intentions`: remain | remain | remain
+- `movement_intentions_b`:  |  | 
+- `movement_intentions_b12`:  |  | 
+- `movement_intentions_ret`:  |  | 
+- `movement_intentions12`: current | current | current
+- `reason_to_return_to_aoo.limited_services`: NA | NA | NA
+- `reason_to_return_to_aoo.security_stable`: NA | NA | NA
+- `reason_to_return_to_aoo.basic_services_availability`: NA | NA | NA
+- `reason_to_return_to_aoo.no_safe_in_area_of_displace`: NA | NA | NA
+- `reason_to_return_to_aoo.other_members_returned`: NA | NA | NA
+- `reason_to_return_to_aoo.facing_eviction`: NA | NA | NA
+- `reason_to_return_to_aoo.limited_livelihood_opportunities`: NA | NA | NA
+- `reason_to_return_to_aoo.livelihood_availability_there`: NA | NA | NA
+- `reason_to_return_to_aoo.lack_security_women`: NA | NA | NA
+- `reason_to_return_to_aoo.uxo`: NA | NA | NA
+- `reason_to_return_to_aoo.no_integrated_in_area_of_displace`: NA | NA | NA
+- `reason_to_return_to_aoo.forced_security`: NA | NA | NA
+- `reason_to_return_to_aoo.emotional_desire`: NA | NA | NA
+- `reason_to_return_to_aoo.fam_released`: NA | NA | NA
+- `reason_to_return_to_aoo.secure_house_land`: NA | NA | NA
+- `why_not_return.lack_livelihood_generating_income`: 0 | 1 | 1
+- `why_not_return.local_markets_not_working`: 0 | 0 | 0
+- `why_not_return.immediate_family_wont_return`: 0 | 0 | 0
+- `why_not_return.decline_to_answer`: 0 | 0 | 0
+- `why_not_return.hh_assets_stolen_damaged`: 0 | 0 | 0
+- `why_not_return.lack_of_education_oppotunities`: 0 | 0 | 0
+- `why_not_return.lack_court`: 0 | 0 | 0
+- `why_not_return.lack_of_security_forces`: 1 | 0 | 0
+- `why_not_return.basic_services_not_enough`: 0 | 0 | 0
+- `why_not_return.presence_of_mines`: 0 | 0 | 0
+- `why_not_return.house_damaged_destroyed`: 1 | 0 | 0
+- `why_not_return.movement_restrictions`: 0 | 0 | 0
+- `why_not_return.living_conditions_better`: 0 | 1 | 1
+- `why_not_return.no_transport_to_return`: 0 | 0 | 0
+- `why_not_return.desicrimination`: 1 | 0 | 0
+- `why_not_return.no_financial_money_to_return`: 0 | 0 | 0
+- `why_not_return.do_not_know`: 0 | 0 | 0
+- `why_not_return.no_personal_id`: 0 | 0 | 0
+- `why_not_return.house_land_occupied`: 0 | 0 | 0
+- `why_not_return.health_conditions`: 0 | 0 | 0
+- `why_not_return.fear_trauma`: 0 | 0 | 0
+- `why_not_return.lack_security_women`: 0 | 0 | 0
+- `why_not_return.children_enrolled_in_displacement`: 0 | 0 | 0
+- `Household Profile`:  |  | 
+- `num_hh_member`: 5 | 4 | 3
+- `num_family_member`: 2 | 4 | 3
+- `male_2_calc`: 0 | 0 | 0
+- `female_2_calc`: 0 | 0 | 0
+- `male_3_5_calc`: 0 | 2 | 0
+- `female_3_5_calc`: 0 | 0 | 0
+- `male_6_17_calc`: 0 | 0 | 0
+- `female_6_17_calc`: 0 | 0 | 1
+- `male_18_59_calc`: 1 | 1 | 1
+- `female_18_59_calc`: 0 | 1 | 1
+- `male_60_calc`: 0 | 0 | 0
+- `female_60_calc`: 1 | 0 | 0
+- `tot_child_012`: 0 | 2 | 1
+- `tot_child_1317`: 0 | 0 | 0
+- `tot_child`: 0 | 2 | 1
+- `tot_male`: 1 | 3 | 1
+- `tot_female`: 1 | 1 | 2
+- `tot_6_above`: 2 | 2 | 3
+- `calc_separated`: 0 | 0 | 0
+- `Education`:  |  | 
+- `reasons_not_attend.uninterested`: NA | NA | 1
+- `reasons_not_attend.cannot_go_physically`: NA | NA | 0
+- `reasons_not_attend.not_safe`: NA | NA | 0
+- `reasons_not_attend.parental_refusal`: NA | NA | 0
+- `reasons_not_attend.children_working`: NA | NA | 0
+- `reasons_not_attend.curriculum`: NA | NA | 0
+- `reasons_not_attend.lack_of_staff`: NA | NA | 0
+- `reasons_not_attend.overcrowded`: NA | NA | 0
+- `reasons_not_attend.impossible_to_enrol`: NA | NA | 0
+- `reasons_not_attend.cannot_afford`: NA | NA | 0
+- `reasons_not_attend.other`: NA | NA | 0
+- `reasons_not_attend.poor_infrastructure`: NA | NA | 0
+- `reasons_not_attend.school_closed`: NA | NA | 0
+- `no_school_no_docs`:  |  | no
+- `Livelihoods`:  |  | 
+- `employment_primary_barriers.none`: NA | NA | NA
+- `employment_primary_barriers.underqualified_for_jobs`: NA | NA | NA
+- `employment_primary_barriers.increased_competition`: NA | NA | NA
+- `employment_primary_barriers.jobs_far`: NA | NA | NA
+- `employment_primary_barriers.lack_of_connections`: NA | NA | NA
+- `employment_primary_barriers.only_low_available`: NA | NA | NA
+- `employment_primary_barriers.other`: NA | NA | NA
+- `Protection`:  |  | 
+- `hh_dispute`: no | no | no
+- `property_damaged`: yes | no | no
+- `applied_compensation`: no |  | 
+- `received_compensation`:  |  | 
+- `previously_evicted`: no | no | no
+- `own_land`: no | no | no
+- `pds`: yes | yes | yes
+- `info_card`: yes | yes | yes
+- `death_certificate`: no | no | no
+- `guardianship`: no | no | no
+- `inheritance`: no | no | no
+- `trusteeship`: no | no | no
+- `passport_a18`: no | no | no
+- `id_card_a18`: no | yes | yes
+- `citizenship_a18`: yes | yes | yes
+- `birth_cert_a18`: yes |  | 
+- `school_cert_a18`: valid | valid | valid
+- `marriage_cert_a18`: valid | valid | valid
+- `divorce_cert_a18`: non_valid | non_valid | non_valid
+- `passport_u18`: no_one | no | no
+- `id_card_u18`: no_one | yes | yes
+- `citizenship_u18`: no_one | yes | yes
+- `birth_cert_u18`:  |  | 
+- `marriage_cert_u18`: no_one | non_valid | non_valid
+- `divorce_cert_u18`: no_one | valid | valid
+- `birth_cert_missing_amount_u1`: NA | NA | NA
+- `birth_cert_missing_amount_a1`: NA | NA | NA
+- `id_card_missing_amount`: NA | NA | NA
+- `can_leave_camp`: NA | NA | NA
+- `restriction_clearance`: no | no | no
+- `restriction_documents`: no | no | no
+- `restriction_time`: no | no | no
+- `restriction_reason`: no | no | no
+- `restriction_physical`: no | no | no
+- `restriction_other`: no | no | no
+- `unsafe_areas.none`: 1 | 1 | 1
+- `unsafe_areas.do_not_know`: 0 | 0 | 0
+- `unsafe_areas.facilities`: 0 | 0 | 0
+- `unsafe_areas.water_points`: 0 | 0 | 0
+- `unsafe_areas.social_areas`: 0 | 0 | 0
+- `unsafe_areas.distribution_areas`: 0 | 0 | 0
+- `unsafe_areas.markets`: 0 | 0 | 0
+- `unsafe_areas.way_to_centers`: 0 | 0 | 0
+- `unsafe_areas.way_to_school`: 0 | 0 | 0
+- `family_separated`: no | no | no
+- `family_separated_reunification`:  |  | 
+- `voting_eligibility`: yes | yes | yes
+- `Food Security`:  |  | 
+- `cereals`: 7 | 7 | 7
+- `nuts_seed`: 5 | 5 | 5
+- `milk_dairy`: 3 | 3 | 5
+- `meat`: 2 | 2 | 2
+- `vegetables`: 2 | 7 | 2
+- `fruits`: 2 | 2 | 3
+- `oil_fats`: 5 | 7 | 7
+- `sweets`: 5 | 5 | 5
+- `spices_condiments`: 7 | 7 | 7
+- `cereals_source`: cash | cash | cash
+- `nuts_seed_source`: cash | cash | cash
+- `milk_dairy_source`: cash | food_assistance_gov | cash
+- `meat_source`: cash | cash | cash
+- `vegetables_source`: cash | cash | cash
+- `fruits_source`: cash | cash | cash
+- `oil_fats_source`: cash | cash | cash
+- `sweets_source`: cash | cash | cash
+- `spices_condiments_source`: cash | cash | cash
+- `cheaper_quality`: 0 | 0 | 0
+- `borrowing`: 0 | 0 | 0
+- `reduce_meals`: 0 | 0 | 0
+- `less_food`: 0 | 0 | 0
+- `less_adult`: 0 | 0 | 0
+- `selling_assets`: no_nobody_in_hh_did | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `borrow_debt`: no_nobody_in_hh_did | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `selling_transportation_means`: no_nobody_in_hh_did | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `child_dropout_school`: no_nobody_in_hh_did | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `reduce_spending`: no_nobody_in_hh_did | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `spending_savings`: no_nobody_in_hh_did | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `change_place`: no_nobody_in_hh_did | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `adult_risky`: no_nobody_in_hh_did | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `child_work`: no_nobody_in_hh_did | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `family_migrating`: no_nobody_in_hh_did | no_nobody_in_hh_did | not_applicable
+- `child_forced_marriage`: no_nobody_in_hh_did | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `Health`:  |  | 
+- `distance_health_service`: within_2km | within_2km | within_2km
+- `distance_hospital`: more_10km | between_2km_5km | between_2km_5km
+- `hospital_emergency_ser`: yes | yes | yes
+- `hospital_maternity_ser`: yes | yes | yes
+- `hospital_surgical_ser`: yes | yes | yes
+- `hospital_pediatric_ser`: yes | yes | yes
+- `women_specialised_services`: yes | yes | yes
+- `hh_member_distress`: no | no | no
+- `child_distress_number`: NA | NA | NA
+- `adult_distress_number`: NA | NA | NA
+- `health_accessed`: yes | no | no
+- `health_barriers.no_offered_treatment`: 0 | NA | NA
+- `health_barriers.no_issues`: 0 | NA | NA
+- `health_barriers.unqualified_staff`: 0 | NA | NA
+- `health_barriers.no_referral_phc`: 0 | NA | NA
+- `health_barriers.refused_treatment`: 0 | NA | NA
+- `health_barriers.no_medicine`: 0 | NA | NA
+- `health_barriers.distance_to_treatmentcenter`: 0 | NA | NA
+- `health_barriers.cost`: 1 | NA | NA
+- `health_barriers.not_inclusive`: 0 | NA | NA
+- `health_barriers.civ_docs_problems`: 0 | NA | NA
+- `health_barriers.phc_closed`: 0 | NA | NA
+- `health_barriers.not_access`: 0 | NA | NA
+- `WASH`:  |  | 
+- `drinking_water_source.bottled_water`: 0 | 0 | 0
+- `drinking_water_source.unprot_spring`: 0 | 0 | 0
+- `drinking_water_source.surface_water`: 0 | 0 | 0
+- `drinking_water_source.water_trucking`: 0 | 0 | 0
+- `drinking_water_source.prot_spring`: 0 | 0 | 0
+- `drinking_water_source.unprot_tank`: 0 | 0 | 0
+- `drinking_water_source.other`: 0 | 0 | 0
+- `drinking_water_source.prot_tank`: 0 | 0 | 0
+- `drinking_water_source.unprot_well`: 0 | 0 | 0
+- `drinking_water_source.borehole`: 0 | 0 | 0
+- `drinking_water_source.network_comm`: 0 | 0 | 0
+- `drinking_water_source.illegal_connection`: 0 | 0 | 0
+- `drinking_water_source.network_private`: 1 | 1 | 1
+- `drinking_water_source.prot_well`: 0 | 0 | 0
+- `access_private_shared_watertank`: yes | yes | yes
+- `tank_capacity`: 1000 | 1000 | 1000
+- `refill_times`: 5 | 7 | 7
+- `people_share_tank`: 5 | 4 | 3
+- `treat_drink_water_why.not_clear`: NA | NA | NA
+- `treat_drink_water_why.none`: NA | NA | NA
+- `treat_drink_water_why.tastes_unpleasant`: NA | NA | NA
+- `treat_drink_water_why.smells_unpleasant`: NA | NA | NA
+- `latrines.none`: 0 | 0 | 0
+- `latrines.pit`: 0 | 0 | 0
+- `latrines.vip_pit`: 0 | 0 | 0
+- `latrines.other`: 0 | 0 | 0
+- `latrines.flush`: 1 | 1 | 1
+- `latrines.open`: 0 | 0 | 0
+- `shared_sanitation`: no | no | no
+- `access_hygiene_items`: yes | yes | yes
+- `use_of_soap.bathing`: 1 | 1 | 1
+- `use_of_soap.laundry`: 1 | 1 | 1
+- `use_of_soap.handwashing`: 1 | 1 | 1
+- `use_of_soap.other`: 0 | 0 | 0
+- `use_of_soap.dish_washing`: 1 | 1 | 0
+- `use_of_soap.not`: 0 | 0 | 0
+- `SNFI`:  |  | 
+- `shelter_type`: house | house | house
+- `hh_hosted`: no | no | no
+- `hh_risk_eviction`: no | no | no
+- `hh_main_risks.unaccepted_by_community`: NA | NA | NA
+- `hh_main_risks.authorities_request`: NA | NA | NA
+- `hh_main_risks.inadequate`: NA | NA | NA
+- `hh_main_risks.lack_funds`: NA | NA | NA
+- `hh_main_risks.owner_request`: NA | NA | NA
+- `hh_main_risks.no_longer_hosted`: NA | NA | NA
+- `hh_main_risks.other`: NA | NA | NA
+- `hh_main_risks.no_agreement`: NA | NA | NA
+- `hh_main_risks.occupied`: NA | NA | NA
+- `hh_main_risks.confiscation`: NA | NA | NA
+- `hh_main_risks.dispute`: NA | NA | NA
+- `shelter_issues.flood_landslide`: 0 | 0 | 0
+- `shelter_issues.waste_dumping`: 0 | 0 | 0
+- `shelter_issues.no_light`: 0 | 0 | 0
+- `shelter_issues.not_solid`: 0 | 0 | 0
+- `shelter_issues.insulation`: 0 | 0 | 0
+- `shelter_issues.uxo`: 0 | 0 | 0
+- `shelter_issues.no_fence`: 0 | 0 | 0
+- `shelter_issues.no_electrical`: 0 | 0 | 0
+- `shelter_issues.broken_windows`: 0 | 0 | 0
+- `shelter_issues.no_tenure`: 0 | 0 | 0
+- `shelter_issues.other`: 0 | 0 | 0
+- `shelter_issues.missing_cooking`: 0 | 0 | 0
+- `shelter_issues.low_high_ceilings`: 0 | 0 | 0
+- `shelter_issues.no_separated_rooms`: 0 | 0 | 0
+- `shelter_issues.openings_walls`: 0 | 0 | 0
+- `shelter_issues.fire`: 0 | 0 | 0
+- `shelter_issues.leaking`: 0 | 0 | 0
+- `shelter_issues.missing_washing`: 0 | 0 | 0
+- `shelter_issues.none`: 1 | 1 | 1
+- `shelter_issues.bends_structure`: 0 | 0 | 0
+- `shelter_issues.no_ventilation`: 0 | 0 | 0
+- `shelter_issues.insicure_isolated`: 0 | 0 | 0
+- `shelter_issues.no_space`: 0 | 0 | 0
+- `nfi_priority_needs.heating_fuel`: 1 | 1 | 0
+- `nfi_priority_needs.none`: 0 | 0 | 0
+- `nfi_priority_needs.winter_heaters`: 0 | 0 | 0
+- `nfi_priority_needs.water_storage`: 0 | 0 | 0
+- `nfi_priority_needs.clothing`: 0 | 0 | 0
+- `nfi_priority_needs.cooking_utensils_kitchen_set`: 0 | 0 | 0
+- `nfi_priority_needs.awc`: 0 | 0 | 0
+- `nfi_priority_needs.mattresses_sleeping_mats`: 1 | 1 | 1
+- `nfi_priority_needs.fuel_storage`: 0 | 0 | 0
+- `nfi_priority_needs.source_of_light`: 0 | 0 | 0
+- `nfi_priority_needs.fan`: 0 | 0 | 0
+- `nfi_priority_needs.cool_box`: 0 | 0 | 0
+- `nfi_priority_needs.bedding_items`: 1 | 1 | 1
+- `nfi_priority_needs.cooking_fuel`: 0 | 0 | 0
+- `nfi_priority_needs.blankets`: 1 | 0 | 1
+- `nfi_priority_needs.other`: 0 | 0 | 0
+- `nfi_priority_needs.cooking_stove`: 0 | 0 | 0
+- `shelter_better.improve_privacy`: 0 | 0 | 0
+- `shelter_better.improve_structure`: 0 | 0 | 0
+- `shelter_better.improve_tenure`: 0 | 0 | 0
+- `shelter_better.improve_infrastructure`: 0 | 0 | 0
+- `shelter_better.none`: 1 | 1 | 1
+- `shelter_better.protec_hazards`: 0 | 0 | 0
+- `shelter_better.improve_safety`: 0 | 0 | 0
+- `shelter_better.protect_climate`: 0 | 0 | 0
+- `shelter_better.other`: 0 | 0 | 0
+- `Education`:  |  | 
+- `primary_school_place`: within_2km | within_2km | within_2km
+- `secondary_school_place`: between_2_5 | between_2_5 | between_2_5
+- `education_level`: elementary | elementary | elementary
+- `Livelihoods`:  |  | 
+- `rent_exp`: 150000 | 50000 | 60000
+- `shelter_exp`: 0 | 0 | 0
+- `food_exp`: 200000 | 100000 | 100000
+- `electric_exp`: 10000 | 20000 | 20000
+- `medical_exp`: 0 | 0 | 0
+- `education_exp`: 0 | 0 | 0
+- `water_exp`: 10000 | 10000 | 10000
+- `adult_cloth_exp`: 10000 | 10000 | 10000
+- `child_cloth_exp`: 15000 | 10000 | 10000
+- `nfi_exp`: 0 | 0 | 0
+- `transportation_exp`: 0 | 0 | 0
+- `communication_exp`: 0 | 0 | 0
+- `debt_exp`: 0 | 0 | 0
+- `productive_assets_exp`: 0 | 0 | 0
+- `other_payment_exp`: 0 | 0 | 0
+- `tot_expenditure`: 395000 | 200000 | 210000
+- `primary_livelihood.renting`: 0 | 0 | 0
+- `primary_livelihood.ngo_charity_assistance`: 0 | 0 | 0
+- `primary_livelihood.social_service`: 0 | 0 | 0
+- `primary_livelihood.employment`: 1 | 1 | 1
+- `primary_livelihood.selling_assets`: 0 | 0 | 0
+- `primary_livelihood.selling_assistance_received`: 0 | 0 | 0
+- `primary_livelihood.loans_debts`: 0 | 0 | 0
+- `primary_livelihood.support_from_community`: 0 | 0 | 0
+- `primary_livelihood.savings`: 0 | 0 | 0
+- `primary_livelihood.other`: 0 | 0 | 0
+- `primary_livelihood.retirement_pension`: 0 | 0 | 0
+- `primary_livelihood.illegal_activity`: 0 | 0 | 0
+- `primary_livelihood.remittences`: 0 | 0 | 0
+- `primary_livelihood.modm_cash_assistance`: 0 | 0 | 0
+- `employment_seasonal`: no | no | yes
+- `how_much_debt`: 0 | 0 | 0
+- `reasons_for_debt`:  |  | 
+- `market_place`: within_2km | within_2km | within_2km
+- `AAP`:  |  | 
+- `info_aid.uxo`: 0 | 0 | 0
+- `info_aid.none`: 0 | 0 | 0
+- `info_aid.property`: 0 | 0 | 0
+- `info_aid.electricity`: 0 | 0 | 0
+- `info_aid.housing`: 0 | 0 | 0
+- `info_aid.healthcare`: 1 | 1 | 1
+- `info_aid.legal`: 0 | 0 | 0
+- `info_aid.water`: 0 | 0 | 0
+- `info_aid.other`: 0 | 0 | 0
+- `info_aid.safety`: 0 | 0 | 0
+- `info_aid.livelihoods`: 0 | 0 | 1
+- `info_aid.aid`: 1 | 1 | 0
+- `info_aid.education`: 0 | 0 | 0
+- `info_aid.documentation`: 0 | 0 | 0
+- `info_provider.friends_not_been_in_aoo`: 0 | 0 | 0
+- `info_provider.ngo`: 0 | 0 | 0
+- `info_provider.mukhtars`: 0 | 0 | 0
+- `info_provider.schools`: 0 | 0 | 0
+- `info_provider.other`: 0 | 0 | 0
+- `info_provider.friends_visited_aoo`: 1 | 1 | 1
+- `info_provider.local_authorities`: 0 | 0 | 0
+- `info_provider.friends_in_aoo`: 1 | 1 | 1
+- `info_provider.national_authorities`: 0 | 0 | 0
+- `info_provider.religious`: 0 | 0 | 0
+- `info_provider.sector_leaders`: 0 | 0 | 0
+- `info_mode.notice_board`: 0 | 0 | 0
+- `info_mode.television`: 1 | 1 | 0
+- `info_mode.mobile`: 0 | 1 | 0
+- `info_mode.other_social`: 0 | 0 | 0
+- `info_mode.facebook_messenger`: 0 | 0 | 0
+- `info_mode.facebook_app`: 0 | 0 | 0
+- `info_mode.telephone`: 1 | 1 | 1
+- `info_mode.face_cmmunic`: 1 | 0 | 1
+- `info_mode.leaflet`: 0 | 0 | 0
+- `info_mode.other`: 0 | 0 | 0
+- `info_mode.viber`: 0 | 0 | 0
+- `info_mode.radio`: 0 | 0 | 0
+- `info_mode.direct_obs`: 0 | 0 | 1
+- `info_mode.whatsapp`: 0 | 0 | 0
+- `info_mode.loud_speakers`: 0 | 0 | 0
+- `info_mode.newspapers`: 0 | 0 | 0
+- `aid_received`: no | no | no
+- `aid_type.education`: NA | NA | NA
+- `aid_type.other_nfi`: NA | NA | NA
+- `aid_type.food`: NA | NA | NA
+- `aid_type.cash`: NA | NA | NA
+- `aid_type.water`: NA | NA | NA
+- `aid_type.shelter`: NA | NA | NA
+- `aid_type.protection`: NA | NA | NA
+- `aid_type.healthcare`: NA | NA | NA
+- `aid_type.fuel`: NA | NA | NA
+- `aid_type.seasonal_items`: NA | NA | NA
+- `aid_satisfaction`:  |  | 
+- `aid_not_satisfied.delays`: NA | NA | NA
+- `aid_not_satisfied.other`: NA | NA | NA
+- `aid_not_satisfied.quality`: NA | NA | NA
+- `aid_not_satisfied.quantity`: NA | NA | NA
+- `aid_workers_satisfied`:  |  | 
+- `aid_feedback.aid_worker_home`: 1 | 1 | 1
+- `aid_feedback.member_community`: 0 | 0 | 1
+- `aid_feedback.suggestion_box`: 0 | 0 | 0
+- `aid_feedback.sms`: 0 | 0 | 0
+- `aid_feedback.other`: 0 | 0 | 0
+- `aid_feedback.social_media`: 0 | 0 | 0
+- `aid_feedback.phone_call`: 1 | 1 | 1
+- `aid_feedback.letter`: 0 | 0 | 0
+- `aid_feedback.aid_worker_office`: 1 | 1 | 0
+- `aid_feedback.email`: 0 | 0 | 0
+- `community_decision_making`: no | yes | no
+- `complaint_mechanisms`:  |  | 
+- `info_specific_needs`: no | no | no
+- `info_specific_needs_who.mental_health`: NA | NA | NA
+- `info_specific_needs_who.disabilities`: NA | NA | NA
+- `info_specific_needs_who.illeterate`: NA | NA | NA
+- `info_specific_needs_who.unaccompanied`: NA | NA | NA
+- `info_specific_needs_who.other`: NA | NA | NA
+- `info_specific_needs_who.fmhh`: NA | NA | NA
+- `info_specific_needs_who.health_condition`: NA | NA | NA
+- `info_specific_needs_who.single_women`: NA | NA | NA
+- `info_specific_needs_who.age`: NA | NA | NA
+- `info_specific_needs_who.protection_need`: NA | NA | NA
+- `thanks`: NA | NA | NA
+- `X_uuid`: 97977ff9-687f-42fc-bbf3-de196b144e03 | 53544ffe-7599-4d90-927a-1884bc2e0762 | 027a688e-3ab5-449a-bbff-9017d92c0682
+- `weights`: 12.0952380952381 | 12.0952380952381 | 12.0952380952381
+
+## irq_mcna8_2020
+Iraq Multi Cluster Needs Assessment VIII (2020), household dataset without personal information  
+12743030 bytes, sha256 `d404fcf1c422a337962fa372908886458421ec09f815f78c25cc90653a7dc17f`
+
+### sheet `READ_ME`: about 14 rows, 2 columns
+
+- `REACH IRAQ | MCNA VIII DATASET (HDX)`: All analysis should be weighted accordin | Items | Project Background
+- `None`:  | Description | The eighth round of Iraq's Multi-Cluster
+
+### sheet `MCNA VIII Coverage`: about 65 rows, 6 columns
+
+- `Governorate`: Al-Anbar | Al-Anbar | Al-Anbar
+- `Districts`: Al-Falluja | Al-Kaim | Al-Ramadi
+- `Survey Method`: In-person | Remote | In-person
+- `In-camp IDP*`: x |  | 
+- `Out of camp IDP`: x |  | x
+- `Returnee`: x | x | x
+
+### sheet `MCNA VIII Questionnaire`: about 316 rows, 5 columns
+
+- `Type`: select_one governorate_mcna | select_one district_mcna | select_one yes_no
+- `Dataset Column Heading`: governorate_mcna_r | district_mcna | hhh_r
+- `Question`: 5. Which governorate do you currently li | Which district do you currently live in? | 6. Are you the head of household?
+- `Choices`: Al-Anbar
+Babil
+Baghdad
+Al-Bashrah
+Duhok
+ |  | Yes
+No
+- `Notes`: Remote survey | Remote survey | Remote survey
+
+### sheet `HH - Representative`: about 3873 rows, 331 columns
+
+- `hh_id`: 1 | 2 | 3
+- `population_group`: idp_out_camp | idp_out_camp | idp_out_camp
+- `governorate_mcna`: al.anbar | al.anbar | al.anbar
+- `district_mcna`: Available upon request. | Available upon request. | Available upon request.
+- `camp_name`: Available upon request. | Available upon request. | Available upon request.
+- `dc_method`: in_person | in_person | in_person
+- `consent`: yes | yes | yes
+- `hhh`: Available upon request. | Available upon request. | Available upon request.
+- `will_to_response`: NA | NA | NA
+- `gender_hhh`: Available upon request. | Available upon request. | Available upon request.
+- `age_respondent`: Available upon request. | Available upon request. | Available upon request.
+- `gender_respondent`: Available upon request. | Available upon request. | Available upon request.
+- `displace_status`: Available upon request. | Available upon request. | Available upon request.
+- `displace_status_returnee`: Available upon request. | Available upon request. | Available upon request.
+- `displace_status_idp`: Available upon request. | Available upon request. | Available upon request.
+- `return_date_returnee`: Available upon request. | Available upon request. | Available upon request.
+- `return_durationdisplace`: Available upon request. | Available upon request. | Available upon request.
+- `displace_date_idp`: Available upon request. | Available upon request. | Available upon request.
+- `idp_first_place`: Available upon request. | Available upon request. | Available upon request.
+- `arrival_date_idp`: Available upon request. | Available upon request. | Available upon request.
+- `governorate_origin`: babil | babil | al.anbar
+- `district_origin`: Available upon request. | Available upon request. | Available upon request.
+- `displaced_again`: Available upon request. | Available upon request. | Available upon request.
+- `num_hh_member`: Available upon request. | Available upon request. | Available upon request.
+- `num_family_member`: Available upon request. | Available upon request. | Available upon request.
+- `male_2_calc`: 0 | 0 | 1
+- `female_2_calc`: 0 | 0 | 0
+- `male_3_5_calc`: 0 | 0 | 0
+- `female_3_5_calc`: 0 | 1 | 0
+- `male_6_17_calc`: 2 | 2 | 0
+- `female_6_17_calc`: 2 | 1 | 0
+- `male_18_59_calc`: 0 | 1 | 1
+- `female_18_59_calc`: 1 | 1 | 1
+- `male_60_calc`: 0 | 0 | 0
+- `female_60_calc`: 0 | 0 | 0
+- `tot_child_012`: 3 | 4 | 1
+- `tot_child_1317`: 1 | 0 | 0
+- `tot_child`: 4 | 4 | 1
+- `tot_male`: 2 | 3 | 2
+- `tot_female`: 3 | 3 | 1
+- `tot_6_above`: 5 | 5 | 2
+- `reasons_not_attend`: Available upon request. | Available upon request. | Available upon request.
+- `not_residing`: no | no | no
+- `not_residing_num`: NA | NA | NA
+- `not_residing_reason.married`: NA | NA | NA
+- `not_residing_reason.seek_employment`: NA | NA | NA
+- `not_residing_reason.study`: NA | NA | NA
+- `not_residing_reason.family`: NA | NA | NA
+- `not_residing_reason.armed_actors`: NA | NA | NA
+- `not_residing_reason.kidnapped`: Available upon request. | Available upon request. | Available upon request.
+- `not_residing_reason.missing`: Available upon request. | Available upon request. | Available upon request.
+- `not_residing_reason.detained`: NA | NA | NA
+- `employment_primary_barriers`: NA | increased_competition | increased_competition
+- `employment_primary_barriers.increased_competition`: NA | 1 | 1
+- `employment_primary_barriers.jobs_far`: NA | 0 | 0
+- `employment_primary_barriers.only_low_available`: NA | 0 | 0
+- `employment_primary_barriers.underqualified_for_jobs`: NA | 0 | 0
+- `employment_primary_barriers.lack_of_connections`: NA | 0 | 0
+- `employment_primary_barriers.lack_jobs_women`: NA | 0 | 0
+- `employment_primary_barriers.none`: NA | 0 | 0
+- `cereals`: 7 | 7 | 6
+- `nuts_seed`: 7 | 7 | 7
+- `milk_dairy`: 7 | 7 | 7
+- `meat`: 0 | 1 | 0
+- `vegetables`: 3 | 7 | 6
+- `fruits`: 4 | 2 | 2
+- `oil_fats`: 5 | 7 | 7
+- `sweets`: 3 | 7 | 7
+- `spices_condiments`: 5 | 7 | 7
+- `food_source`: credit | credit | credit
+- `no_food`: yes | yes | no
+- `no_food_freq`: rarely | rarely | NA
+- `hungry`: yes | yes | no
+- `hungry_freq`: sometimes | rarely | NA
+- `not_eating`: yes | yes | no
+- `not_eating_freq`: rarely | rarely | NA
+- `livelihood_strategies`: NA | NA | NA
+- `selling_assets`: no_nobody_in_hh_did | no_nobody_in_hh_did | yes
+- `borrow_debt`: Available upon request. | Available upon request. | Available upon request.
+- `selling_transportation_means`: no_nobody_in_hh_did | yes | no_nobody_in_hh_did
+- `child_dropout_school`: no_nobody_in_hh_did | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `reduce_spending`: no_nobody_in_hh_did | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `spending_savings`: yes | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `change_place`: Available upon request. | Available upon request. | Available upon request.
+- `adult_risky`: no_nobody_in_hh_did | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `child_work`: Available upon request. | Available upon request. | Available upon request.
+- `family_migrating`: no_nobody_in_hh_did | no_nobody_in_hh_did | no_nobody_in_hh_did
+- `child_forced_marriage`: Available upon request. | Available upon request. | Available upon request.
+- `difficulty_seeing`: Available upon request. | Available upon request. | Available upon request.
+- `difficulty_hearing`: Available upon request. | Available upon request. | Available upon request.
+- `difficulty_walking`: Available upon request. | Available upon request. | Available upon request.
+- `difficulty_remembering`: Available upon request. | Available upon request. | Available upon request.
+- `difficulty_washing`: Available upon request. | Available upon request. | Available upon request.
+- `difficulty_communicating`: Available upon request. | Available upon request. | Available upon request.
+- `difficulty_accessing_services`: Available upon request. | Available upon request. | Available upon request.
+- `distance_clinic`: less_15 | less_15 | less_15
+- `distance_hospital`: more_3hours | more_3hours | more_3hours
+- `hospital_emergency_ser`: yes | yes | yes
+- `hospital_maternity_ser`: yes | yes | yes
+- `hospital_surgical_ser`: yes | yes | yes
+- `hospital_pediatric_ser`: yes | yes | yes
+- `women_specialised_services`: yes | yes | yes
+- `hh_member_distress`: Available upon request. | Available upon request. | Available upon request.
+- `child_distress_number`: Available upon request. | Available upon request. | Available upon request.
+- `adult_distress_number`: Available upon request. | Available upon request. | Available upon request.
+- `health_accessed`: yes | yes | no
+- `health_barriers`: Available upon request. | Available upon request. | Available upon request.
+- `injured_explosive`: Available upon request. | Available upon request. | Available upon request.
+- `drinking_water_source`: network_private | network_private | network_private
+- `treat_drink_water`: never | never | never
+- `treat_drink_water_why`: NA | NA | NA
+- `treat_drink_water_why.not_clear`: NA | NA | NA
+- `treat_drink_water_why.tastes_unpleasant`: NA | NA | NA
+- `treat_drink_water_why.smells_unpleasant`: NA | NA | NA
+- `treat_drink_water_why.none`: NA | NA | NA
+- `sufficient_water`: NA | NA | NA
+- `sufficient_water_drinking`: yes | yes | yes
+- `sufficient_water_cooking`: yes | yes | yes
+- `sufficient_water_hygiene`: yes | yes | yes
+- `access_private_shared_watertank`: NA | NA | NA
+- `tank_capacity`: NA | NA | NA
+- `refill_times`: NA | NA | NA
+- `people_share_tank`: NA | NA | NA
+- `latrines`: flush | flush | flush
+- `shared_sanitation`: yes | yes | yes
+- `access_hygiene_items`: satisfied | satisfied | satisfied
+- `access_soap`: yes | yes | yes
+- `use_of_soap`: handwashing bathing laundry dish_washing | handwashing bathing laundry dish_washing | handwashing laundry dish_washing
+- `use_of_soap.not`: 0 | 0 | 0
+- `use_of_soap.handwashing`: 1 | 1 | 1
+- `use_of_soap.bathing`: 1 | 1 | 0
+- `use_of_soap.laundry`: 1 | 1 | 1
+- `use_of_soap.dish_washing`: 1 | 1 | 1
+- `shelter_type`: Available upon request. | Available upon request. | Available upon request.
+- `enclosure_issues`: leaks_light_rain lack_insulation | leaks_heavy_rain leaks_light_rain | leaks_light_rain
+- `enclosure_issues.lack_insulation`: 1 | 0 | 0
+- `enclosure_issues.leaks_heavy_rain`: 0 | 1 | 0
+- `enclosure_issues.leaks_light_rain`: 1 | 1 | 1
+- `enclosure_issues.limited_ventilation`: 0 | 0 | 0
+- `enclosure_issues.debris_removable`: 0 | 0 | 0
+- `enclosure_issues.debris_non_removable`: 0 | 0 | 0
+- `enclosure_issues.none`: 0 | 0 | 0
+- `enclosure_issues.unsure`: 0 | 0 | 0
+- `shelter_better`: protect_climate | none | protect_climate
+- `shelter_better.protec_hazards`: 0 | 0 | 0
+- `shelter_better.improve_safety`: 0 | 0 | 0
+- `shelter_better.improve_privacy`: 0 | 0 | 0
+- `shelter_better.protect_climate`: 1 | 0 | 1
+- `shelter_better.none`: 0 | 1 | 0
+- `nfi_priority_needs`: clothing cooking_utensils | clothing heating_cooking_fuel | blankets cooking_utensils
+- `nfi_priority_needs.bedding_items`: 0 | 0 | 0
+- `nfi_priority_needs.mattresses_sleeping_mats`: 0 | 0 | 0
+- `nfi_priority_needs.blankets`: 0 | 0 | 1
+- `nfi_priority_needs.cooking_utensils`: 1 | 0 | 1
+- `nfi_priority_needs.cooking_stove`: 0 | 0 | 0
+- `nfi_priority_needs.winter_heaters`: 0 | 0 | 0
+- `nfi_priority_needs.clothing`: 1 | 1 | 0
+- `nfi_priority_needs.heating_cooking_fuel`: 0 | 1 | 0
+- `nfi_priority_needs.none`: 0 | 0 | 0
+- `primary_school_place`: within_2km | within_2km | within_2km
+- `secondary_school_place`: within_2km | within_2km | within_2km
+- `covid_dropout`: Available upon request. | Available upon request. | Available upon request.
+- `covid_loss_job`: Available upon request. | Available upon request. | Available upon request.
+- `covid_loss_job_permanent`: Available upon request. | Available upon request. | Available upon request.
+- `covid_loss_job_temp`: Available upon request. | Available upon request. | Available upon request.
+- `tot_expenses`: 450000 | 450000 | 300000
+- `rent_exp`: Available upon request. | Available upon request. | Available upon request.
+- `medical_exp`: 200000 | 150000 | 85000
+- `food_exp`: 250000 | 300000 | 215000
+- `primary_livelihood`: Available upon request. | Available upon request. | Available upon request.
+- `primary_livelihood_employment`: 0 | 0 | 0
+- `primary_livelihood_retirement_pension`: 0 | 0 | 0
+- `employment_seasonal`: NA | NA | NA
+- `inc_employment_pension`: Available upon request. | Available upon request. | Available upon request.
+- `how_much_debt`: 4500000 | 4000000 | 850000
+- `reasons_for_debt`: food | food | food
+- `other_reasons_for_debt`: NA | NA | NA
+- `market_place`: less_15 | less_15 | less_15
+- `hlp_document`: Available upon request. | Available upon request. | Available upon request.
+- `hh_dispute`: Available upon request. | Available upon request. | Available upon request.
+- `hh_risk_eviction`: no | no | no
+- `hh_main_risks`: NA | NA | NA
+- `hh_main_risks.lack_funds`: NA | NA | NA
+- `hh_main_risks.no_longer_hosted`: NA | NA | NA
+- `hh_main_risks.unaccepted_by_community`: NA | NA | NA
+- `hh_main_risks.authorities_request`: NA | NA | NA
+- `hh_main_risks.owner_request`: NA | NA | NA
+- `hh_main_risks.no_agreement`: NA | NA | NA
+- `hh_main_risks.inadequate`: NA | NA | NA
+- `hh_main_risks.occupied`: NA | NA | NA
+- `hh_main_risks.confiscation`: NA | NA | NA
+- `hh_main_risks.dispute`: NA | NA | NA
+- `property_damaged`: Available upon request. | Available upon request. | Available upon request.
+- `aware_compensation`: yes | no | yes
+- `applied_compensation`: yes | NA | no
+- `received_compensation`: no | NA | NA
+- `pds_card`: Available upon request. | Available upon request. | Available upon request.
+- `id_card_a18`: no | yes | yes
+- `nationality_cert_a18`: no | yes | yes
+- `id_card_u18`: no | no | yes
+- `nationality_cert_u18`: no | no | no
+- `birth_cert_u18`: no | no | yes
+- `movement_restrictions`: NA | NA | NA
+- `restriction_clearance`: Available upon request. | Available upon request. | Available upon request.
+- `restriction_clearance_covid`: NA | NA | NA
+- `restriction_documents`: no | no | no
+- `restriction_documents_covid`: NA | NA | NA
+- `restriction_time`: yes | yes | yes
+- `restriction_time_covid`: yes | yes | yes
+- `restriction_reason`: no | no | no
+- `restriction_reason_covid`: NA | NA | NA
+- `restriction_physical`: no | no | no
+- `restriction_physical_covid`: NA | NA | NA
+- `feel_unsafe`: no | no | no
+- `unsafe_areas`: NA | NA | NA
+- `unsafe_areas.facilities`: NA | NA | NA
+- `unsafe_areas.markets`: NA | NA | NA
+- `unsafe_areas.distribution_areas`: NA | NA | NA
+- `unsafe_areas.water_points`: NA | NA | NA
+- `unsafe_areas.social_areas`: NA | NA | NA
+- `unsafe_areas.way_to_school`: NA | NA | NA
+- `unsafe_areas.way_to_centers`: NA | NA | NA
+- `unsafe_areas.do_not_know`: NA | NA | NA
+- `security_incident`: no | no | no
+- `security_incident_gender`: NA | NA | NA
+- `disciplinary_measures`: explained | explained | explained
+- `disciplinary_measures.explained`: 1 | 1 | 1
+- `disciplinary_measures.forbid_privileges`: 0 | 0 | 0
+- `disciplinary_measures.shouted`: 0 | 0 | 0
+- `disciplinary_measures.spanked`: 0 | 0 | 0
+- `disciplinary_measures.no_answer`: 0 | 0 | 0
+- `risk_education`: Available upon request. | Available upon request. | Available upon request.
+- `info_aid`: housing livelihoods healthcare | housing livelihoods healthcare | safety housing healthcare
+- `info_aid.safety`: 0 | 0 | 1
+- `info_aid.housing`: 1 | 1 | 1
+- `info_aid.livelihoods`: 1 | 1 | 0
+- `info_aid.water`: 0 | 0 | 0
+- `info_aid.electricity`: 0 | 0 | 0
+- `info_aid.education`: 0 | 0 | 0
+- `info_aid.healthcare`: 1 | 1 | 1
+- `info_aid.aid`: 0 | 0 | 0
+- `info_aid.legal`: 0 | 0 | 0
+- `info_aid.property`: 0 | 0 | 0
+- `info_aid.uxo`: 0 | 0 | 0
+- `info_aid.documentation`: 0 | 0 | 0
+- `info_aid.none`: 0 | 0 | 0
+- `info_provider`: friends_in_aoo friends_visited_aoo local | friends_in_aoo friends_visited_aoo local | friends_in_aoo friends_visited_aoo frien
+- `info_provider.friends_in_aoo`: 1 | 1 | 1
+- `info_provider.friends_visited_aoo`: 1 | 1 | 1
+- `info_provider.friends_not_been_in_aoo`: 0 | 0 | 1
+- `info_provider.local_authorities`: 1 | 1 | 0
+- `info_provider.national_authorities`: 0 | 0 | 0
+- `info_provider.ngo`: 0 | 0 | 0
+- `info_provider.religious`: 0 | 0 | 0
+- `info_provider.mukhtars`: 0 | 0 | 0
+- `info_provider.sector_leaders`: 0 | 0 | 0
+- `info_provider.schools`: 0 | 0 | 0
+- `info_provider_ret`: NA | NA | NA
+- `info_provider_ret.friends`: NA | NA | NA
+- `info_provider_ret.local_authorities`: NA | NA | NA
+- `info_provider_ret.national_authorities`: NA | NA | NA
+- `info_provider_ret.ngo`: NA | NA | NA
+- `info_provider_ret.religious`: NA | NA | NA
+- `info_provider_ret.mukhtars`: NA | NA | NA
+- `info_provider_ret.sector_leaders`: NA | NA | NA
+- `info_provider_ret.schools`: NA | NA | NA
+- `info_mode`: telephone television face_cmmunic | direct_obs face_cmmunic television | direct_obs face_cmmunic telephone
+- `info_mode.direct_obs`: 0 | 1 | 1
+- `info_mode.face_cmmunic`: 1 | 1 | 1
+- `info_mode.television`: 1 | 1 | 0
+- `info_mode.telephone`: 1 | 0 | 1
+- `info_mode.mobile`: 0 | 0 | 0
+- `info_mode.facebook_app`: 0 | 0 | 0
+- `info_mode.facebook_messenger`: 0 | 0 | 0
+- `info_mode.whatsapp`: 0 | 0 | 0
+- `info_mode.viber`: 0 | 0 | 0
+- `info_mode.other_social`: 0 | 0 | 0
+- `info_mode.notice_board`: 0 | 0 | 0
+- `info_mode.newspapers`: 0 | 0 | 0
+- `info_mode.leaflet`: 0 | 0 | 0
+- `info_mode.loud_speakers`: 0 | 0 | 0
+- `info_mode.radio`: 0 | 0 | 0
+- `aid_received`: no | yes | no
+- `aid_type`: Available upon request. | Available upon request. | Available upon request.
+- `aid_satisfaction`: NA | no | NA
+- `aid_not_satisfied`: NA | quantity | NA
+- `aid_not_satisfied.quality`: NA | 0 | NA
+- `aid_not_satisfied.quantity`: NA | 1 | NA
+- `aid_not_satisfied.delays`: NA | 0 | NA
+- `aid_workers_satisfied`: NA | no | NA
+- `aid_workers_whyno`: NA | quantity/NA | NA
+- `complaint_mechanisms`: NA | no | NA
+- `covid_info_need`: yes | yes | yes
+- `covid_info_type`: causes signs prevention treatment | causes signs prevention treatment | causes signs prevention
+- `covid_info_type.causes`: 1 | 1 | 1
+- `covid_info_type.signs`: 1 | 1 | 1
+- `covid_info_type.prevention`: 1 | 1 | 1
+- `covid_info_type.treatment`: 1 | 1 | 0
+- `covid_info_type.consequences`: 0 | 0 | 0
+- `covid_info_type.do_not_know`: 0 | 0 | 0
+- `movement_intentions_3`: Available upon request. | Available upon request. | Available upon request.
+- `movement_intentions_b3`: NA | NA | NA
+- `movement_intentions_b12`: NA | NA | NA
+- `movement_intentions_12`: current | current | current
+- `movement_intentions_ret`: lack_livelihoods_aoo | fear_trauma house_damaged_destroyed | fear_trauma lack_security_women
+- `movement_intentions_ret.fear_trauma`: 0 | 1 | 1
+- `movement_intentions_ret.lack_of_security_forces`: 0 | 0 | 0
+- `movement_intentions_ret.presence_of_mines`: 0 | 0 | 0
+- `movement_intentions_ret.discrimination`: 0 | 0 | 0
+- `movement_intentions_ret.lack_security_women`: 0 | 0 | 1
+- `movement_intentions_ret.lack_court`: 0 | 0 | 0
+- `movement_intentions_ret.movement_restrictions`: 0 | 0 | 0
+- `movement_intentions_ret.no_personal_id`: 0 | 0 | 0
+- `movement_intentions_ret.no_money_return`: 0 | 0 | 0
+- `movement_intentions_ret.lack_livelihoods_aoo`: 1 | 0 | 0
+- `movement_intentions_ret.house_damaged_destroyed`: 0 | 1 | 0
+- `movement_intentions_ret.house_land_occupied`: 0 | 0 | 0
+- `movement_intentions_ret.hh_assets_stolen_damaged`: 0 | 0 | 0
+- `movement_intentions_ret.local_markets_not_working`: 0 | 0 | 0
+- `movement_intentions_ret.basic_services_not_enough`: 0 | 0 | 0
+- `movement_intentions_ret.lack_of_education_oppotunities`: 0 | 0 | 0
+- `movement_intentions_ret.immediate_family_wont_return`: 0 | 0 | 0
+- `movement_intentions_ret.children_enrolled_in_displacement`: 0 | 0 | 0
+- `movement_intentions_ret.living_conditions_better`: 0 | 0 | 0
+- `movement_intentions_ret.do_not_know`: 0 | 0 | 0
+- `movement_intentions_ret.decline_to_answer`: 0 | 0 | 0
+- `reason_to_return_to_aoo`: Available upon request. | Available upon request. | Available upon request.
+- `why_not_return`: Available upon request. | Available upon request. | Available upon request.
+- `local_integration`: yes | yes | yes
+- `strata`: Available upon request. | Available upon request. | Available upon request.
+- `weights`: 0.215549598875552 | 0.215549598875552 | 0.215549598875552
+
+### sheet `HH - Indicative`: about 5758 rows, 331 columns
+
+- `hh_id`: 239 | 240 | 241
+- `population_group`: returnee | returnee | idp_in_camp
+- `governorate_mcna`: al.anbar | al.anbar | al.anbar
+- `district_mcna`: Available upon request. | Available upon request. | Available upon request.
+- `camp_name`: Available upon request. | Available upon request. | Available upon request.
+- `dc_method`: remote | remote | remote
+- `consent`: yes | yes | yes
+- `hhh`: Available upon request. | Available upon request. | Available upon request.
+- `will_to_response`: NA | NA | NA
+- `gender_hhh`: Available upon request. | Available upon request. | Available upon request.
+- `age_respondent`: Available upon request. | Available upon request. | Available upon request.
+- `gender_respondent`: Available upon request. | Available upon request. | Available upon request.
+- `displace_status`: Available upon request. | Available upon request. | Available upon request.
+- `displace_status_returnee`: Available upon request. | Available upon request. | Available upon request.
+- `displace_status_idp`: Available upon request. | Available upon request. | Available upon request.
+- `return_date_returnee`: Available upon request. | Available upon request. | Available upon request.
+- `return_durationdisplace`: Available upon request. | Available upon request. | Available upon request.
+- `displace_date_idp`: Available upon request. | Available upon request. | Available upon request.
+- `idp_first_place`: Available upon request. | Available upon request. | Available upon request.
+- `arrival_date_idp`: Available upon request. | Available upon request. | Available upon request.
+- `governorate_origin`: NA | NA | al.anbar
+- `district_origin`: Available upon request. | Available upon request. | Available upon request.
+- `displaced_again`: Available upon request. | Available upon request. | Available upon request.
+- `num_hh_member`: Available upon request. | Available upon request. | Available upon request.
+- `num_family_member`: Available upon request. | Available upon request. | Available upon request.
+- `male_2_calc`: 0 | 0 | 0
+- `female_2_calc`: 0 | 0 | 0
+- `male_3_5_calc`: 1 | 0 | 0
+- `female_3_5_calc`: 0 | 0 | 0
+- `male_6_17_calc`: 2 | 1 | 1
+- `female_6_17_calc`: 2 | 1 | 1
+- `male_18_59_calc`: 2 | 1 | 1
+- `female_18_59_calc`: 1 | 1 | 1
+- `male_60_calc`: 0 | 1 | 0
+- `female_60_calc`: 0 | 0 | 0
+- `tot_child_012`: 3 | 0 | 2
+- `tot_child_1317`: 2 | 2 | 0
+- `tot_child`: 5 | 2 | 2
+- `tot_male`: 5 | 3 | 2
+- `tot_female`: 3 | 2 | 2
+- `tot_6_above`: 7 | 5 | 4
+- `reasons_not_attend`: Available upon request. | Available upon request. | Available upon request.
+- `not_residing`: no | no | no
+- `not_residing_num`: NA | NA | NA
+- `not_residing_reason.married`: NA | NA | NA
+- `not_residing_reason.seek_employment`: NA | NA | NA
+- `not_residing_reason.study`: NA | NA | NA
+- `not_residing_reason.family`: NA | NA | NA
+- `not_residing_reason.armed_actors`: NA | NA | NA
+- `not_residing_reason.kidnapped`: Available upon request. | Available upon request. | Available upon request.
+- `not_residing_reason.missing`: Available upon request. | Available upon request. | Available upon request.
+- `not_residing_reason.detained`: NA | NA | NA
+- `employment_primary_barriers`: NA | NA | underqualified_for_jobs
+- `employment_primary_barriers.increased_competition`: NA | NA | 0
+- `employment_primary_barriers.jobs_far`: NA | NA | 0
+- `employment_primary_barriers.only_low_available`: NA | NA | 0
+- `employment_primary_barriers.underqualified_for_jobs`: NA | NA | 1
+- `employment_primary_barriers.lack_of_connections`: NA | NA | 0
+- `employment_primary_barriers.lack_jobs_women`: NA | NA | 0
+- `employment_primary_barriers.none`: NA | NA | 0
+- `cereals`: 7 | 7 | 7
+- `nuts_seed`: 3 | 4 | 5
+- `milk_dairy`: 5 | 2 | 4
+- `meat`: 2 | 5 | 1
+- `vegetables`: 4 | 6 | 6
+- `fruits`: 2 | 4 | 2
+- `oil_fats`: 7 | 7 | 6
+- `sweets`: 7 | 7 | 6
+- `spices_condiments`: 7 | 7 | 5
+- `food_source`: credit | credit | cash_assistance
+- `no_food`: no | yes | no
+- `no_food_freq`: NA | rarely | NA
+- `hungry`: no | no | no
+- `hungry_freq`: NA | NA | NA
+- `not_eating`: no | no | no
+- `not_eating_freq`: NA | NA | NA
+- `livelihood_strategies`: NA | NA | NA
+- `selling_assets`: not_applicable | not_applicable | no_nobody_in_hh_did
+- `borrow_debt`: Available upon request. | Available upon request. | Available upon request.
+- `selling_transportation_means`: no_nobody_in_hh_did | not_applicable | not_applicable
+- `child_dropout_school`: yes | not_applicable | no_nobody_in_hh_did
+- `reduce_spending`: yes | not_applicable | yes
+- `spending_savings`: no_nobody_in_hh_did | not_applicable | not_applicable
+- `change_place`: Available upon request. | Available upon request. | Available upon request.
+- `adult_risky`: no_nobody_in_hh_did | not_applicable | no_nobody_in_hh_did
+- `child_work`: Available upon request. | Available upon request. | Available upon request.
+- `family_migrating`: no_nobody_in_hh_did | not_applicable | no_nobody_in_hh_did
+- `child_forced_marriage`: Available upon request. | Available upon request. | Available upon request.
+- `difficulty_seeing`: Available upon request. | Available upon request. | Available upon request.
+- `difficulty_hearing`: Available upon request. | Available upon request. | Available upon request.
+- `difficulty_walking`: Available upon request. | Available upon request. | Available upon request.
+- `difficulty_remembering`: Available upon request. | Available upon request. | Available upon request.
+- `difficulty_washing`: Available upon request. | Available upon request. | Available upon request.
+- `difficulty_communicating`: Available upon request. | Available upon request. | Available upon request.
+- `difficulty_accessing_services`: Available upon request. | Available upon request. | Available upon request.
+- `distance_clinic`: less_30 | less_15 | less_15
+- `distance_hospital`: less_hour | less_30 | less_hour
+- `hospital_emergency_ser`: yes | yes | yes
+- `hospital_maternity_ser`: no | yes | yes
+- `hospital_surgical_ser`: yes | yes | yes
+- `hospital_pediatric_ser`: yes | yes | yes
+- `women_specialised_services`: no | no | yes
+- `hh_member_distress`: Available upon request. | Available upon request. | Available upon request.
+- `child_distress_number`: Available upon request. | Available upon request. | Available upon request.
+- `adult_distress_number`: Available upon request. | Available upon request. | Available upon request.
+- `health_accessed`: yes | yes | yes
+- `health_barriers`: Available upon request. | Available upon request. | Available upon request.
+- `injured_explosive`: Available upon request. | Available upon request. | Available upon request.
+- `drinking_water_source`: bottled_water | water_trucking | network_comm
+- `treat_drink_water`: never | always | never
+- `treat_drink_water_why`: NA | not_clear | NA
+- `treat_drink_water_why.not_clear`: NA | 1 | NA
+- `treat_drink_water_why.tastes_unpleasant`: NA | 0 | NA
+- `treat_drink_water_why.smells_unpleasant`: NA | 0 | NA
+- `treat_drink_water_why.none`: NA | 0 | NA
+- `sufficient_water`: NA | NA | NA
+- `sufficient_water_drinking`: yes | yes | NA
+- `sufficient_water_cooking`: yes | yes | NA
+- `sufficient_water_hygiene`: yes | yes | NA
+- `access_private_shared_watertank`: NA | NA | yes
+- `tank_capacity`: NA | NA | 1000
+- `refill_times`: NA | NA | 6
+- `people_share_tank`: NA | NA | 4
+- `latrines`: flush | flush | private_camp
+- `shared_sanitation`: no | no | no
+- `access_hygiene_items`: very_satisfied | satisfied | satisfied
+- `access_soap`: yes | yes | yes
+- `use_of_soap`: handwashing bathing laundry | handwashing bathing | handwashing bathing laundry dish_washing
+- `use_of_soap.not`: 0 | 0 | 0
+- `use_of_soap.handwashing`: 1 | 1 | 1
+- `use_of_soap.bathing`: 1 | 1 | 1
+- `use_of_soap.laundry`: 1 | 0 | 1
+- `use_of_soap.dish_washing`: 0 | 0 | 1
+- `shelter_type`: Available upon request. | Available upon request. | Available upon request.
+- `enclosure_issues`: lack_insulation leaks_light_rain | none | lack_insulation leaks_light_rain
+- `enclosure_issues.lack_insulation`: 1 | 0 | 1
+- `enclosure_issues.leaks_heavy_rain`: 0 | 0 | 0
+- `enclosure_issues.leaks_light_rain`: 1 | 0 | 1
+- `enclosure_issues.limited_ventilation`: 0 | 0 | 0
+- `enclosure_issues.debris_removable`: 0 | 0 | 0
+- `enclosure_issues.debris_non_removable`: 0 | 0 | 0
+- `enclosure_issues.none`: 0 | 1 | 0
+- `enclosure_issues.unsure`: 0 | 0 | 0
+- `shelter_better`: protect_climate | none | protect_climate improve_privacy
+- `shelter_better.protec_hazards`: 0 | 0 | 0
+- `shelter_better.improve_safety`: 0 | 0 | 0
+- `shelter_better.improve_privacy`: 0 | 0 | 1
+- `shelter_better.protect_climate`: 1 | 0 | 1
+- `shelter_better.none`: 0 | 1 | 0
+- `nfi_priority_needs`: mattresses_sleeping_mats cooking_utensil | clothing cooking_utensils | blankets winter_heaters
+- `nfi_priority_needs.bedding_items`: 0 | 0 | 0
+- `nfi_priority_needs.mattresses_sleeping_mats`: 1 | 0 | 0
+- `nfi_priority_needs.blankets`: 0 | 0 | 1
+- `nfi_priority_needs.cooking_utensils`: 1 | 1 | 0
+- `nfi_priority_needs.cooking_stove`: 0 | 0 | 0
+- `nfi_priority_needs.winter_heaters`: 0 | 0 | 1
+- `nfi_priority_needs.clothing`: 0 | 1 | 0
+- `nfi_priority_needs.heating_cooking_fuel`: 0 | 0 | 0
+- `nfi_priority_needs.none`: 0 | 0 | 0
+- `primary_school_place`: within_2km | between_2_5 | within_2km
+- `secondary_school_place`: within_2km | between_2_5 | within_2km
+- `covid_dropout`: Available upon request. | Available upon request. | Available upon request.
+- `covid_loss_job`: Available upon request. | Available upon request. | Available upon request.
+- `covid_loss_job_permanent`: Available upon request. | Available upon request. | Available upon request.
+- `covid_loss_job_temp`: Available upon request. | Available upon request. | Available upon request.
+- `tot_expenses`: 750000 | 600000 | 200000
+- `rent_exp`: Available upon request. | Available upon request. | Available upon request.
+- `medical_exp`: 150000 | 100000 | 50000
+- `food_exp`: 600000 | 500000 | 150000
+- `primary_livelihood`: Available upon request. | Available upon request. | Available upon request.
+- `primary_livelihood_employment`: 1 | 0 | 0
+- `primary_livelihood_retirement_pension`: 0 | 0 | 0
+- `employment_seasonal`: no | NA | NA
+- `inc_employment_pension`: Available upon request. | Available upon request. | Available upon request.
+- `how_much_debt`: 3000000 | 6200000 | 1750000
+- `reasons_for_debt`: basic_hh_expenditure | health | health
+- `other_reasons_for_debt`: NA | NA | NA
+- `market_place`: less_15 | less_15 | less_15
+- `hlp_document`: Available upon request. | Available upon request. | Available upon request.
+- `hh_dispute`: Available upon request. | Available upon request. | Available upon request.
+- `hh_risk_eviction`: no | no | NA
+- `hh_main_risks`: NA | NA | NA
+- `hh_main_risks.lack_funds`: NA | NA | NA
+- `hh_main_risks.no_longer_hosted`: NA | NA | NA
+- `hh_main_risks.unaccepted_by_community`: NA | NA | NA
+- `hh_main_risks.authorities_request`: NA | NA | NA
+- `hh_main_risks.owner_request`: NA | NA | NA
+- `hh_main_risks.no_agreement`: NA | NA | NA
+- `hh_main_risks.inadequate`: NA | NA | NA
+- `hh_main_risks.occupied`: NA | NA | NA
+- `hh_main_risks.confiscation`: NA | NA | NA
+- `hh_main_risks.dispute`: NA | NA | NA
+- `property_damaged`: Available upon request. | Available upon request. | Available upon request.
+- `aware_compensation`: no | NA | NA
+- `applied_compensation`: NA | NA | NA
+- `received_compensation`: NA | NA | NA
+- `pds_card`: Available upon request. | Available upon request. | Available upon request.
+- `id_card_a18`: yes | yes | yes
+- `nationality_cert_a18`: yes | yes | yes
+- `id_card_u18`: yes | yes | yes
+- `nationality_cert_u18`: yes | yes | no
+- `birth_cert_u18`: yes | yes | yes
+- `movement_restrictions`: NA | NA | NA
+- `restriction_clearance`: Available upon request. | Available upon request. | Available upon request.
+- `restriction_clearance_covid`: yes | NA | no
+- `restriction_documents`: yes | no | yes
+- `restriction_documents_covid`: NA | NA | no
+- `restriction_time`: yes | no | yes
+- `restriction_time_covid`: yes | NA | no
+- `restriction_reason`: yes | no | yes
+- `restriction_reason_covid`: NA | NA | no
+- `restriction_physical`: yes | no | yes
+- `restriction_physical_covid`: yes | NA | no
+- `feel_unsafe`: no | no | no
+- `unsafe_areas`: NA | NA | NA
+- `unsafe_areas.facilities`: NA | NA | NA
+- `unsafe_areas.markets`: NA | NA | NA
+- `unsafe_areas.distribution_areas`: NA | NA | NA
+- `unsafe_areas.water_points`: NA | NA | NA
+- `unsafe_areas.social_areas`: NA | NA | NA
+- `unsafe_areas.way_to_school`: NA | NA | NA
+- `unsafe_areas.way_to_centers`: NA | NA | NA
+- `unsafe_areas.do_not_know`: NA | NA | NA
+- `security_incident`: no | no | no
+- `security_incident_gender`: NA | NA | NA
+- `disciplinary_measures`: explained | explained forbid_privileges | forbid_privileges
+- `disciplinary_measures.explained`: 1 | 1 | 0
+- `disciplinary_measures.forbid_privileges`: 0 | 1 | 1
+- `disciplinary_measures.shouted`: 0 | 0 | 0
+- `disciplinary_measures.spanked`: 0 | 0 | 0
+- `disciplinary_measures.no_answer`: 0 | 0 | 0
+- `risk_education`: Available upon request. | Available upon request. | Available upon request.
+- `info_aid`: safety housing livelihoods | healthcare water livelihoods | housing livelihoods healthcare
+- `info_aid.safety`: 1 | 0 | 0
+- `info_aid.housing`: 1 | 0 | 1
+- `info_aid.livelihoods`: 1 | 1 | 1
+- `info_aid.water`: 0 | 1 | 0
+- `info_aid.electricity`: 0 | 0 | 0
+- `info_aid.education`: 0 | 0 | 0
+- `info_aid.healthcare`: 0 | 1 | 1
+- `info_aid.aid`: 0 | 0 | 0
+- `info_aid.legal`: 0 | 0 | 0
+- `info_aid.property`: 0 | 0 | 0
+- `info_aid.uxo`: 0 | 0 | 0
+- `info_aid.documentation`: 0 | 0 | 0
+- `info_aid.none`: 0 | 0 | 0
+- `info_provider`: friends_in_aoo national_authorities mukh | friends_in_aoo | friends_in_aoo friends_visited_aoo
+- `info_provider.friends_in_aoo`: 1 | 1 | 1
+- `info_provider.friends_visited_aoo`: 0 | 0 | 1
+- `info_provider.friends_not_been_in_aoo`: 0 | 0 | 0
+- `info_provider.local_authorities`: 0 | 0 | 0
+- `info_provider.national_authorities`: 1 | 0 | 0
+- `info_provider.ngo`: 0 | 0 | 0
+- `info_provider.religious`: 0 | 0 | 0
+- `info_provider.mukhtars`: 1 | 0 | 0
+- `info_provider.sector_leaders`: 0 | 0 | 0
+- `info_provider.schools`: 0 | 0 | 0
+- `info_provider_ret`: NA | NA | NA
+- `info_provider_ret.friends`: NA | NA | NA
+- `info_provider_ret.local_authorities`: NA | NA | NA
+- `info_provider_ret.national_authorities`: NA | NA | NA
+- `info_provider_ret.ngo`: NA | NA | NA
+- `info_provider_ret.religious`: NA | NA | NA
+- `info_provider_ret.mukhtars`: NA | NA | NA
+- `info_provider_ret.sector_leaders`: NA | NA | NA
+- `info_provider_ret.schools`: NA | NA | NA
+- `info_mode`: direct_obs television telephone | telephone | television face_cmmunic telephone
+- `info_mode.direct_obs`: 1 | 0 | 0
+- `info_mode.face_cmmunic`: 0 | 0 | 1
+- `info_mode.television`: 1 | 0 | 1
+- `info_mode.telephone`: 1 | 1 | 1
+- `info_mode.mobile`: 0 | 0 | 0
+- `info_mode.facebook_app`: 0 | 0 | 0
+- `info_mode.facebook_messenger`: 0 | 0 | 0
+- `info_mode.whatsapp`: 0 | 0 | 0
+- `info_mode.viber`: 0 | 0 | 0
+- `info_mode.other_social`: 0 | 0 | 0
+- `info_mode.notice_board`: 0 | 0 | 0
+- `info_mode.newspapers`: 0 | 0 | 0
+- `info_mode.leaflet`: 0 | 0 | 0
+- `info_mode.loud_speakers`: 0 | 0 | 0
+- `info_mode.radio`: 0 | 0 | 0
+- `aid_received`: no | no | yes
+- `aid_type`: Available upon request. | Available upon request. | Available upon request.
+- `aid_satisfaction`: NA | NA | no
+- `aid_not_satisfied`: NA | NA | quantity
+- `aid_not_satisfied.quality`: NA | NA | 0
+- `aid_not_satisfied.quantity`: NA | NA | 1
+- `aid_not_satisfied.delays`: NA | NA | 0
+- `aid_workers_satisfied`: NA | NA | no
+- `aid_workers_whyno`: NA | NA | NA
+- `complaint_mechanisms`: NA | NA | no
+- `covid_info_need`: yes | no | yes
+- `covid_info_type`: causes signs prevention | NA | prevention treatment causes signs conseq
+- `covid_info_type.causes`: 1 | NA | 1
+- `covid_info_type.signs`: 1 | NA | 1
+- `covid_info_type.prevention`: 1 | NA | 1
+- `covid_info_type.treatment`: 0 | NA | 1
+- `covid_info_type.consequences`: 0 | NA | 1
+- `covid_info_type.do_not_know`: 0 | NA | 0
+- `movement_intentions_3`: Available upon request. | Available upon request. | Available upon request.
+- `movement_intentions_b3`: remain | remain | NA
+- `movement_intentions_b12`: remain | remain | NA
+- `movement_intentions_12`: NA | NA | current_area
+- `movement_intentions_ret`: NA | NA | NA
+- `movement_intentions_ret.fear_trauma`: NA | NA | NA
+- `movement_intentions_ret.lack_of_security_forces`: NA | NA | NA
+- `movement_intentions_ret.presence_of_mines`: NA | NA | NA
+- `movement_intentions_ret.discrimination`: NA | NA | NA
+- `movement_intentions_ret.lack_security_women`: NA | NA | NA
+- `movement_intentions_ret.lack_court`: NA | NA | NA
+- `movement_intentions_ret.movement_restrictions`: NA | NA | NA
+- `movement_intentions_ret.no_personal_id`: NA | NA | NA
+- `movement_intentions_ret.no_money_return`: NA | NA | NA
+- `movement_intentions_ret.lack_livelihoods_aoo`: NA | NA | NA
+- `movement_intentions_ret.house_damaged_destroyed`: NA | NA | NA
+- `movement_intentions_ret.house_land_occupied`: NA | NA | NA
+- `movement_intentions_ret.hh_assets_stolen_damaged`: NA | NA | NA
+- `movement_intentions_ret.local_markets_not_working`: NA | NA | NA
+- `movement_intentions_ret.basic_services_not_enough`: NA | NA | NA
+- `movement_intentions_ret.lack_of_education_oppotunities`: NA | NA | NA
+- `movement_intentions_ret.immediate_family_wont_return`: NA | NA | NA
+- `movement_intentions_ret.children_enrolled_in_displacement`: NA | NA | NA
+- `movement_intentions_ret.living_conditions_better`: NA | NA | NA
+- `movement_intentions_ret.do_not_know`: NA | NA | NA
+- `movement_intentions_ret.decline_to_answer`: NA | NA | NA
+- `reason_to_return_to_aoo`: Available upon request. | Available upon request. | Available upon request.
+- `why_not_return`: Available upon request. | Available upon request. | Available upon request.
+- `local_integration`: NA | NA | NA
+- `strata`: Available upon request. | Available upon request. | Available upon request.
+- `weights`: 2.01932458499416 | 0.749537736819157 | 0.136111268765065
+
+### sheet `Deleted Variables`: about 60 rows, 1 columns
+
+- `Deleted Variables`: X_uuid | inc_employment_pension | reasons_not_attend
+
+## bgd_wash_baseline_2018
+Bangladesh REACH-UNICEF WASH household baseline survey, in camps, April 2018  
+3450153 bytes, sha256 `1b727328623db9382c36371ee654e3a1f60495046689d03bc2fca7c255a02c26`
+
+### sheet `Read me`: about 15 rows, 2 columns
+
+- `REACH BANGLADESH | WASH BASELINE SURVEY - HOUSEHOLD LEVEL DATA`: Items | Project Background | Primary data collection time period
+- `None`: Description |  | Household data collection took place dur
+
+### sheet `Dataset`: about 3577 rows, 252 columns
+
+- `today`: 2018-04-01 00:00:00 | 2018-04-01 00:00:00 | 2018-04-01 00:00:00
+- `start`: 2018-04-01T11:55:39.741+06 | 2018-04-01T12:42:52.935+06 | 2018-04-01T13:22:56.641+06
+- `end`: 2018-04-01T14:52:28.029+06 | 2018-04-01T14:53:30.460+06 | 2018-04-01T14:54:55.470+06
+- `deviceid`: 355316078970366 | 355316078970366 | 355316078970366
+- `location/enumerator_id`: 42 | 42 | 42
+- `location/object_id`: 1499 | 1484 | 1457
+- `location/grid_id`: 1529 | 1529 | 1529
+- `location/location_type`: Camp | Camp | Camp
+- `reported_camp_name`: Camp 6 | Camp 6 | Camp 6
+- `location/Block_name`: E3 -12 | E3 | E-3
+- `Camp weights`: 1.024460057044912 | 1.024460057044912 | 1.024460057044912
+- `location/respondent_type`: refugee | refugee | refugee
+- `location/gender_enumerator`: female | female | female
+- `Informed_consent_001/This_questionnaire_s_se_another_household`:  |  | 
+- `Informed_consent_001/Informed_consent`: yes | yes | yes
+- `Informed_consent_001/Choose_another_household`:  |  | 
+- `HoH/head_of_household`: adult_female | adult_female | adult_male
+- `HoH/interviewee_1`: no | yes | no
+- `HoH/interviewee_2`: adult_female |  | adult_female
+- `HoH/household_size`: 8 | 4 | 4
+- `HoH/Are_there_any_childr_5_in_this_household`: yes | yes | yes
+- `disability/disability_present`: no | no | no
+- `disability/disability_count`:  |  | 
+- `disability/disability_group_count`:  |  | 
+- `household_water/What_is_the_main_source_DRINK`: tw | tw | tw
+- `household_water/What_is_the_main_source_DRINK_other`:  |  | 
+- `household_water/Other_Drinking`: no | no | yes
+- `household_water/drinking_sources_2`:  |  | tw
+- `household_water/Other_sources_other`:  |  | 
+- `household_water/Other_water`: tw | tw | tw
+- `household_water/Other_water/pipedwater`: False | False | False
+- `household_water/Other_water/tw`: True | True | True
+- `household_water/Other_water/protected_dugwell`: False | False | False
+- `household_water/Other_water/protected_spring`: False | False | False
+- `household_water/Other_water/rainwater_collection`: False | False | False
+- `household_water/Other_water/bottled_water`: False | False | False
+- `household_water/Other_water/cart_with_small_tank_drum`: False | False | False
+- `household_water/Other_water/tanker_truck`: False | False | False
+- `household_water/Other_water/unprotected_dug_well`: False | False | False
+- `household_water/Other_water/unprotected_spring`: False | False | False
+- `household_water/Other_water/surface_water`: False | False | False
+- `household_water/Other_water/donotknow`: False | False | False
+- `household_water/Other_water/other`: False | False | False
+- `household_water/Other_sources_OTHER_water`:  |  | 
+- `household_water/Water_collection_person`: adult_female | adult_female | adult_male
+- `household_water/Water_collection_person/adult_male`: False | False | True
+- `household_water/Water_collection_person/adult_female`: True | True | False
+- `household_water/Water_collection_person/child_male`: False | False | False
+- `household_water/Water_collection_person/child_female`: False | False | False
+- `household_water/Water_collection_person/community_memb`: False | False | False
+- `household_water/Water_collection_person/other`: False | False | False
+- `household_water/Other_water_collection`:  |  | 
+- `household_water/Do_you_have_any_problems_with_`: yes | no | yes
+- `household_water/problems_water`: long_distance long_wait_times |  | long_distance long_wait_times
+- `household_water/problems_water/long_distance`: True |  | True
+- `household_water/problems_water/long_wait_times`: True |  | True
+- `household_water/problems_water/only_available_some_times_of_t`: False |  | False
+- `household_water/problems_water/safety_concerns`: False |  | False
+- `household_water/problems_water/bad_taste_smell`: False |  | False
+- `household_water/problems_water/other`: False |  | False
+- `household_water/Other_problems_with_water`:  |  | 
+- `household_water/Time_to_drinking_water`: 15_30_mins | <_5m | 5_15_mins_1
+- `household_water/Time_waiting_drinking_water`: 30_60_mins | 5_15_mins_1 | 15_30_mins
+- `household_water/Time_to_other_water`:  |  | <_5m
+- `household_water/Time_waiting_other_water`:  |  | 5_15_mins_1
+- `household_water/Change_water_access`: same | same | same
+- `household_water/Satisfaction_water`: unsatisfied | satisfied | unsatisfied
+- `household_water/Record_any_additiona_low_steep_hills_etc`:  |  | 
+- `household_water/What_are_your_coping_safe_drinking_water`: always_able_to | always_able_to | everyone_drink
+- `household_water/What_are_your_coping_safe_drinking_water/always_able_to`: True | True | False
+- `household_water/What_are_your_coping_safe_drinking_water/everyone_drink`: False | False | True
+- `household_water/What_are_your_coping_safe_drinking_water/adult_males_dr`: False | False | False
+- `household_water/What_are_your_coping_safe_drinking_water/adult_females_`: False | False | False
+- `household_water/What_are_your_coping_safe_drinking_water/child_males_dr`: False | False | False
+- `household_water/What_are_your_coping_safe_drinking_water/child_females_`: False | False | False
+- `household_water/What_are_your_coping_safe_drinking_water/use_unsafe_wat`: False | False | False
+- `household_water/What_are_your_coping_safe_drinking_water/neighbours`: False | False | False
+- `household_water/What_are_your_coping_safe_drinking_water/other`: False | False | False
+- `Water_treatment/water_purification`: no | no | no
+- `Water_treatment/How_do_you_usually_treat_your_`:  |  | 
+- `Water_treatment/How_do_you_usually_treat_your_/boiling`:  |  | 
+- `Water_treatment/How_do_you_usually_treat_your_/disinfection__aquatabs__pur__t`:  |  | 
+- `Water_treatment/How_do_you_usually_treat_your_/cloth_filters`:  |  | 
+- `Water_treatment/How_do_you_usually_treat_your_/household_filters`:  |  | 
+- `Water_treatment/How_do_you_usually_treat_your_/leave_bottled_water_in_the_sun`:  |  | 
+- `Water_treatment/How_do_you_usually_treat_your_/other`:  |  | 
+- `Water_treatment/Please_describe`:  |  | 
+- `Water_treatment/Use_water_purification_001`: no | no | no
+- `Water_treatment/Use_water_purification_other`:  |  | 
+- `Water_treatment/Why_no_aquatabs`: bad_taste | dont_know_abou | not_received
+- `Water_treatment/Why_no_aquatabs/dont_know_abou`: False | True | False
+- `Water_treatment/Why_no_aquatabs/not_received`: False | False | True
+- `Water_treatment/Why_no_aquatabs/dont_know_use`: False | False | False
+- `Water_treatment/Why_no_aquatabs/no_supply`: False | False | False
+- `Water_treatment/Why_no_aquatabs/bad_taste`: True | False | False
+- `Water_treatment/Why_no_aquatabs/bad_smell`: False | False | False
+- `Water_treatment/Why_no_aquatabs/bad_health`: False | False | False
+- `Water_treatment/Why_no_aquatabs/occasionally_i`: False | False | False
+- `Water_treatment/Why_no_aquatabs/forgot`: False | False | False
+- `Water_treatment/Why_no_aquatabs/other`: False | False | False
+- `Water_treatment/Treated_water_testable`:  |  | 
+- `Water_treatment/Test_chlorine`:  |  | 
+- `Water_treatment/aqua_tab_use`:  |  | 
+- `containers/Ask_the_household_to_e_volume_for_one_day`:  |  | 
+- `containers/hh_containers`: 2 | 2 | 1
+- `containers/observation_containers`:  |  | 
+- `water_collection/containers_group_count`: 2 | 2 | 1
+- `Volume of drinking water collected`:  |  | 
+- `Household_other/Latrine_use`: communal | communal | communal
+- `Household_other/Latrine_use/single_househo`: False | False | False
+- `Household_other/Latrine_use/shared_househo`: False | False | False
+- `Household_other/Latrine_use/communal`: True | True | True
+- `Household_other/Latrine_use/open`: False | False | False
+- `Household_other/Latrine_use/plastic_bag`: False | False | False
+- `Household_other/Latrine_use/bucket_toilet`: False | False | False
+- `Household_other/Latrine_use/facilities`: False | False | False
+- `Household_other/Latrine_use/other`: False | False | False
+- `Household_other/Other_latrine_use`:  |  | 
+- `Household_other/Do_adults_from_your_defecate_in_the_open`: no | no | no
+- `Household_other/Latrine_use_001`: communal open | open | open
+- `Household_other/Latrine_use_001/single_househo`: False | False | False
+- `Household_other/Latrine_use_001/shared_househo`: False | False | False
+- `Household_other/Latrine_use_001/communal`: True | False | False
+- `Household_other/Latrine_use_001/open`: True | True | True
+- `Household_other/Latrine_use_001/plastic_bag`: False | False | False
+- `Household_other/Latrine_use_001/bucket_toilet`: False | False | False
+- `Household_other/Latrine_use_001/facilities`: False | False | False
+- `Household_other/Latrine_use_001/other`: False | False | False
+- `Household_other/If_there_are_childre_ne_with_their_feaces`: buried_it | buried_it | collected_disposed_lat
+- `Household_other/If_there_are_childre_ne_with_their_feaces/collected_disposed_lat`: False | False | True
+- `Household_other/If_there_are_childre_ne_with_their_feaces/collected_disposed_els`: False | False | False
+- `Household_other/If_there_are_childre_ne_with_their_feaces/nothing`: False | False | False
+- `Household_other/If_there_are_childre_ne_with_their_feaces/buried_it`: True | True | False
+- `Household_other/If_there_are_childre_ne_with_their_feaces/other`: False | False | False
+- `Household_other/Do_children_under_5_defecate_in_the_open`: yes | yes | yes
+- `Household_other/problems_sanitation`: no | no | yes
+- `Household_other/Do_you_have_any_prob_g_and_using_latrines`:  |  | long_distance bad_taste_smell
+- `Household_other/Do_you_have_any_prob_g_and_using_latrines/long_distance`:  |  | True
+- `Household_other/Do_you_have_any_prob_g_and_using_latrines/long_wait_times`:  |  | False
+- `Household_other/Do_you_have_any_prob_g_and_using_latrines/bad_taste_smell`:  |  | True
+- `Household_other/Do_you_have_any_prob_g_and_using_latrines/no_one_respons`:  |  | False
+- `Household_other/Do_you_have_any_prob_g_and_using_latrines/safety_concerns`:  |  | False
+- `Household_other/Do_you_have_any_prob_g_and_using_latrines/latrine_is_ful`:  |  | False
+- `Household_other/Do_you_have_any_prob_g_and_using_latrines/bad_smell_many`:  |  | False
+- `Household_other/Do_you_have_any_prob_g_and_using_latrines/open_deificati`:  |  | False
+- `Household_other/Do_you_have_any_prob_g_and_using_latrines/other`:  |  | False
+- `Household_other/Do_you_have_any_prob_g_and_using_latrines/no_separation_`:  |  | False
+- `Household_other/Do_you_have_any_prob_g_and_using_latrines/route_to_the_l`:  |  | False
+- `Household_other/Do_you_have_any_prob_g_and_using_latrines/latrine_is_not`:  |  | False
+- `Household_other/Do_you_have_any_prob_g_and_using_latrines/only_use_at_ni`:  |  | False
+- `Household_other/Do_you_have_any_prob_g_and_using_latrines/only_use_durin`:  |  | False
+- `Household_other/Satisfaction_latrines`: satisfied | satisfied | unsatisfied
+- `Household_other/Which_family_members_the_latrine_at_night`: adult_female elderly_male elderly_female | adult_male adult_female elderly_male | adult_female elderly_female
+- `Household_other/Which_family_members_the_latrine_at_night/adult_male`: False | True | False
+- `Household_other/Which_family_members_the_latrine_at_night/adult_female`: True | True | True
+- `Household_other/Which_family_members_the_latrine_at_night/elderly_male`: True | True | False
+- `Household_other/Which_family_members_the_latrine_at_night/elderly_female`: True | False | True
+- `Household_other/Which_family_members_the_latrine_at_night/child_male`: False | False | False
+- `Household_other/Which_family_members_the_latrine_at_night/child_female`: False | False | False
+- `Household_other/Which_family_members_the_latrine_at_night/other`: False | False | False
+- `Household_other/Change_latrine_access`: same | same | worse
+- `Household_other/Comments_latrines`:  |  | 
+- `Household_other/bathing_cubicle_use`: tubewell_platform HH_designated_bathing_ | HH_designated_bathing_area | HH_designated_bathing_area
+- `Household_other/bathing_cubicle_use/communal_bath`: False | False | False
+- `Household_other/bathing_cubicle_use/tubewell_platform`: True | False | False
+- `Household_other/bathing_cubicle_use/HH_designated_bathing_area`: True | True | True
+- `Household_other/bathing_cubicle_use/no_designated_facility`: False | False | False
+- `Household_other/bathing_cubicle_use/do_not_want_to_show`: False | False | False
+- `Household_other/bathing_cubicle_use/dont_know`: False | False | False
+- `Household_other/bathing_cubicle_use/other`: False | False | False
+- `Household_other/Other_bathing_cubicle_use`:  |  | 
+- `Household_other/problems_bathing`: no | no | yes
+- `Household_other/problems_using_bathing_cubicles`:  |  | not_enough_facilities absence_insufficie
+- `Household_other/problems_using_bathing_cubicles/not_enough_facilities`:  |  | True
+- `Household_other/problems_using_bathing_cubicles/absence_insufficiency_water`:  |  | True
+- `Household_other/problems_using_bathing_cubicles/facilities_unclean`:  |  | False
+- `Household_other/problems_using_bathing_cubicles/lack_of_privacy`:  |  | False
+- `Household_other/problems_using_bathing_cubicles/not_safe`:  |  | False
+- `Household_other/problems_using_bathing_cubicles/facilities_clogged`:  |  | False
+- `Household_other/problems_using_bathing_cubicles/facilities_too_far`:  |  | False
+- `Household_other/problems_using_bathing_cubicles/dont_know`:  |  | False
+- `Household_other/problems_using_bathing_cubicles/other`:  |  | False
+- `Household_other/problems_using_bathing_cublicles_other`:  |  | 
+- `Household_other/Satisfaction_bathing_cubicles`: satisfied | satisfied | unsatisfied
+- `Household_other/bathing_cubicle_at_night`: adult_female elderly_female | adult_female elderly_female child_female | adult_female elderly_female
+- `Household_other/bathing_cubicle_at_night/adult_male`: False | False | False
+- `Household_other/bathing_cubicle_at_night/adult_female`: True | True | True
+- `Household_other/bathing_cubicle_at_night/elderly_male`: False | False | False
+- `Household_other/bathing_cubicle_at_night/elderly_female`: True | True | True
+- `Household_other/bathing_cubicle_at_night/child_male`: False | False | False
+- `Household_other/bathing_cubicle_at_night/child_female`: False | True | False
+- `Household_other/bathing_cubicle_at_night/other`: False | False | False
+- `Household_other/bathing_last_month`: same | same | same
+- `Household_other/comments_bathing_cubicles`:  |  | 
+- `Household_other/visible_garbage_frequency`: do_not_know | garbage_sometimes | garbage_never
+- `Household_other/other_garbage`:  |  | 
+- `Household_other/domestic_waste`: communal_pit | designated_open_area | designated_open_area
+- `Household_other/solid_waste_satisfaction`: satisfied | satisfied | satisfied
+- `Household_other/Latrine_handwashing`: yes | sometimes | sometimes
+- `Household_other/Household_soap_for_hand_washing`: yes | no | no
+- `Household_other/Do_you_face_any_challenges_in_`: no | yes | yes
+- `Household_other/soap_problems`:  | soap_is_not_availiable | soap_is_not_availiable soap_is_too_expen
+- `Household_other/soap_problems/soap_is_not_availiable`:  | True | True
+- `Household_other/soap_problems/soap_other_needs_prioritised`:  | False | False
+- `Household_other/soap_problems/soap_is_too_expensive`:  | False | True
+- `Household_other/soap_problems/use_an_alternative_other`:  | False | False
+- `Household_other/soap_problems/no_challenges__soap_is_easy_to`:  | False | False
+- `Household_other/please_describe_soap`:  |  | 
+- `Household_other/Change_handwashing_access`: same | same | same
+- `Household_other/Other_handwashing_access`:  |  | 
+- `menstrual/menstrual_hygiene_consent`: yes | yes | 
+- `menstrual/menstrual_hygiene`: cloth | cloth | 
+- `menstrual/menstrual_hygiene/disposabe_pads`: False | False | 
+- `menstrual/menstrual_hygiene/reuseable_pads`: False | False | 
+- `menstrual/menstrual_hygiene/cloth`: True | True | 
+- `menstrual/menstrual_hygiene/underwear`: False | False | 
+- `menstrual/menstrual_hygiene/other`: False | False | 
+- `menstrual/menstrual_hygiene_other`:  |  | 
+- `menstrual/menstrual_hygiene_disposal`:  |  | 
+- `menstrual/menstrual_hygiene_disposal_other`:  |  | 
+- `menstrual/Problems_menstrual_hygiene`:  |  | 
+- `menstrual/Satisfaction_menstrual_hygiene`: satisfied | satisfied | 
+- `menstrual/Change_menstrual_hygiene_access`: same | same | 
+- `menstrual/Comments_menstrual_hygiene`:  |  | 
+- `Rate_know_show/information_or_demonstrations`: latrine_use menstrual_hygiene | aquatabs child_handwashing waste_managem | water_storage handwashing latrine_use
+- `Rate_know_show/information_or_demonstrations/aquatabs`: False | True | False
+- `Rate_know_show/information_or_demonstrations/water_storage`: False | False | True
+- `Rate_know_show/information_or_demonstrations/handwashing`: False | False | True
+- `Rate_know_show/information_or_demonstrations/child_handwashing`: False | True | False
+- `Rate_know_show/information_or_demonstrations/waste_manageme`: False | True | False
+- `Rate_know_show/information_or_demonstrations/latrine_use`: True | False | True
+- `Rate_know_show/information_or_demonstrations/disposal_of_child_feaces`: False | False | False
+- `Rate_know_show/information_or_demonstrations/menstrual_hygiene`: True | True | False
+- `Rate_know_show/information_or_demonstrations/other`: False | False | False
+- `Rate_know_show/information_or_demonstrations/none`: False | False | False
+- `Rate_know_show/Other_training`:  |  | 
+- `Training_cont/training_request`: no | no | no
+- `Training_cont/request_info`:  |  | 
+- `Training_cont/Other_training_request`:  |  | 
+- `Training_cont/Houshold_concerns_and_issues`:  |  | 
+- `Thank_the_household_for_their_time`:  |  | 
+- `__version__`: vyTNFBD7c3EBpXZqwJhXEB | vyTNFBD7c3EBpXZqwJhXEB | vyTNFBD7c3EBpXZqwJhXEB
+- `_version_`: vpuUL4y5jwpPrkotQ2VKMM | vpuUL4y5jwpPrkotQ2VKMM | vpuUL4y5jwpPrkotQ2VKMM
+- `meta/instanceID`: uuid:19a4fd40-6366-4eef-be10-0f5b12a5c79 | uuid:be353e53-d6aa-488d-b3fb-c27391c1766 | uuid:e92453cd-f59e-4286-947e-37cd94ce997
+- `_id`: 20564779 | 20564797 | 20564799
+- `_uuid`: 19a4fd40-6366-4eef-be10-0f5b12a5c79c | be353e53-d6aa-488d-b3fb-c27391c17667 | e92453cd-f59e-4286-947e-37cd94ce9972
+- `_submission_time`: 2018-04-01T13:53:00 | 2018-04-01T13:53:40 | 2018-04-01T13:53:43
+- `_index`: 116 | 117 | 118
+- `_parent_table_name`:  |  | 
+- `_parent_index`: -1 | -1 | -1
+- `_tags`:  |  | 
+- `_notes`:  |  | 
+
+### sheet `Dataset_disabilitygroup`: about 289 rows, 14 columns
+
+- `disability/disability_group/disability_seeing`: no | no | no
+- `disability/disability_group/disability_hearing`: no | no | no
+- `disability/disability_group/disability_physical`: yes_alot | yes_some | yes_some
+- `disability/disability_group/disability_memory`: no | no | no
+- `disability/disability_group/disability_selfcare`: yes_alot | no | yes_some
+- `disability/disability_group/disability_communication`: no | no | no
+- `_id`:  |  | 
+- `_uuid`:  |  | 
+- `_submission_time`:  |  | 
+- `_index`: 7 | 8 | 9
+- `_parent_table_name`: aW9tLruVy9fKcQwg2YfwJw | aW9tLruVy9fKcQwg2YfwJw | aW9tLruVy9fKcQwg2YfwJw
+- `_parent_index`: 158 | 162 | 163
+- `_tags`:  |  | 
+- `_notes`:  |  | 
+
+### sheet `Dataset_containergroup`: about 5477 rows, 15 columns
+
+- `water_collection/containers_group/number_containers`: 1 | 2 | 1
+- `water_collection/containers_group/container_type`: steel_pitcher | steel_pitcher | bottle
+- `water_collection/containers_group/container_type_other`:  |  | 
+- `water_collection/containers_group/volume`: 15 | 12 | 3
+- `water_collection/containers_group/containers_protected`: yes | yes | yes
+- `water_collection/containers_group/fill_count`: 3 | 3 | 2
+- `water_collection/containers_group/yesterday_water_available`: 45 | 36 | 6
+- `_id`:  |  | 
+- `_uuid`:  |  | 
+- `_submission_time`:  |  | 
+- `_index`: 192 | 193 | 194
+- `_parent_table_name`: aW9tLruVy9fKcQwg2YfwJw | aW9tLruVy9fKcQwg2YfwJw | aW9tLruVy9fKcQwg2YfwJw
+- `_parent_index`: 116 | 116 | 117
+- `_tags`:  |  | 
+- `_notes`:  |  | 
+
+### sheet `Cleaning_log`: about 895 rows, 10 columns
+
+- `Date collection date`: 2018-04-02 00:00:00 | 2018-04-01 00:00:00 | 2018-04-01 00:00:00
+- `Enumerator ID`: 56 | 66 | 22
+- `UUID`: 16df1b83-bcac-4827-aba6-a0103c0ec1d4 | da440fc7-9246-450d-8676-e1517731f27b | d41c0843-0b30-442f-a059-6f59e44cfa94
+- `index (if applicable)`:  |  | 
+- `Question name`: Informed_consent | What_are_your_coping_safe_drinking_water | What_are_your_coping_safe_drinking_water
+- `Old Value`: no | always_able_to neighbours | always_able_to other
+- `New Value (or record if entry has been deleted)`: delete form could not confirm | always_able_to other | always_able_to other
+- `AO/DO comment`:  | Cannot have always able to access and an | Cannot have always able to access and an
+- `FC/Team leader response`:  | N/a | N/a
+- `Date of modication in clean dataset`:  | 25.04.18 | 25.04.18
+
+### sheet `Questionnaire`: about 148 rows, 14 columns
+
+- `type`: start | end | today
+- `name`: start | end | today
+- `label::bangla`:  |  | 
+- `label`:  |  | 
+- `hint::bangla`:  |  | 
+- `hint`:  |  | 
+- `required`:  |  | 
+- `relevant`:  |  | 
+- `constraint`:  |  | 
+- `repeat_count`:  |  | 
+- `choice_filter`:  |  | 
+- `calculation`:  |  | 
+- `appearance`:  |  | 
+- `$given_name`:  |  | 
+
+### sheet `Questionnaire_choices`: about 386 rows, 6 columns
+
+- `list_name`: location_type | location_type | respondent_type
+- `name`: Camp | host_community | refugee
+- `label::bangla`: ক্যাম্প | হোস্ট কমিউনিটি স্ব-বন্দোবস্ত (ক্ষুদ্র) | উদ্বাস্তু
+- `label`: Camp | Host Community | Refugee
+- `location_type`:  | host_community | 
+- `order`:  |  | 
+
+## bgd_wash_followup_2018
+Bangladesh REACH-UNICEF WASH household survey, monsoon follow-up, October 2018  
+9232441 bytes, sha256 `b8a442f9a99aab45f2aff5007eaafc0c608e031e97f52d83236e31ab35c5b061`
+
+### sheet `READ ME`: about 18 rows, 2 columns
+
+- `WASH Sector - UNICEF - REACH BANGLADESH | WASH Household Monsoon Follow-up Assessment - HOUSEHOLD LEVEL DATA`: Items | Project Background | Primary data collection time period
+- `None`: Description | Since August 2017, an estimated 723,0001 | Household data collection took place dur
+
+### sheet `Household Dataset`: about 3572 rows, 424 columns
+
+- `today`: 2018-08-29 00:00:00 | 2018-08-29 00:00:00 | 2018-08-29 00:00:00
+- `camp_id`: camp_15 | camp_15 | camp_15
+- `enu_gen`: female | female | female
+- `intro`:  |  | 
+- `consent`: yes | yes | yes
+- `res_age`: 27 | 22 | 30
+- `res_gen`: female | female | female
+- `res_head`: no | no | yes
+- `head_gen`: male | male | 
+- `num_mem`: 6 | 3 | 4
+- `repeat_note`:  |  | 
+- `hhmem_count`: 6 | 3 | 4
+- `drnk_wat`: tube | tube | tube
+- `drnk_wat_other`:  |  | 
+- `tubewl_chlo`: no | no | no
+- `sec_sourc`: yes | no | no
+- `sec_sourc_wat`: tube |  | 
+- `sec_sourc_wat/pip`: False |  | 
+- `sec_sourc_wat/tube`: True |  | 
+- `sec_sourc_wat/pwell`: False |  | 
+- `sec_sourc_wat/psprng`: False |  | 
+- `sec_sourc_wat/wat_tnk`: False |  | 
+- `sec_sourc_wat/rcoll`: False |  | 
+- `sec_sourc_wat/bwat`: False |  | 
+- `sec_sourc_wat/crt`: False |  | 
+- `sec_sourc_wat/tnktr`: False |  | 
+- `sec_sourc_wat/unpdw`: False |  | 
+- `sec_sourc_wat/unpsprng`: False |  | 
+- `sec_sourc_wat/surfwat`: False |  | 
+- `sec_sourc_wat/dnt_know`: False |  | 
+- `sec_sourc_wat/other`: False |  | 
+- `sec_sourc_wat_other`:  |  | 
+- `wat_cook`: tube | tube | tube
+- `wat_cook/pip`: False | False | False
+- `wat_cook/tube`: True | True | True
+- `wat_cook/pwell`: False | False | False
+- `wat_cook/psprng`: False | False | False
+- `wat_cook/wat_tnk`: False | False | False
+- `wat_cook/rcoll`: False | False | False
+- `wat_cook/bwat`: False | False | False
+- `wat_cook/crt`: False | False | False
+- `wat_cook/tnktr`: False | False | False
+- `wat_cook/unpdw`: False | False | False
+- `wat_cook/unpsprng`: False | False | False
+- `wat_cook/surfwat`: False | False | False
+- `wat_cook/dnt_know`: False | False | False
+- `wat_cook/other`: False | False | False
+- `wat_cook_other`:  |  | 
+- `hh_wat_col`: adtfemale | adtfemale | adtfemale
+- `hh_wat_col/adtmale`: False | False | False
+- `hh_wat_col/adtfemale`: True | True | True
+- `hh_wat_col/chdmale`: False | False | False
+- `hh_wat_col/chdfemale`: False | False | False
+- `hh_wat_col/neighbour`: False | False | False
+- `hh_wat_col/other`: False | False | False
+- `hh_col_other`:  |  | 
+- `hh_wat_prb`: yes | yes | no
+- `wat_prb`: source_far path_steep | long_wait path_steep | 
+- `wat_prb/long_wait`: False | True | 
+- `wat_prb/source_far`: True | False | 
+- `wat_prb/path_steep`: True | True | 
+- `wat_prb/available_sometimes`: False | False | 
+- `wat_prb/source_dangerous`: False | False | 
+- `wat_prb/wat_taste_bad`: False | False | 
+- `wat_prb/wat_smell_bad`: False | False | 
+- `wat_prb/wat_not_clean`: False | False | 
+- `wat_prb/dntknow`: False | False | 
+- `wat_prb/other`: False | False | 
+- `wat_prb_other`:  |  | 
+- `access_wat`: no_chng | better | better
+- `sat_wat`: satisfied | unsatied | satisfied
+- `time_wat`: 10_min | 10_min | 10_min
+- `time_coll_wat`: 15_min | 20_min | 20_min
+- `wat_containers_num`: 2 | 3 | 2
+- `wat_containers_repeat_note`:  |  | 
+- `wat_containers_repeat_count`: 2 | 3 | 2
+- `wat_store`: less_1 | less_1 | less_1
+- `drnk_wat_mnth`: no | no | no
+- `cop_strat`:  |  | 
+- `cop_strat/untrtd_drnk_wat`:  |  | 
+- `cop_strat/surface_wat`:  |  | 
+- `cop_strat/untrtd_ck_wsh_wat`:  |  | 
+- `cop_strat/surf_ck_wsh_wat`:  |  | 
+- `cop_strat/sourc_frthr`:  |  | 
+- `cop_strat/chld_ftch`:  |  | 
+- `cop_strat/dang_sourc`:  |  | 
+- `cop_strat/other`:  |  | 
+- `cop_strat/dnt_know`:  |  | 
+- `cop_other`:  |  | 
+- `trt_wat`: no | no | no
+- `trt_time`:  |  | 
+- `trt_methods`:  |  | 
+- `trt_methods/aquatabs`:  |  | 
+- `trt_methods/pur_sach`:  |  | 
+- `trt_methods/boiling`:  |  | 
+- `trt_methods/clth_fil`:  |  | 
+- `trt_methods/hh_fil`:  |  | 
+- `trt_methods/solar`:  |  | 
+- `trt_methods/other`:  |  | 
+- `trt_methods_other`:  |  | 
+- `aqua_tab_trt`: nev_recv_aquatab | nev_recv_aquatab | no_aquatab_spply
+- `aqua_tab_trt/dntknw_aquatab`: False | False | False
+- `aqua_tab_trt/nev_recv_aquatab`: True | True | False
+- `aqua_tab_trt/dntknw_use_aquatab`: False | False | False
+- `aqua_tab_trt/no_aquatab_spply`: False | False | True
+- `aqua_tab_trt/taste_bad`: False | False | False
+- `aqua_tab_trt/smell_bad`: False | False | False
+- `aqua_tab_trt/bad_health`: False | False | False
+- `aqua_tab_trt/occ_sufficient`: False | False | False
+- `aqua_tab_trt/forgot`: False | False | False
+- `aqua_tab_trt/unsafe_preg`: False | False | False
+- `aqua_tab_trt/unsafe_child`: False | False | False
+- `aqua_tab_trt/watr_chlorinated`: False | False | False
+- `aqua_tab_trt/dnt_know`: False | False | False
+- `aqua_tab_trt/other`: False | False | False
+- `aqua_tab_trt_other`:  |  | 
+- `men_def`: shared_hh_lat_sm | shared_hh_lat_sm | 
+- `men_def_other`:  |  | 
+- `def_loctn`: attach_hh | attach_hh | 
+- `def_loctn_other`:  |  | 
+- `wmn_def`: shared_hh_lat_sm | shared_hh_lat_sm | shared_hh_lat_sm
+- `wmn_def_other`:  |  | 
+- `def_loctn1`: attach_hh | attach_hh | attach_hh
+- `def_loctn1_other`:  |  | 
+- `child_defctn`: shared_hh_lat_sm | shared_hh_lat_sm | shared_hh_lat_sm
+- `child_defctn_other`:  |  | 
+- `def_loctn2`: attach_hh | attach_hh | attach_hh
+- `def_loctn2_other`:  |  | 
+- `near_lat`: 5_min | 5_min | 5_min
+- `lat_soap`: yes | yes | yes
+- `lat_acc_wmn`: yes | no | yes
+- `acc_prb_wmn`: many_people |  | many_people
+- `acc_prb_wmn/lat_far`: False |  | False
+- `acc_prb_wmn/many_people`: True |  | True
+- `acc_prb_wmn/lat_not_clean`: False |  | False
+- `acc_prb_wmn/insuffient_wat`: False |  | False
+- `acc_prb_wmn/lat_full`: False |  | False
+- `acc_prb_wmn/bad_smell`: False |  | False
+- `acc_prb_wmn/opn_defecation_lat`: False |  | False
+- `acc_prb_wmn/not_private`: False |  | False
+- `acc_prb_wmn/no_separation`: False |  | False
+- `acc_prb_wmn/route_unsafe`: False |  | False
+- `acc_prb_wmn/lat_unsafe`: False |  | False
+- `acc_prb_wmn/no_light`: False |  | False
+- `acc_prb_wmn/ghost`: False |  | False
+- `acc_prb_wmn/animal_attack`: False |  | False
+- `acc_prb_wmn/dnt_know`: False |  | False
+- `acc_prb_wmn/other`: False |  | False
+- `acc_prb_wmn_other`:  |  | 
+- `lat_acc_men`: no | no | yes
+- `acc_prb_men`:  |  | many_people
+- `acc_prb_men/lat_far`:  |  | False
+- `acc_prb_men/many_people`:  |  | True
+- `acc_prb_men/lat_not_clean`:  |  | False
+- `acc_prb_men/insuffient_wat`:  |  | False
+- `acc_prb_men/lat_full`:  |  | False
+- `acc_prb_men/bad_smell`:  |  | False
+- `acc_prb_men/opn_defecation_lat`:  |  | False
+- `acc_prb_men/not_private`:  |  | False
+- `acc_prb_men/no_separation`:  |  | False
+- `acc_prb_men/route_unsafe`:  |  | False
+- `acc_prb_men/lat_unsafe`:  |  | False
+- `acc_prb_men/no_light`:  |  | False
+- `acc_prb_men/ghost`:  |  | False
+- `acc_prb_men/animal_attack`:  |  | False
+- `acc_prb_men/dnt_know`:  |  | False
+- `acc_prb_men/other`:  |  | False
+- `acc_prb_men_other`:  |  | 
+- `rain_lat_acc`: better | better | better
+- `unsafe`: yes | no | yes
+- `fam_mem`: child_male child_female |  | child_female
+- `fam_mem/elder_male`: False |  | False
+- `fam_mem/elder_female`: False |  | False
+- `fam_mem/adlt_male`: False |  | False
+- `fam_mem/adlt_female`: False |  | False
+- `fam_mem/child_male`: True |  | False
+- `fam_mem/child_female`: True |  | True
+- `fam_mem/unsure`: False |  | False
+- `fam_mem/other`: False |  | False
+- `fam_mem_other`:  |  | 
+- `lat_sat`: satisfied | satisfied | satisfied
+- `chld_fae`:  |  | 
+- `chld_fae_other`:  |  | 
+- `wst_disp`: bury | bury | bury
+- `wst_disp_other`:  |  | 
+- `wst_vic`: always | always | always
+- `wst_sol_disp`: adlt_female child_female | adlt_female | adlt_female
+- `wst_sol_disp/elder_male`: False | False | False
+- `wst_sol_disp/elder_female`: False | False | False
+- `wst_sol_disp/adlt_male`: False | False | False
+- `wst_sol_disp/adlt_female`: True | True | True
+- `wst_sol_disp/child_male`: False | False | False
+- `wst_sol_disp/child_female`: True | False | False
+- `wst_sol_disp/unsure`: False | False | False
+- `wst_sol_disp/other`: False | False | False
+- `wst_sol_disp_other`:  |  | 
+- `wst_sat`: satisfied | satisfied | satisfied
+- `fae_vic`: always | sometimes | always
+- `hev_rn`: yes | no | yes
+- `wash_hands`: bfr_eat after_eating aftr_defecation | bfr_eat after_eating aftr_defecation | bfr_eat after_eating aftr_defecation
+- `wash_hands/bfr_eat`: True | True | True
+- `wash_hands/after_eating`: True | True | True
+- `wash_hands/bfr_prep_food`: False | False | False
+- `wash_hands/bfr_feed_child`: False | False | False
+- `wash_hands/bfr_brst_feed`: False | False | False
+- `wash_hands/aftr_defecation`: True | True | True
+- `wash_hands/cleaning_chld_bottom`: False | False | False
+- `wash_hands/before_prayer`: False | False | False
+- `wash_hands/hands_dirty`: False | False | False
+- `wash_hands/feels_dirty`: False | False | False
+- `wash_hands/other`: False | False | False
+- `wash_hands/dnt_know`: False | False | False
+- `wash_hands_other`:  |  | 
+- `hnd_sp`: yes_1 | yes_1 | yes_1
+- `nrml_hndwsh`: soap_wat | wat_only | wat_ash
+- `nrml_hndwsh_other`:  |  | 
+- `chall`: yes | yes | yes
+- `wsh_chall`: no_soap_distrubution other_needs | no_soap_distrubution other_needs | no_soap_distrubution other_needs
+- `wsh_chall/no_soap_distrubution`: True | True | True
+- `wsh_chall/no_soap_market`: False | False | False
+- `wsh_chall/soap_expensive`: False | False | False
+- `wsh_chall/other_needs`: True | True | True
+- `wsh_chall/other`: False | False | False
+- `wsh_chall_other`:  |  | 
+- `wmn_bath`: makeshift_space | comm_bathing | makeshift_space
+- `wmn_bath_other`:  |  | 
+- `men_bath`: tubewell_platform | tubewell_platform | 
+- `men_bath_other`:  |  | 
+- `bath_tim`: 5_min | 5_min | 5_min
+- `bath_acc_wmn`: no | yes | yes
+- `bath_wmn_pb`:  | many_people_bath | insuffient_wat_bath
+- `bath_wmn_pb/bathfac_far`:  | False | False
+- `bath_wmn_pb/many_people_bath`:  | True | False
+- `bath_wmn_pb/bath_not_clean`:  | False | False
+- `bath_wmn_pb/insuffient_wat_bath`:  | False | True
+- `bath_wmn_pb/bad_smell`:  | False | False
+- `bath_wmn_pb/rubbish`:  | False | False
+- `bath_wmn_pb/not_pvt`:  | False | False
+- `bath_wmn_pb/no_separation`:  | False | False
+- `bath_wmn_pb/route_unsafe_bath`:  | False | False
+- `bath_wmn_pb/no_light`:  | False | False
+- `bath_wmn_pb/ghost`:  | False | False
+- `bath_wmn_pb/animal_attack`:  | False | False
+- `bath_wmn_pb/unsafe_bath`:  | False | False
+- `bath_wmn_pb/other`:  | False | False
+- `wmn_pb_other`:  |  | 
+- `bath_acc_men`: no | no | no
+- `bath_men_pb`:  |  | 
+- `bath_men_pb/bathfac_far`:  |  | 
+- `bath_men_pb/many_people_bath`:  |  | 
+- `bath_men_pb/bath_not_clean`:  |  | 
+- `bath_men_pb/insuffient_wat_bath`:  |  | 
+- `bath_men_pb/bad_smell`:  |  | 
+- `bath_men_pb/rubbish`:  |  | 
+- `bath_men_pb/not_pvt`:  |  | 
+- `bath_men_pb/no_separation`:  |  | 
+- `bath_men_pb/route_unsafe_bath`:  |  | 
+- `bath_men_pb/no_light`:  |  | 
+- `bath_men_pb/ghost`:  |  | 
+- `bath_men_pb/animal_attack`:  |  | 
+- `bath_men_pb/unsafe_bath`:  |  | 
+- `bath_men_pb/other`:  |  | 
+- `men_pb_other`:  |  | 
+- `bath_acc`: better | better | better
+- `bath_safe`: no | yes | no
+- `unsafe_mem`:  | adlt_female | 
+- `unsafe_mem/elder_male`:  | False | 
+- `unsafe_mem/elder_female`:  | False | 
+- `unsafe_mem/adlt_male`:  | False | 
+- `unsafe_mem/adlt_female`:  | True | 
+- `unsafe_mem/child_male`:  | False | 
+- `unsafe_mem/child_female`:  | False | 
+- `unsafe_mem/unsure`:  | False | 
+- `unsafe_mem/other`:  | False | 
+- `mem_other`:  |  | 
+- `bath_sat`: satisfied | satisfied | satisfied
+- `hh_laund`: tubewell | inside_shelter | tubewell
+- `laund_other`:  |  | 
+- `dia_prvnt`: wash_hand_soap use_lat | wash_hand_soap use_lat | wash_hand_soap use_lat
+- `dia_prvnt/wash_hand_soap`: True | True | True
+- `dia_prvnt/use_lat`: True | True | True
+- `dia_prvnt/drnk_clean_wat`: False | False | False
+- `dia_prvnt/eat_safe_food`: False | False | False
+- `dia_prvnt/vacine`: False | False | False
+- `dia_prvnt/pray`: False | False | False
+- `dia_prvnt/other`: False | False | False
+- `dia_prvnt/dnt_know`: False | False | False
+- `prvnt_other`:  |  | 
+- `cau_dia`: dirty_wat dirty_food dirty_hand | dirty_wat dirty_food dirty_hand | dirty_wat dirty_food dirty_hand
+- `cau_dia/germs`: False | False | False
+- `cau_dia/dirty_wat`: True | True | True
+- `cau_dia/open_def`: False | False | False
+- `cau_dia/dirty_food`: True | True | True
+- `cau_dia/dirty_hand`: True | True | True
+- `cau_dia/allah`: False | False | False
+- `cau_dia/ghost`: False | False | False
+- `cau_dia/other`: False | False | False
+- `cau_dia/dnt_know`: False | False | False
+- `cau_other`:  |  | 
+- `dia_symp`: wat_stool vomit | wat_stool vomit | wat_stool vomit
+- `dia_symp/wat_stool`: True | True | True
+- `dia_symp/vomit`: True | True | True
+- `dia_symp/dehydration`: False | False | False
+- `dia_symp/cramps`: False | False | False
+- `dia_symp/sunken_eyes`: False | False | False
+- `dia_symp/other`: False | False | False
+- `dia_symp/dnt_know`: False | False | False
+- `symp_other`:  |  | 
+- `menst_hyg`:  |  | 
+- `menst_consent`: yes | yes | yes
+- `menst_mat`: reusable_pad | reusable_pad | reusable_pad
+- `menst_mat/disposable_pad`: False | False | False
+- `menst_mat/reusable_pad`: True | True | True
+- `menst_mat/cloth`: False | False | False
+- `menst_mat/other`: False | False | False
+- `menst_mat/dnt_know`: False | False | False
+- `mat_other`:  |  | 
+- `acc_mat`: someone_provided | someone_provided | someone_provided
+- `acc_mat/hygn_kid_distribution`: False | False | False
+- `acc_mat/purchased_market`: False | False | False
+- `acc_mat/someone_provided`: True | True | True
+- `acc_mat/other`: False | False | False
+- `acc_mat/dnt_know`: False | False | False
+- `acc_other`:  |  | 
+- `nrm_dsp`: bury | bury | bury
+- `nrm_dsp/hh_pit`: False | False | False
+- `nrm_dsp/comm_pit`: False | False | False
+- `nrm_dsp/insd_latrine`: False | False | False
+- `nrm_dsp/bin_hh`: False | False | False
+- `nrm_dsp/designated_openarea`: False | False | False
+- `nrm_dsp/undesignated_openarea`: False | False | False
+- `nrm_dsp/bury`: True | True | True
+- `nrm_dsp/burn`: False | False | False
+- `nrm_dsp/other`: False | False | False
+- `nrm_dsp/dnt_know`: False | False | False
+- `nrm_dsp_other`:  |  | 
+- `reusable`: yes | yes | yes
+- `dis_menst`: hh_bath_facilities | hh_bath_facilities | hh_bath_facilities
+- `dis_menst/inside_household`: False | False | False
+- `dis_menst/household_latrine`: False | False | False
+- `dis_menst/communal_latrine`: False | False | False
+- `dis_menst/hh_bath_facilities`: True | True | True
+- `dis_menst/comm_bath_facilties`: False | False | False
+- `dis_menst/dnt_know`: False | False | False
+- `dis_menst/other`: False | False | False
+- `dis_menst_other`:  |  | 
+- `dry_mat`: hh_bath_facilities | hh_bath_facilities | hh_bath_facilities
+- `dry_mat/inside_household`: False | False | False
+- `dry_mat/household_latrine`: False | False | False
+- `dry_mat/communal_latrine`: False | False | False
+- `dry_mat/hh_bath_facilities`: True | True | True
+- `dry_mat/comm_bath_facilties`: False | False | False
+- `dry_mat/dnt_know`: False | False | False
+- `dry_mat/other`: False | False | False
+- `dry_mat_other`:  |  | 
+- `mat_chng`: hh_bath_facilities | hh_bath_facilities | hh_bath_facilities
+- `mat_chng/inside_household`: False | False | False
+- `mat_chng/household_latrine`: False | False | False
+- `mat_chng/communal_latrine`: False | False | False
+- `mat_chng/hh_bath_facilities`: True | True | True
+- `mat_chng/comm_bath_facilties`: False | False | False
+- `mat_chng/dnt_know`: False | False | False
+- `mat_chng/other`: False | False | False
+- `mat_chng_other`:  |  | 
+- `menst_chell`: yes | yes | yes
+- `challenges`: pref_not_available needs_prioritized | pref_not_available needs_prioritized | pref_not_available needs_prioritized
+- `challenges/not_enough_distribution`: False | False | False
+- `challenges/not_enough_market`: False | False | False
+- `challenges/pref_not_available`: True | True | True
+- `challenges/expensive`: False | False | False
+- `challenges/needs_prioritized`: True | True | True
+- `challenges/other`: False | False | False
+- `challenges/dnt_know`: False | False | False
+- `chalng_other`:  |  | 
+- `hyg_mng`: none | none | none
+- `hyg_mng/disposable_pad`: False | False | False
+- `hyg_mng/reusable_pad`: False | False | False
+- `hyg_mng/cloth`: False | False | False
+- `hyg_mng/other`: False | False | False
+- `hyg_mng/none`: True | True | True
+- `hyg_mng/dnt_know`: False | False | False
+- `hyg_mng_other`:  |  | 
+- `dist_mat`: no | no | no
+- `menst_sat`: satisfied | satisfied | satisfied
+- `rec_hygkit`: never_received | 3_month | 3_month
+- `rec_mat`: never_received | never_received | never_received
+- `hyg_train`: no | no | no
+- `train_type`:  |  | 
+- `train_type/use_aquatab`:  |  | 
+- `train_type/safe_wat_chain`:  |  | 
+- `train_type/hand_wash_soap`:  |  | 
+- `train_type/cholera_diarrhea`:  |  | 
+- `train_type/food_hygiene`:  |  | 
+- `train_type/child_handwash`:  |  | 
+- `train_type/disp_hh_waste`:  |  | 
+- `train_type/cleaning_latrine`:  |  | 
+- `train_type/disp_child_faeces`:  |  | 
+- `train_type/menst_hygiene_management`:  |  | 
+- `train_type/other`:  |  | 
+- `train_type/dnt_know`:  |  | 
+- `train_type_other`:  |  | 
+- `more_info`: yes | yes | yes
+- `more_train`: safe_wat_chain food_hygiene | safe_wat_chain food_hygiene | safe_wat_chain food_hygiene
+- `more_train/use_aquatab`: False | False | False
+- `more_train/safe_wat_chain`: True | True | True
+- `more_train/hand_wash_soap`: False | False | False
+- `more_train/cholera_diarrhea`: False | False | False
+- `more_train/food_hygiene`: True | True | True
+- `more_train/child_handwash`: False | False | False
+- `more_train/disp_hh_waste`: False | False | False
+- `more_train/cleaning_latrine`: False | False | False
+- `more_train/disp_child_faeces`: False | False | False
+- `more_train/menst_hygiene_management`: False | False | False
+- `more_train/other`: False | False | False
+- `more_train/dnt_know`: False | False | False
+- `train_other`:  |  | 
+- `train_sat`: very_satisfied | satisfied | very_satisfied
+- `overall_satisfaction/camp_sat`: satisfied | satisfied | satisfied
+- `end_note`:  |  | 
+- `meta/instanceID`: uuid:23c3b1bf-8642-498e-8df2-9dab6f49c15 | uuid:4709219a-b453-4301-9be4-083124bb6a1 | uuid:07906521-105c-4a30-bfb7-f55194ea807
+- `_id`: 29850763 | 29850758 | 29850747
+- `_uuid`: 23c3b1bf-8642-498e-8df2-9dab6f49c15c | 4709219a-b453-4301-9be4-083124bb6a1f | 07906521-105c-4a30-bfb7-f55194ea8070
+- `_submission_time`: 2018-08-29T10:27:03 | 2018-08-29T10:26:56 | 2018-08-29T10:26:43
+- `_index`: 1 | 2 | 3
+
+### sheet `Data Key - Household`: about 559 rows, 6 columns
+
+- `Column Keys`: Column  | today | camp_id
+- `None`: Description | today | Camp 
+- `None`:  |  | 
+- `Option Keys`: Column | camp_id | 
+- `None`: Option | camp_1e | camp_1w
+- `None`: Value | Camp 1 E | Camp 1W
+
+### sheet `Individuals Dataset`: about 17800 rows, 20 columns
+
+- `hh_age`: 27 | 35 | 7
+- `gen`: female | male | female
+- `disablty_hh`: no | no | no
+- `dia_per`: yes | no | no
+- `dia_measures`: ors med |  | 
+- `dia_measures/ors`: True |  | 
+- `dia_measures/med`: True |  | 
+- `dia_measures/phar`: False |  | 
+- `dia_measures/hlthfac`: False |  | 
+- `dia_measures/healer`: False |  | 
+- `dia_measures/pray`: False |  | 
+- `dia_measures/other`: False |  | 
+- `dia_measures/nothing`: False |  | 
+- `dia_measures_other`:  |  | 
+- `_id`:  |  | 
+- `_uuid`:  |  | 
+- `_submission_time`:  |  | 
+- `_index`: 1 | 2 | 3
+- `_parent_table_name`: WASH_Questionnaire_KOBO_V2 | WASH_Questionnaire_KOBO_V2 | WASH_Questionnaire_KOBO_V2
+- `_parent_index`: 1 | 1 | 1
+
+### sheet `Data Key - Individuals`: about 18 rows, 6 columns
+
+- `Column Keys`: Column  | hhmem | hh_age
+- `None`: Description | Information for individual household mem | Age
+- `None`:  |  | 
+- `Option Keys`: Column | gen | 
+- `None`: Option | male | male
+- `None`: Value | Male | Female
+
+### sheet `Containers Dataset`: about 8088 rows, 31 columns
+
+- `con_type`: almn | bucket | almn
+- `con_type_other`:  |  | 
+- `con_height`:  | 13 | 
+- `con_width`:  | 14 | 
+- `con_circum`: 36 |  | 36
+- `con_length`:  |  | 
+- `con_lid`: yes | yes | yes
+- `con_clean`: yes | yes | yes
+- `wat_con_use`: both | both | both
+- `wat_con_collection`: yes | yes | yes
+- `wat_col_tm`: 2 | 3 | 2
+- `chlorine_test`: yes | yes | yes
+- `res_chlorine`: 0_0 | 0_0 | 0_0
+- `_id`:  |  | 
+- `_uuid`:  |  | 
+- `_submission_time`:  |  | 
+- `_index`: 1 | 2 | 3
+- `_parent_table_name`: WASH_Questionnaire_KOBO_V2 | WASH_Questionnaire_KOBO_V2 | WASH_Questionnaire_KOBO_V2
+- `_parent_index`: 1 | 1 | 2
+- `Volume`: =IF(AND(C2="",D2="",F2="",E2<>""),((4*PI | =IF(AND(C3="",D3="",F3="",E3<>""),((4*PI | =IF(AND(C4="",D4="",F4="",E4<>""),((4*PI
+- `Z`: =IF(V2<>"",V2,IF(W2<>"",W2,IF(X2<>"",X2, | =IF(V3<>"",V3,IF(W3<>"",W3,IF(X3<>"",X3, | =IF(V4<>"",V4,IF(W4<>"",W4,IF(X4<>"",X4,
+- `almn`: =IF($A2=V$1,($T2-10.5975714352857)/1.886 | =IF($A3=V$1,($T3-10.5975714352857)/1.886 | =IF($A4=V$1,($T4-10.5975714352857)/1.886
+- `bucket`: =IF($A2=W$1,($T2-22.8207634845077)/8.215 | =IF($A3=W$1,($T3-22.8207634845077)/8.215 | =IF($A4=W$1,($T4-22.8207634845077)/8.215
+- `plastic_jerry`: =IF($A2=X$1,($T2-11.83817890424)/6.95484 | =IF($A3=X$1,($T3-11.83817890424)/6.95484 | =IF($A4=X$1,($T4-11.83817890424)/6.95484
+- `plastic_jug`: =IF($A2=Y$1,($T2-3.91084342032139)/5.196 | =IF($A3=Y$1,($T3-3.91084342032139)/5.196 | =IF($A4=Y$1,($T4-3.91084342032139)/5.196
+- `plastic_container`: =IF($A2=Z$1,($T2-41.8508984250409)/26.19 | =IF($A3=Z$1,($T3-41.8508984250409)/26.19 | =IF($A4=Z$1,($T4-41.8508984250409)/26.19
+- `other`: =IF($A2=AA$1,($T2-58.1851008358715)/40.3 | =IF($A3=AA$1,($T3-58.1851008358715)/40.3 | =IF($A4=AA$1,($T4-58.1851008358715)/40.3
+- `bottle`: =IF($A2=AB$1,($T2-5.11253996404947)/1.10 | =IF($A3=AB$1,($T3-5.11253996404947)/1.10 | =IF($A4=AB$1,($T4-5.11253996404947)/1.10
+- `Container_valid`: =IF(AND(U2>=-3,U2<=3),"yes","no") | =IF(AND(U3>=-3,U3<=3),"yes","no") | =IF(AND(U4>=-3,U4<=3),"yes","no")
+- `None`:  |  | 
+- `None`:  |  | 
+
+### sheet `Data Key - Containers`: about 29 rows, 6 columns
+
+- `Column Keys`: Column  | con_type | con_type_other
+- `None`: Description | What type of container is this? | Specify other
+- `None`:  |  | 
+- `Option Keys`: Column | con_type | 
+- `None`: Option | almn | bucket
+- `None`: Value | Aluminium Pitcher | Bucket
+
+### sheet `Cleaning Log`: about 4742 rows, 16 columns
+
+- `UUID`: 97061af9-7e81-48d2-8427-71f7813a83ca | 7a90cec4-e1d0-4aa5-a5a2-892d5be5030d | 97061af9-7e81-48d2-8427-71f7813a83ca
+- `Question name`: sec_sourc_wat/tube | sec_sourc_wat/tube | sec_sourc_wat/other
+- `Old Value`: False | False | True
+- `New Value (or record if entry has been deleted)`: True | True | False
+- `Comments`: "Mosque tubewell" recategorised as tubew | "Mosque tubewell" recategorised as tubew | "Mosque tubewell" recategorised as tubew
+- `Date of modication in clean dataset`: 2018-10-07 00:00:00 | 2018-10-07 00:00:00 | 2018-10-07 00:00:00
+- `By whom`: Ollie | Ollie | Ollie
+- `Notes`:  |  | 
+- `None`:  |  | 
+- `None`:  |  | 
+- `None`:  |  | 
+- `None`:  |  | 
+- `None`:  |  | 
+- `None`:  |  | 
+- `None`:  |  | 
+- `None`:  |  | 
+
+### sheet `Tool - Questions`: about 187 rows, 13 columns
+
+- `type`: today | deviceid | select_one camp
+- `name`: today | deviceid | camp_id
+- `label`: today | deviceid | Camp 
+- `label::chittagonian`: আজিয়ে | ডিভাইস | ক্যাম্প 
+- `required`:  |  | true
+- `relevant`:  |  | 
+- `repeat_count`:  |  | 
+- `constraint`:  |  | 
+- `calculation`:  |  | 
+- `hint`:  |  | 
+- `hint::chittagonian`:  |  | 
+- `media::image`:  |  | 
+- `None`:  |  | 
+
+### sheet `Tool - Choices`: about 364 rows, 6 columns
+
+- `list_name`: camp | camp | camp
+- `name`: camp_1e | camp_1w | camp_2e
+- `label`: Camp 1 E | Camp 1W | Camp 2 E
+- `label::chittagonian`: Camp 1 E | Camp 1W | Camp 2 E
+- `image`:  |  | 
+- `image::chittagonian`:  |  | 
