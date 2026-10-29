@@ -1,0 +1,2 @@
+# Dépendances du moteur Python embarqué (versions figées).
+polars==2.0.0

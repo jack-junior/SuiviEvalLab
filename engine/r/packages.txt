@@ -1,0 +1,4 @@
+# Packages R embarqués dans SuiviEvalLab (un par ligne).
+jsonlite
+survey
+nanoarrow

@@ -1,0 +1,133 @@
+name: Construction et tests
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tests-linux:
+    name: Tests (Linux)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: "4.4.3"
+          use-public-rspm: true
+
+      - name: Packages R
+        run: Rscript -e "install.packages(readLines('engine/r/packages.txt')[!grepl('^#', readLines('engine/r/packages.txt'))])"
+
+      - name: Tests du moteur R
+        run: Rscript engine/r/tests/test_proportion.R
+
+      - name: Tests du moteur Python (avec R)
+        working-directory: engine/python
+        run: |
+          pip install -r requirements.txt "pytest==9.1.1"
+          python -m pytest -q
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Vérification et construction de l'interface
+        working-directory: apps/desktop
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
+
+  windows:
+    name: Installateur Windows
+    runs-on: windows-2022
+    needs: tests-linux
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Cache des moteurs embarqués
+        uses: actions/cache@v4
+        with:
+          path: build/cache
+          key: runtimes-${{ hashFiles('tools/windows/prepare-runtimes.ps1') }}
+
+      - name: Préparer Python et R embarqués
+        shell: pwsh
+        run: ./tools/windows/prepare-runtimes.ps1
+
+      - name: Test de fumée avec les moteurs embarqués
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force build/runtime/engine/python | Out-Null
+          Copy-Item -Recurse -Force engine/python/sme_engine build/runtime/engine/python/
+          Copy-Item -Recurse -Force engine/r build/runtime/engine/
+          python tools/smoke_test.py --python build/runtime/python/python.exe --rscript build/runtime/R/bin/Rscript.exe --rdir build/runtime/engine/r
+          $code = $LASTEXITCODE
+          Remove-Item -Recurse -Force build/runtime/engine
+          if ($code -ne 0) { exit $code }
+
+      - name: Construire l'installateur
+        working-directory: apps/desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: |
+          npm ci --no-audit --no-fund
+          npm run dist:win
+
+      - name: Test de bout en bout de l'application installée
+        shell: pwsh
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+        run: |
+          npm install --no-save --no-audit --no-fund --no-package-lock playwright@1.64.0
+          node tools/e2e/electron-smoke.mjs apps/desktop/release/win-unpacked/SuiviEvalLab.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: captures-ecran
+          path: build/e2e/*.png
+          retention-days: 30
+
+      - name: Taille de l'installateur
+        shell: pwsh
+        run: |
+          Get-ChildItem apps/desktop/release/*.exe | ForEach-Object { "::notice title=Installateur::{0}, {1:N0} Mo" -f $_.Name, ($_.Length / 1MB) }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SuiviEvalLab-installation-windows
+          path: apps/desktop/release/*.exe
+          retention-days: 30
+
+      - name: Publier la version
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: apps/desktop/release/*.exe
+          draft: false
+          prerelease: true

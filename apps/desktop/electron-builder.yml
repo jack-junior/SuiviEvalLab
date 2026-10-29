@@ -1,0 +1,40 @@
+appId: org.suivievallab.app
+productName: SuiviEvalLab
+copyright: Licence GPL-3.0-or-later
+directories:
+  output: release
+files:
+  - dist/**/*
+  - package.json
+asar: true
+extraResources:
+  # Python embarqué (préparé par tools/windows/prepare-runtimes.ps1)
+  - from: ../../build/runtime/python
+    to: python
+  # R embarqué avec ses packages
+  - from: ../../build/runtime/R
+    to: R
+  # Moteur métier Python
+  - from: ../../engine/python/sme_engine
+    to: engine/python/sme_engine
+    filter:
+      - "**/*.py"
+  # Moteur statistique R
+  - from: ../../engine/r
+    to: engine/r
+    filter:
+      - worker.R
+      - R/*.R
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  shortcutName: SuiviEvalLab
+  artifactName: SuiviEvalLab-${version}-installation.exe
+  unicode: true

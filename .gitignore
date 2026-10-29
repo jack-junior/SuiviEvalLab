@@ -1,0 +1,10 @@
+node_modules/
+dist/
+release/
+build/
+__pycache__/
+*.pyc
+.pytest_cache/
+.Rhistory
+.DS_Store
+Thumbs.db
