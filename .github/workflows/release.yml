@@ -87,39 +87,39 @@ jobs:
             exit 1
           }
 
+      # Bash (Git Bash on the Windows runner) rather than PowerShell: a failing
+      # native command can stop a PowerShell step before its error is reported.
       - name: Publish the release
-        shell: pwsh
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
         run: |
-          $tag = $env:RELEASE_TAG
-          $version = $tag.TrimStart("v")
-          $repo = "${{ github.repository }}"
-          $exe = Get-ChildItem apps/desktop/release/*.exe | Select-Object -First 1
-          if (-not $exe) { "::error title=Release::No installer found in apps/desktop/release"; exit 1 }
-          $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
-          "$hash  $($exe.Name)" | Out-File -Encoding ascii SHA256SUMS.txt
-          (Get-Content .github/release/notes.md -Raw).Replace("<version>", $version) | Out-File -Encoding utf8 notes.md
-
-          # Every gh failure is reported as an annotation, readable without the raw logs.
-          function Invoke-Gh {
-            $out = & gh @args 2>&1
-            $code = $LASTEXITCODE
-            $out | ForEach-Object { Write-Host $_ }
-            if ($code -ne 0) {
-              $msg = ($out | Out-String).Trim() -replace "`r?`n", " | "
-              "::error title=gh $($args[0]) $($args[1])::exit $code, $msg"
-              exit $code
-            }
+          set +e  # the default bash shell uses -e, which would skip the error report
+          fail() { echo "::error title=Release::$1"; exit 1; }
+          run() {
+            out=$("$@" 2>&1); code=$?
+            echo "$out"
+            [ $code -eq 0 ] || fail "$1 $2 $3 (exit $code): $(echo "$out" | tr '\r\n' '  ' | cut -c1-900)"
           }
 
-          $existing = gh release view $tag --repo $repo --json tagName 2>$null
-          if ($LASTEXITCODE -eq 0) {
-            "::notice title=Release::$tag already exists, uploading the installer again"
-            Invoke-Gh release upload $tag $exe.FullName SHA256SUMS.txt --repo $repo --clobber
-          } else {
-            $flags = @()
-            if ($version.StartsWith("0.")) { $flags += "--prerelease" }
-            Invoke-Gh release create $tag $exe.FullName SHA256SUMS.txt --repo $repo --verify-tag --title "SuiviEvalLab $version" --notes-file notes.md @flags
-          }
-          "::notice title=Release::$tag published, $($exe.Name), sha256 $hash"
+          tag="$RELEASE_TAG"
+          version="${tag#v}"
+          echo "::notice title=gh::$(gh --version | head -n1)"
+
+          exe=$(ls apps/desktop/release/*.exe 2>/dev/null | head -n1)
+          [ -n "$exe" ] || fail "No installer found in apps/desktop/release"
+          name=$(basename "$exe")
+          (cd "$(dirname "$exe")" && sha256sum "$name") > SHA256SUMS.txt || fail "sha256sum failed"
+          sed "s/<version>/$version/g" .github/release/notes.md > notes.md || fail "Cannot write the release notes"
+
+          if gh release view "$tag" --repo "$REPO" > /dev/null 2>&1; then
+            echo "::notice title=Release::$tag already exists, uploading the installer again"
+            run gh release upload "$tag" "$exe" SHA256SUMS.txt --repo "$REPO" --clobber
+          else
+            flags=()
+            case "$version" in 0.*) flags+=(--prerelease) ;; esac
+            run gh release create "$tag" "$exe" SHA256SUMS.txt --repo "$REPO" --verify-tag \
+              --title "SuiviEvalLab $version" --notes-file notes.md "${flags[@]}"
+          fi
+          echo "::notice title=Release::$tag published, $name, sha256 $(cut -d' ' -f1 SHA256SUMS.txt)"
