@@ -7,6 +7,7 @@ import { useI18n } from "../i18n";
 import { useLabels } from "../labels";
 import { useProject } from "../state";
 import { Confirm, Empty, Field, Icon, IconButton, Notice } from "../ui";
+import { SampleSizePanel } from "./SampleSize";
 
 const QUESTIONS: { q: TestQuestion; icon: string }[] = [
   { q: "groups", icon: "table" },
@@ -81,6 +82,7 @@ export function Tests() {
   const [targetText, setTargetText] = useState("");
   const [answer, setAnswer] = useState<{ result: TestResult; conclusion: Record<string, string[]> } | null>(null);
   const [running, setRunning] = useState(false);
+  const [sampling, setSampling] = useState(false);
   const [showScript, setShowScript] = useState(false);
   const [deleting, setDeleting] = useState<TestSpec | null>(null);
   const [saved, setSaved] = useState(false);
@@ -174,6 +176,10 @@ export function Tests() {
         >
           {t("tests.new")}
         </button>
+        <button className="btn" onClick={() => setSampling(true)} data-testid="open-sample">
+          <Icon name="calc" /> {t("sample.title")}
+        </button>
+        {sampling && <SampleSizePanel onClose={() => setSampling(false)} />}
         <div className="split-group">
           <div className="split-group-title">{t("tests.saved")}</div>
           {snap.tests.length === 0 && <p className="muted small indent">{t("tests.noneSaved")}</p>}

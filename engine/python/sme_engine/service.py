@@ -601,6 +601,57 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
         backups.restore(path, params.get("backup"))
         return opened(Project.open(path))
 
+    @server.method("tool.sample_size")
+    def sample_size(params: dict[str, Any]) -> dict[str, Any]:
+        """Survey sample size, computed by R. Needs no open project."""
+        goals = ("estimate_prop", "estimate_mean", "compare_prop", "compare_mean")
+        goal = params.get("goal")
+        if goal not in goals:
+            raise _err(f"goal must be one of {goals}", "invalid_params")
+
+        def num(name: str, low: float | None = None, high: float | None = None, default: Any = None) -> Any:
+            v = params.get(name, default)
+            if v is None or v == "":
+                return default
+            if isinstance(v, bool) or not isinstance(v, (int, float)) or v != v:
+                raise _err(f"{name} must be a number", "sample_invalid")
+            if (low is not None and v <= low) or (high is not None and v > high):
+                raise _err(f"{name} is out of range", "sample_invalid")
+            return float(v)
+
+        args: dict[str, Any] = {
+            "goal": goal,
+            "conf": num("conf", 0.5, 0.999, 0.95),
+            "power": num("power", 0.5, 0.999, 0.8),
+            "deff": max(1.0, num("deff", 0, 20, 1.0)),
+            "domains": int(num("domains", 0, 1000, 1)),
+            "response": num("response", 0, 1, 1.0),
+        }
+        if goal in ("estimate_prop", "compare_prop"):
+            args["p"] = num("p", 0, 0.999)
+            if args["p"] is None:
+                raise _err("p is required", "sample_invalid")
+        if goal == "compare_prop":
+            args["p2"] = num("p2", 0, 0.999)
+            if args["p2"] is None or args["p2"] == args["p"]:
+                raise _err("p2 is required and differs from p", "sample_invalid")
+        if goal in ("estimate_mean", "compare_mean"):
+            args["sd"] = num("sd", 0)
+            if args["sd"] is None:
+                raise _err("sd is required", "sample_invalid")
+        if goal.startswith("estimate"):
+            args["margin"] = num("margin", 0, None if goal == "estimate_mean" else 0.5)
+            if args["margin"] is None:
+                raise _err("margin is required", "sample_invalid")
+            population = num("population", 0)
+            if population is not None:
+                args["population"] = population
+        if goal == "compare_mean":
+            args["delta"] = num("delta", 0)
+            if args["delta"] is None:
+                raise _err("delta is required", "sample_invalid")
+        return bridge.call("sample_size", args)
+
     @server.method("project.close")
     def close(_: dict[str, Any]) -> dict[str, Any]:
         workspace.close()

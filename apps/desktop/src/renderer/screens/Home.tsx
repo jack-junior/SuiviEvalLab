@@ -6,6 +6,7 @@ import { call, forgetProject, pick, Recent, recents, recentToken, revealProject,
 import { useI18n } from "../i18n";
 import { useProject } from "../state";
 import { Confirm, Field, Icon, IconButton, Notice, Panel } from "../ui";
+import { SampleSizePanel } from "./SampleSize";
 
 const REOPEN_KEY = "sme.reopenLast";
 let reopenTried = false; // once per app session
@@ -27,6 +28,7 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
   const [query, setQuery] = useState("");
   const [reopen, setReopen] = useState(readReopen);
   const [history, setHistory] = useState<Recent | null>(null);
+  const [sampling, setSampling] = useState(false);
 
   const opened = (s: Snapshot | null) => {
     if (s) go(s.indicators.length ? "overview" : "framework");
@@ -157,6 +159,13 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
         </div>
       </section>
 
+      <p className="muted small">
+        <button className="link" onClick={() => setSampling(true)} disabled={!enginesReady} data-testid="open-sample">
+          <Icon name="calc" /> {t("sample.open")}
+        </button>{" "}
+        {t("sample.openHint")}
+      </p>
+
       <section className="stack" data-testid="my-projects">
         <div className="section-head">
           <h2>{t("home.myProjects")}</h2>
@@ -230,6 +239,7 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
           </label>
         )}
       </section>
+      {sampling && <SampleSizePanel onClose={() => setSampling(false)} />}
       {history && <BackupsPanel project={history} onClose={() => setHistory(null)} onOpened={opened} />}
     </div>
   );

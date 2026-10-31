@@ -33,6 +33,7 @@ jobs:
           Rscript engine/r/tests/test_proportion.R
           Rscript engine/r/tests/test_estimate.R
           Rscript engine/r/tests/test_tests.R
+          Rscript engine/r/tests/test_sample.R
 
       - name: Cache the original survey files
         uses: actions/cache@v5

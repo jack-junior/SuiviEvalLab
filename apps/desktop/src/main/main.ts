@@ -50,6 +50,7 @@ const ALLOWED = new Set([
   "report.checks",
   "project.backups",
   "project.restore",
+  "tool.sample_size",
   "dataset.quality",
   "report.set_template",
   "report.clear_template",

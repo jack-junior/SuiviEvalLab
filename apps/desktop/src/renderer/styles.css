@@ -1764,3 +1764,13 @@ button.cell-sub {
 .backup-row + .backup-row {
   border-top: 1px solid var(--ligne);
 }
+
+.sample-n {
+  font-family: var(--titre);
+  font-size: 22px;
+  font-weight: 600;
+}
+.sample-steps {
+  margin: 4px 0;
+  padding-left: 20px;
+}

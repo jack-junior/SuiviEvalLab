@@ -430,3 +430,11 @@ def test_checks_before_the_report(engine, tmp_path):
     keys = {(i["key"], i["name"]) for i in engine("report.checks")["items"]}
     assert ("indicator_no_target", ind["name"]) in keys
     assert ("indicator_incomplete", "Sans règle") in keys
+
+
+@needs_r
+def test_sample_size_without_project(engine):
+    r = engine("tool.sample_size", {"goal": "estimate_prop", "p": 0.5, "margin": 0.05, "deff": 2, "response": 0.9})
+    assert r["n"] == 854 and r["method_key"] == "cochran_prop"  # ceil(384.15 * 2 / 0.9)
+    r = engine("tool.sample_size", {"goal": "compare_prop", "p": 0.4, "p2": 0.5})
+    assert r["per_round"] and r["n"] == 388
