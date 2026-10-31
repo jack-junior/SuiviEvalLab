@@ -11,8 +11,21 @@ export function Report() {
   const { snap, run, error, busy, go } = useProject();
   const [reportLang, setReportLang] = useState<Lang>(lang);
   const [done, setDone] = useState<{ token: string; name: string } | null>(null);
+  const [templateNote, setTemplateNote] = useState<{ kind: "ok" | "info"; text: string } | null>(null);
   if (!snap) return null;
   const ready = snap.indicators.length > 0;
+
+  const chooseTemplate = async () => {
+    const f = await pick("template-open");
+    if (!f) return;
+    const r = await run<{ has_anchor: boolean }>("report.set_template", { file_token: f.token });
+    if (r)
+      setTemplateNote(
+        r.has_anchor
+          ? { kind: "ok", text: t("report.templateOk", { name: f.name }) }
+          : { kind: "info", text: t("report.templateNoAnchor", { name: f.name }) },
+      );
+  };
 
   const generate = async () => {
     setDone(null);
@@ -41,6 +54,46 @@ export function Report() {
             </li>
           ))}
         </ol>
+      </section>
+
+      <section className="stack" data-testid="template-section">
+        <h2>{t("report.template")}</h2>
+        <p className="muted" style={{ margin: 0 }}>
+          {snap.project.report_template
+            ? t("report.templateCurrent", { name: snap.project.report_template })
+            : t("report.templateBuiltIn")}
+        </p>
+        {templateNote && <Notice kind={templateNote.kind}>{templateNote.text}</Notice>}
+        <div className="row-actions start">
+          <button className="btn" onClick={chooseTemplate} data-testid="choose-template">
+            <Icon name="file" />{" "}
+            {snap.project.report_template ? t("report.templateChange") : t("report.templateChoose")}
+          </button>
+          {snap.project.report_template && (
+            <button className="btn" onClick={() => run("report.clear_template")}>
+              {t("report.templateRemove")}
+            </button>
+          )}
+        </div>
+        <details className="help">
+          <summary>{t("report.templateHow")}</summary>
+          <p>{t("report.templateHelp1")}</p>
+          <ul>
+            <li>
+              <code>{"{{contenu}}"}</code> {t("report.field_content")}
+            </li>
+            <li>
+              <code>{"{{projet}}"}</code> {t("report.field_project")}
+            </li>
+            <li>
+              <code>{"{{date}}"}</code> {t("report.field_date")}
+            </li>
+            <li>
+              <code>{"{{titre_rapport}}"}</code> {t("report.field_title")}
+            </li>
+          </ul>
+          <p>{t("report.templateHelp2")}</p>
+        </details>
       </section>
 
       <section className="stack">

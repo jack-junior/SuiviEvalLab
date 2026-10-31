@@ -244,3 +244,22 @@ def test_test_assistant_on_real_data(engine, tmp_path):
     con.commit()
     con.close()
     assert engine("project.open", {"path": str(old)})["tests"] == []
+
+
+@needs_r
+def test_report_on_organisation_template(engine, tmp_path):
+    """The organisation's template keeps its header and texts; results go at {{contenu}}."""
+    engine("project.create", {"path": str(tmp_path / "t.sme"), "name": "x", "example": True})
+    template = Path(__file__).parent / "fixtures" / "modele_organisation.docx"
+    out = engine("report.set_template", {"path": str(template)})
+    assert out["has_anchor"] is True
+    assert out["project"]["report_template"] == "modele_organisation.docx"
+    report = Document(engine("report.generate", {"path": str(tmp_path / "r.docx"), "lang": "fr"})["path"])
+    texts = [p.text for p in report.paragraphs]
+    order = {t: i for i, t in enumerate(texts)}
+    assert order["Résumé exécutif"] < order["1. Synthèse"] < order["Recommandations"]
+    assert not any("{{" in t for t in texts)
+    assert "ONG Exemple" in report.sections[0].header.paragraphs[0].text
+    assert "Accès à l'éducation" in report.sections[0].header.paragraphs[0].text
+    engine("report.clear_template")
+    assert engine("project.get")["project"]["report_template"] is None

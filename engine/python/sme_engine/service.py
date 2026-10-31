@@ -7,6 +7,7 @@ return the new snapshot, so the interface never has to merge state itself.
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 from pathlib import Path
@@ -657,6 +658,36 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
         lang = params.get("lang", "fr")
         if lang not in ("fr", "en"):
             raise RpcError("lang must be fr or en", INVALID_PARAMS, data={"key": "invalid_params"})
-        return generate(svc, Path(_text(params, "path", max_len=4000)), lang)
+        meta = svc.project.meta()
+        template = base64.b64decode(meta["report_template"]) if meta.get("report_template") else None
+        return generate(svc, Path(_text(params, "path", max_len=4000)), lang, template)
+
+    @server.method("report.set_template")
+    def rep_set_template(params: dict[str, Any]) -> dict[str, Any]:
+        """Keep the organisation's Word template inside the project, so the report is reproducible."""
+        path = Path(_text(params, "path", max_len=4000))
+        if path.suffix.lower() not in (".docx", ".dotx"):
+            raise _err("The template must be a Word .docx file", "template_type")
+        data = path.read_bytes()
+        if len(data) > 20 * 1024 * 1024:
+            raise _err("The template is larger than 20 MB", "template_too_large")
+        try:
+            import io
+
+            from docx import Document
+
+            doc = Document(io.BytesIO(data))
+        except Exception:  # noqa: BLE001
+            raise _err("This file cannot be opened as a Word document", "template_invalid") from None
+        has_anchor = any(k in p.text for p in doc.paragraphs for k in ("{{contenu}}", "{{content}}"))
+        svc.project.set_meta("report_template", base64.b64encode(data).decode("ascii"))
+        svc.project.set_meta("report_template_name", path.name)
+        return {**svc.snapshot(), "has_anchor": has_anchor}
+
+    @server.method("report.clear_template")
+    def rep_clear_template(_: dict[str, Any]) -> dict[str, Any]:
+        svc.project.set_meta("report_template", None)
+        svc.project.set_meta("report_template_name", None)
+        return svc.snapshot()
 
     return svc

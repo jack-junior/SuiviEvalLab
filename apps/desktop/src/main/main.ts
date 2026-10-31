@@ -45,12 +45,14 @@ const ALLOWED = new Set([
   "dataset.attach_form",
   "dataset.set_labels",
   "report.generate",
+  "report.set_template",
+  "report.clear_template",
 ]);
 
 // Paths chosen by the user in a dialog, by token. Tokens live for the session.
 const pickedFiles = new Map<string, string>();
 
-type DialogKind = "project-save" | "project-open" | "data-open" | "report-save" | "csv-save";
+type DialogKind = "project-save" | "project-open" | "data-open" | "report-save" | "csv-save" | "template-open";
 
 // End-to-end tests answer dialogs through SME_E2E_DIALOGS (paths separated by "|").
 const e2eAnswers = (process.env.SME_E2E_DIALOGS ?? "").split("|").filter(Boolean);
@@ -73,14 +75,14 @@ async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token
       });
       chosen = res.canceled ? undefined : res.filePath;
     } else {
-      const isProject = kind === "project-open";
-      const res = await dialog.showOpenDialog(win, {
-        defaultPath: docs,
-        properties: ["openFile"],
-        filters: isProject
-          ? [{ name: "SuiviEvalLab", extensions: ["sme"] }]
-          : [{ name: "Excel, CSV", extensions: ["xlsx", "xlsm", "xls", "csv"] }],
-      });
+      const filters = {
+        "project-open": [{ name: "SuiviEvalLab", extensions: ["sme"] }],
+        "data-open": [
+          { name: "Excel, CSV, SPSS, Stata", extensions: ["xlsx", "xlsm", "xls", "csv", "sav", "zsav", "dta"] },
+        ],
+        "template-open": [{ name: "Word", extensions: ["docx", "dotx"] }],
+      }[kind as "project-open" | "data-open" | "template-open"];
+      const res = await dialog.showOpenDialog(win, { defaultPath: docs, properties: ["openFile"], filters });
       chosen = res.canceled ? undefined : res.filePaths[0];
     }
   }
@@ -254,7 +256,14 @@ app.whenReady().then(() => {
     }
   });
   ipcMain.handle("dialog:pick", (_e, kind: unknown, defaultName: unknown) => {
-    const kinds: DialogKind[] = ["project-save", "project-open", "data-open", "report-save", "csv-save"];
+    const kinds: DialogKind[] = [
+      "project-save",
+      "project-open",
+      "data-open",
+      "report-save",
+      "csv-save",
+      "template-open",
+    ];
     if (typeof kind !== "string" || !kinds.includes(kind as DialogKind)) return null;
     return pickFile(kind as DialogKind, typeof defaultName === "string" ? defaultName.slice(0, 120) : undefined);
   });

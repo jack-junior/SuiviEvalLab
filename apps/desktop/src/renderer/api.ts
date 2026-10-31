@@ -26,7 +26,7 @@ interface SmeBridge {
   openFile?: (token: string) => Promise<boolean>;
 }
 
-export type PickKind = "project-save" | "project-open" | "data-open" | "report-save" | "csv-save";
+export type PickKind = "project-save" | "project-open" | "data-open" | "report-save" | "csv-save" | "template-open";
 export interface Picked {
   token: string;
   name: string;
@@ -150,6 +150,7 @@ export interface ProjectInfo {
   created_at: string;
   updated_at: string;
   counts: Record<Level, number>;
+  report_template: string | null;
 }
 
 export interface Snapshot {

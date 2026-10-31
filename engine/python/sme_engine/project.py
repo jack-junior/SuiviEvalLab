@@ -180,7 +180,16 @@ class Project:
             "created_at": meta.get("created_at"),
             "updated_at": meta.get("updated_at"),
             "counts": {level: counts.get(level, 0) for level in LEVELS},
+            "report_template": meta.get("report_template_name") or None,
         }
+
+    def set_meta(self, key: str, value: str | None) -> None:
+        with self.conn:
+            if value is None:
+                self.conn.execute("DELETE FROM meta WHERE key = ?", (key,))
+            else:
+                self.conn.execute("INSERT OR REPLACE INTO meta(key, value) VALUES (?, ?)", (key, value))
+            self._touch()
 
     def rename(self, name: str) -> dict[str, Any]:
         with self.conn:
