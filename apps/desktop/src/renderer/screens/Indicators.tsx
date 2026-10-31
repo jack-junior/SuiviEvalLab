@@ -1,7 +1,7 @@
 // Indicators: definition, calculation rule from a data column, baseline and target.
 
 import { useMemo, useState } from "react";
-import { Indicator } from "../api";
+import { Frequency, Indicator } from "../api";
 import { useI18n } from "../i18n";
 import { useLabels } from "../labels";
 import { useProject } from "../state";
@@ -30,7 +30,13 @@ const blank = (node_id: string): Draft => ({
   target: null,
   unit_label: "",
   source: "",
+  method: "",
+  frequency: "",
+  responsible: "",
+  target_date: "",
 });
+
+const FREQUENCIES: Frequency[] = ["", "monthly", "quarterly", "semiannual", "annual", "rounds", "other"];
 
 /** Number typed by the user: percentages in %, stored as shares. */
 const toInput = (v: number | null, unit: string) =>
@@ -319,13 +325,68 @@ export function Indicators() {
               )}
             </Field>
           </div>
-          <Field label={t("indicators.source")}>
+          <h3 className="panel-section">{t("indicators.plan")}</h3>
+          <p className="muted small">{t("indicators.planHint")}</p>
+          <div className="field-row">
+            <Field label={t("indicators.source")}>
+              {(id) => (
+                <input
+                  id={id}
+                  className="input"
+                  value={draft.source}
+                  onChange={(e) => setDraft({ ...draft, source: e.target.value })}
+                />
+              )}
+            </Field>
+            <Field label={t("indicators.method")}>
+              {(id) => (
+                <input
+                  id={id}
+                  className="input"
+                  value={draft.method ?? ""}
+                  onChange={(e) => setDraft({ ...draft, method: e.target.value })}
+                  data-testid="indicator-method"
+                />
+              )}
+            </Field>
+          </div>
+          <div className="field-row">
+            <Field label={t("indicators.frequency")}>
+              {(id) => (
+                <select
+                  id={id}
+                  className="input"
+                  value={draft.frequency ?? ""}
+                  onChange={(e) => setDraft({ ...draft, frequency: e.target.value as Frequency })}
+                  data-testid="indicator-frequency"
+                >
+                  {FREQUENCIES.map((f) => (
+                    <option key={f} value={f}>
+                      {f ? t(`indicators.freq_${f}`) : t("indicators.freq_none")}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </Field>
+            <Field label={t("indicators.responsible")}>
+              {(id) => (
+                <input
+                  id={id}
+                  className="input"
+                  value={draft.responsible ?? ""}
+                  onChange={(e) => setDraft({ ...draft, responsible: e.target.value })}
+                  data-testid="indicator-responsible"
+                />
+              )}
+            </Field>
+          </div>
+          <Field label={t("indicators.targetDate")} hint={t("indicators.targetDateHint")}>
             {(id) => (
               <input
                 id={id}
                 className="input"
-                value={draft.source}
-                onChange={(e) => setDraft({ ...draft, source: e.target.value })}
+                value={draft.target_date ?? ""}
+                onChange={(e) => setDraft({ ...draft, target_date: e.target.value })}
               />
             )}
           </Field>

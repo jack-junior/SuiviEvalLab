@@ -438,3 +438,31 @@ def test_sample_size_without_project(engine):
     assert r["n"] == 854 and r["method_key"] == "cochran_prop"  # ceil(384.15 * 2 / 0.9)
     r = engine("tool.sample_size", {"goal": "compare_prop", "p": 0.4, "p2": 0.5})
     assert r["per_round"] and r["n"] == 388
+
+
+@needs_r
+def test_monitoring_plan_workbook(engine, tmp_path):
+    snap = engine("project.create", {"path": str(tmp_path / "p.sme"), "name": "x", "example": True, "lang": "fr"})
+    ind = snap["indicators"][0]
+    spec = {k: v for k, v in ind.items() if k not in ("id", "node_id")}
+    extra = {
+        "frequency": "rounds",
+        "responsible": "Chargé de S&E",
+        "method": "Enquête ménages",
+        "target_date": "2027-06",
+    }
+    engine("indicator.save", {"id": ind["id"], "indicator": {**spec, **extra}})
+    out = engine("report.plan", {"path": str(tmp_path / "plan"), "lang": "fr"})
+    assert out["path"].endswith(".xlsx")
+    sheet = pl.read_excel(out["path"], sheet_name="Plan de suivi", read_options={"header_row": 3})
+    assert sheet.height == len(snap["indicators"])
+    first = sheet.row(0, named=True)
+    assert first["Indicateur"] == ind["name"] and first["Responsable"] == "Chargé de S&E"
+    assert first["Fréquence"].startswith("À chaque enquête") and first["Échéance de la cible"] == "2027-06"
+    assert first["Mode de calcul"].startswith("Part des observations où")
+    assert "À moins de 2 km" in first["Mode de calcul"]  # labels, not codes
+    assert first["Cible"] == "90,0 %"
+    fw = pl.read_excel(out["path"], sheet_name="Cadre de résultats")
+    assert fw.height == len(snap["framework"])
+    with pytest.raises(AssertionError, match="invalid_params"):
+        engine("indicator.save", {"id": ind["id"], "indicator": {**spec, "frequency": "weekly"}})

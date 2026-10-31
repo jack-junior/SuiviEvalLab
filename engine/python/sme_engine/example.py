@@ -30,6 +30,8 @@ TEXT = {
         "i3": "Ménages ayant retiré des enfants de l'école pour faire face au manque de ressources",
         "i3d": "Part des ménages ayant retiré des enfants de l'école au cours des 30 derniers jours comme stratégie d'adaptation, parmi les ménages concernés.",
         "source": "Enquête ménages MCNA (REACH)",
+        "method": "Entretien en face à face avec un membre adulte du ménage",
+        "responsible": "Chargé de suivi-évaluation",
         "d2019": "Enquête de référence 2019 (MCNA VII)",
         "d2020": "Enquête de fin de projet 2020 (MCNA VIII)",
         "r_groups": "Garder seulement les déplacés hors camp et les retournés, seuls groupes enquêtés en 2020",
@@ -54,6 +56,8 @@ TEXT = {
         "i3": "Households that withdrew children from school to cope with a lack of resources",
         "i3d": "Share of households that withdrew children from school in the last 30 days as a coping strategy, among households concerned.",
         "source": "MCNA household survey (REACH)",
+        "method": "Face-to-face interview with an adult household member",
+        "responsible": "M&E officer",
         "d2019": "Baseline survey 2019 (MCNA VII)",
         "d2020": "Endline survey 2020 (MCNA VIII)",
         "r_groups": "Keep only out-of-camp IDPs and returnees, the only groups surveyed in 2020",
@@ -168,7 +172,14 @@ def fill_example(svc: Any, lang: str = "fr") -> None:
     p21 = p.add_node(o2, t["p21"])["id"]
     p.add_node(p21, t["a211"])
 
-    common = {"unit": "percent", "disaggregation": "population_group", "source": t["source"]}
+    common = {
+        "unit": "percent",
+        "disaggregation": "population_group",
+        "source": t["source"],
+        "method": t["method"],
+        "frequency": "rounds",
+        "responsible": t["responsible"],
+    }
     svc.save_indicator(
         {
             "node_id": o1,

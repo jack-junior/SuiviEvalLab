@@ -27,7 +27,14 @@ interface SmeBridge {
 }
 
 export type PickKind =
-  "project-save" | "project-open" | "data-open" | "report-save" | "csv-save" | "html-save" | "template-open";
+  | "project-save"
+  | "project-open"
+  | "data-open"
+  | "report-save"
+  | "csv-save"
+  | "html-save"
+  | "xlsx-save"
+  | "template-open";
 export interface Picked {
   token: string;
   name: string;
@@ -84,6 +91,10 @@ export interface Indicator {
   target: number | null;
   unit_label: string;
   source: string;
+  method?: string;
+  frequency?: Frequency;
+  responsible?: string;
+  target_date?: string;
 }
 
 export interface ColumnInfo {
@@ -118,6 +129,8 @@ export interface Rule {
   values?: (string | null)[];
   effect?: { applied: boolean; rows_removed: number; cells_changed: number } | null;
 }
+
+export type Frequency = "" | "monthly" | "quarterly" | "semiannual" | "annual" | "rounds" | "other";
 
 export interface Dataset {
   id: string;

@@ -20,6 +20,7 @@ from .rpc import INVALID_PARAMS, RpcError
 
 UNITS = ("percent", "mean", "count", "ratio")
 DIRECTIONS = ("increase", "decrease")
+FREQUENCIES = ("", "monthly", "quarterly", "semiannual", "annual", "rounds", "other")
 
 
 def _err(message: str, key: str) -> RpcError:
@@ -113,7 +114,14 @@ def validate(spec: dict[str, Any]) -> dict[str, Any]:
         "target": _num(spec, "target"),
         "unit_label": _text(spec, "unit_label", max_len=60),
         "source": _text(spec, "source", max_len=500),
+        # Monitoring plan: how, how often and by whom the indicator is collected.
+        "method": _text(spec, "method", max_len=500),
+        "frequency": spec.get("frequency") or "",
+        "responsible": _text(spec, "responsible", max_len=200),
+        "target_date": _text(spec, "target_date", max_len=40),
     }
+    if out["frequency"] not in FREQUENCIES:
+        raise _err(f"frequency must be one of {FREQUENCIES}", "invalid_params")
     if out["disaggregation2"] and not out["disaggregation"]:
         out["disaggregation"], out["disaggregation2"] = out["disaggregation2"], None
     for name in ("baseline_manual", "target"):

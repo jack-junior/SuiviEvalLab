@@ -48,6 +48,7 @@ const ALLOWED = new Set([
   "report.generate",
   "report.share",
   "report.checks",
+  "report.plan",
   "project.backups",
   "project.restore",
   "tool.sample_size",
@@ -60,7 +61,14 @@ const ALLOWED = new Set([
 const pickedFiles = new Map<string, string>();
 
 type DialogKind =
-  "project-save" | "project-open" | "data-open" | "report-save" | "csv-save" | "html-save" | "template-open";
+  | "project-save"
+  | "project-open"
+  | "data-open"
+  | "report-save"
+  | "csv-save"
+  | "html-save"
+  | "xlsx-save"
+  | "template-open";
 
 // End-to-end tests answer dialogs through SME_E2E_DIALOGS (paths separated by "|").
 const e2eAnswers = (process.env.SME_E2E_DIALOGS ?? "").split("|").filter(Boolean);
@@ -71,12 +79,19 @@ async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token
     chosen = e2eAnswers.shift();
   } else if (win) {
     const docs = app.getPath("documents");
-    if (kind === "project-save" || kind === "report-save" || kind === "csv-save" || kind === "html-save") {
+    if (
+      kind === "project-save" ||
+      kind === "report-save" ||
+      kind === "csv-save" ||
+      kind === "html-save" ||
+      kind === "xlsx-save"
+    ) {
       const filter = {
         "project-save": { name: "SuiviEvalLab", extensions: ["sme"], file: "Projet.sme" },
         "report-save": { name: "Word", extensions: ["docx"], file: "Rapport.docx" },
         "csv-save": { name: "CSV", extensions: ["csv"], file: "Donnees.csv" },
         "html-save": { name: "HTML", extensions: ["html"], file: "Tableau-de-bord.html" },
+        "xlsx-save": { name: "Excel", extensions: ["xlsx"], file: "Plan-de-suivi.xlsx" },
       }[kind];
       const res = await dialog.showSaveDialog(win, {
         defaultPath: path.join(docs, defaultName ?? filter.file),
@@ -274,6 +289,7 @@ app.whenReady().then(() => {
       "report-save",
       "csv-save",
       "html-save",
+      "xlsx-save",
       "template-open",
     ];
     if (typeof kind !== "string" || !kinds.includes(kind as DialogKind)) return null;
