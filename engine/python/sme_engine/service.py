@@ -741,6 +741,15 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
         template = base64.b64decode(meta["report_template"]) if meta.get("report_template") else None
         return generate(svc, Path(_text(params, "path", max_len=4000)), lang, template)
 
+    @server.method("report.share")
+    def rep_share(params: dict[str, Any]) -> dict[str, Any]:
+        from .share import generate as share
+
+        lang = params.get("lang", "fr")
+        if lang not in ("fr", "en"):
+            raise RpcError("lang must be fr or en", INVALID_PARAMS, data={"key": "invalid_params"})
+        return share(svc, Path(_text(params, "path", max_len=4000)), lang)
+
     @server.method("report.set_template")
     def rep_set_template(params: dict[str, Any]) -> dict[str, Any]:
         """Keep the organisation's Word template inside the project, so the report is reproducible."""

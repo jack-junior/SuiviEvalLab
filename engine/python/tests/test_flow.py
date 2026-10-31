@@ -6,6 +6,7 @@ polars) so the R results are checked against a second implementation.
 
 from __future__ import annotations
 
+import html
 import io
 import json
 import os
@@ -372,3 +373,45 @@ def test_merge_on_full_bangladesh_files(engine, tmp_path):
         engine(
             "dataset.merge", {"left": fi, "right": fh, "left_key": "_parent_index", "right_key": "_index", "name": "y"}
         )
+
+
+@needs_r
+def test_read_only_dashboard_holds_results_only(engine, tmp_path):
+    """Self-contained HTML: every indicator, no external resource, no data row, small groups hidden."""
+    snap = engine("project.create", {"path": str(tmp_path / "d.sme"), "name": "x", "example": True, "lang": "fr"})
+    # A breakdown with tiny groups: districts by population group.
+    ind = snap["indicators"][0]
+    spec = {k: v for k, v in ind.items() if k not in ("id", "node_id")}
+    engine(
+        "indicator.save",
+        {"id": ind["id"], "indicator": {**spec, "disaggregation": "district", "disaggregation2": "population_group"}},
+    )
+    out = engine("report.share", {"path": str(tmp_path / "tableau"), "lang": "fr"})
+    page = Path(out["path"]).read_text(encoding="utf-8")
+    assert out["path"].endswith(".html") and out["indicators"] == len(snap["indicators"])
+    for i in snap["indicators"]:
+        assert html.escape(i["name"]) in page
+    assert "<svg" in page and "Lecture seule" in page
+    assert "http://" not in page.replace("http://www.w3.org/2000/svg", "") and "https://" not in page
+    assert "<details>" in page and "al.adhamiya / Déplacés hors camp" in page
+    # No identifier or raw value from the data file reaches the page.
+    raw = pl.read_excel(EXAMPLES / "mcna_irak_2019.xlsx", sheet_name="Donnees menages", infer_schema_length=0)
+    id_col = next(c for c in raw.columns if "uuid" in c.lower())
+    assert not any(v in page for v in raw[id_col].drop_nulls().head(200).to_list())
+    en = engine("report.share", {"path": str(tmp_path / "board.html"), "lang": "en"})
+    assert "Read only" in Path(en["path"]).read_text(encoding="utf-8")
+
+
+def test_dashboard_hides_small_groups():
+    from sme_engine import share
+    from sme_engine.report import Fmt
+
+    ind = {"unit": "percent", "disaggregation": "camp"}
+    rounds = [
+        {
+            "round": "baseline",
+            "result": {"by": [{"group": "a", "estimate": 0.5, "n": 120}, {"group": "b", "estimate": 1.0, "n": 3}]},
+        }
+    ]
+    out = share._breakdown(ind, rounds, share.S["fr"], Fmt("fr"), lambda c, v=None: v or c)
+    assert "50,0\u202f%" in out and "100,0" not in out and "moins de 5 obs." in out

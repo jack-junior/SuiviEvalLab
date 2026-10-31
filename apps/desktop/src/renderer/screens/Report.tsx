@@ -11,6 +11,7 @@ export function Report() {
   const { snap, run, error, busy, go } = useProject();
   const [reportLang, setReportLang] = useState<Lang>(lang);
   const [done, setDone] = useState<{ token: string; name: string } | null>(null);
+  const [shared, setShared] = useState<{ token: string; name: string } | null>(null);
   const [templateNote, setTemplateNote] = useState<{ kind: "ok" | "info"; text: string } | null>(null);
   if (!snap) return null;
   const ready = snap.indicators.length > 0;
@@ -33,6 +34,14 @@ export function Report() {
     if (!file) return;
     const r = await run("report.generate", { file_token: file.token, lang: reportLang }, "report");
     if (r) setDone(file);
+  };
+
+  const share = async () => {
+    setShared(null);
+    const file = await pick("html-save", `${snap.project.name.slice(0, 60)}.html`);
+    if (!file) return;
+    const r = await run("report.share", { file_token: file.token, lang: reportLang }, "share");
+    if (r) setShared(file);
   };
 
   const sections = ["summary", "results", "tests", "framework", "data", "methods", "sources"];
@@ -135,6 +144,24 @@ export function Report() {
           </button>
         </Notice>
       )}
+
+      <section className="stack" data-testid="share-section">
+        <h2>{t("report.shareTitle")}</h2>
+        <p className="muted">{t("report.shareText")}</p>
+        <div className="row-actions start">
+          <button className="btn" onClick={share} disabled={!ready || busy === "share"} data-testid="share-dashboard">
+            <Icon name="download" /> {busy === "share" ? t("report.sharing") : t("report.shareAction")}
+          </button>
+        </div>
+        {shared && (
+          <Notice kind="ok">
+            <span data-testid="share-done">{t("report.shareDone", { name: shared.name })}</span>{" "}
+            <button className="link" onClick={() => openFile(shared.token)}>
+              {t("report.shareOpen")}
+            </button>
+          </Notice>
+        )}
+      </section>
     </div>
   );
 }

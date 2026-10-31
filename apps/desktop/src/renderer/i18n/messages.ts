@@ -602,6 +602,13 @@ export const fr = {
   "errors.merge_key_repeats": "Clé répétée : {detail}",
   "errors.merge_same": "Choisissez deux fichiers différents.",
   "errors.dataset_in_use": "Fichier utilisé : {detail}",
+  "report.shareTitle": "Partager en lecture seule",
+  "report.shareText":
+    "Un tableau de bord en un seul fichier HTML, à envoyer à un partenaire ou un bailleur. Il s'ouvre dans n'importe quel navigateur, sans l'application ni internet. Il ne contient que les résultats agrégés, aucune ligne de données ; les groupes de moins de 5 observations sont masqués.",
+  "report.shareAction": "Créer le tableau de bord",
+  "report.sharing": "Création du tableau de bord...",
+  "report.shareDone": "Tableau de bord enregistré : {name}.",
+  "report.shareOpen": "Afficher le fichier",
 };
 
 export type MessageKey = keyof typeof fr;
@@ -1195,4 +1202,11 @@ export const en: Record<MessageKey, string> = {
   "errors.merge_key_repeats": "Repeated key: {detail}",
   "errors.merge_same": "Choose two different files.",
   "errors.dataset_in_use": "File in use: {detail}",
+  "report.shareTitle": "Share read only",
+  "report.shareText":
+    "A dashboard in a single HTML file, to send to a partner or a donor. It opens in any browser, without the application or internet. It holds aggregated results only, no data row; groups with fewer than 5 observations are hidden.",
+  "report.shareAction": "Create the dashboard",
+  "report.sharing": "Creating the dashboard...",
+  "report.shareDone": "Dashboard saved: {name}.",
+  "report.shareOpen": "Show the file",
 };

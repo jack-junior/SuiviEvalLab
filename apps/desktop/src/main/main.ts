@@ -46,6 +46,7 @@ const ALLOWED = new Set([
   "dataset.set_labels",
   "dataset.merge",
   "report.generate",
+  "report.share",
   "report.set_template",
   "report.clear_template",
 ]);
@@ -53,7 +54,8 @@ const ALLOWED = new Set([
 // Paths chosen by the user in a dialog, by token. Tokens live for the session.
 const pickedFiles = new Map<string, string>();
 
-type DialogKind = "project-save" | "project-open" | "data-open" | "report-save" | "csv-save" | "template-open";
+type DialogKind =
+  "project-save" | "project-open" | "data-open" | "report-save" | "csv-save" | "html-save" | "template-open";
 
 // End-to-end tests answer dialogs through SME_E2E_DIALOGS (paths separated by "|").
 const e2eAnswers = (process.env.SME_E2E_DIALOGS ?? "").split("|").filter(Boolean);
@@ -64,11 +66,12 @@ async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token
     chosen = e2eAnswers.shift();
   } else if (win) {
     const docs = app.getPath("documents");
-    if (kind === "project-save" || kind === "report-save" || kind === "csv-save") {
+    if (kind === "project-save" || kind === "report-save" || kind === "csv-save" || kind === "html-save") {
       const filter = {
         "project-save": { name: "SuiviEvalLab", extensions: ["sme"], file: "Projet.sme" },
         "report-save": { name: "Word", extensions: ["docx"], file: "Rapport.docx" },
         "csv-save": { name: "CSV", extensions: ["csv"], file: "Donnees.csv" },
+        "html-save": { name: "HTML", extensions: ["html"], file: "Tableau-de-bord.html" },
       }[kind];
       const res = await dialog.showSaveDialog(win, {
         defaultPath: path.join(docs, defaultName ?? filter.file),
@@ -263,6 +266,7 @@ app.whenReady().then(() => {
       "data-open",
       "report-save",
       "csv-save",
+      "html-save",
       "template-open",
     ];
     if (typeof kind !== "string" || !kinds.includes(kind as DialogKind)) return null;
