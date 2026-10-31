@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { EngineClient, EngineError, EngineLaunch } from "./engine";
+import { Updates } from "./updates";
 
 // Engine methods the interface is allowed to call (allowlist). Methods that read or
 // write files never receive a path from the interface: they receive a `file_token`
@@ -181,6 +182,7 @@ function tokenForRecent(file: string): string | null {
 
 let engine: EngineClient | null = null;
 let win: BrowserWindow | null = null;
+let updates: Updates | null = null;
 
 function engineLaunch(): EngineLaunch {
   if (app.isPackaged) {
@@ -333,6 +335,22 @@ app.whenReady().then(() => {
     if (file) void shell.openPath(file);
     return Boolean(file);
   });
+  updates = new Updates(
+    () => win,
+    async () => {
+      await engine?.stopAndWait();
+    },
+  );
+  ipcMain.handle("updates:get", () => updates?.get());
+  ipcMain.handle("updates:check", () => updates?.check());
+  ipcMain.handle("updates:set-auto", (_e, auto: unknown) => updates?.setAuto(auto === true));
+  ipcMain.handle("updates:install", () => updates?.install());
+  ipcMain.handle("app:open-notes", (_e, url: unknown) => {
+    // Only the release pages of the project.
+    if (typeof url === "string" && url.startsWith("https://github.com/jack-junior/SuiviEvalLab/releases/")) {
+      void shell.openExternal(url);
+    }
+  });
   ipcMain.handle("app:info", () => ({
     version: app.getVersion(),
     electron: process.versions.electron,
@@ -341,9 +359,14 @@ app.whenReady().then(() => {
   }));
 
   createWindow();
+  updates?.start();
 });
 
+// The engines are stopped before quitting: an update installed on the way out
+// replaces their files, which must not be in use.
+let quitting = false;
 app.on("window-all-closed", () => {
-  engine?.stop();
-  app.quit();
+  if (quitting) return;
+  quitting = true;
+  void (engine ? engine.stopAndWait(5000) : Promise.resolve()).finally(() => app.quit());
 });

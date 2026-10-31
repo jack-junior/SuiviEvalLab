@@ -65,6 +65,10 @@ Each opening copies the project (SQLite backup API, before any migration) into `
 
 The interface never sends a file path. File dialogs run in the host (`dialog:pick`), which returns a token; the host swaps the token for the path when the engine is called (`file_token`). End-to-end tests answer dialogs through `SME_E2E_DIALOGS`.
 
+## Updates
+
+`apps/desktop/src/main/updates.ts` uses electron-updater with the GitHub releases of the project (pre-releases included). The installed app checks at start and every six hours, downloads in the background (only the changed blocks, through the installer's block map) and installs when the user restarts, or silently when they quit. The engines are stopped and awaited first, because the update replaces their files. Checks can be turned off by the user, or for every user by the organisation, in places an update never touches: the registry value `Updates` = `off` under `HKLM\Software\Policies\SuiviEvalLab` (or `HKCU` for one user), the file `%ProgramData%\SuiviEvalLab\update-policy.json` containing `{"updates": "off"}`, or `SME_UPDATES=off`. The CI update test checks the registry policy. The release workflow uploads `latest.yml` and the block map with the installer. The Windows CI job builds a second installer one patch above, serves it locally (`SME_UPDATE_FEED`) and checks that the installed app updates itself (`tools/e2e/update-test.mjs`).
+
 ## Installed layout (Windows)
 
 ```

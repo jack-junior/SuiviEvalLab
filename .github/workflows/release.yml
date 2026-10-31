@@ -2,8 +2,9 @@ name: Release
 
 # Publishes a GitHub release when a version tag (v0.1.0, v0.2.0, ...) is pushed.
 # The installer is built, smoke-tested and end-to-end tested here, then
-# attached to the release with its SHA-256 checksum. Versions below 1.0 are
-# marked as pre-releases.
+# attached to the release with its SHA-256 checksum, its block map and
+# latest.yml (read by the automatic updates of installed apps). Versions below
+# 1.0 are marked as pre-releases.
 #
 # To retry a failed release without moving the tag, run this workflow by hand
 # from the Actions tab and enter the existing tag (for example v0.1.0).
@@ -110,6 +111,11 @@ jobs:
           exe=$(ls apps/desktop/release/*.exe 2>/dev/null | head -n1)
           [ -n "$exe" ] || fail "No installer found in apps/desktop/release"
           name=$(basename "$exe")
+          # Files the automatic updates of installed apps read.
+          blockmap="$exe.blockmap"
+          latest="apps/desktop/release/latest.yml"
+          [ -f "$blockmap" ] || fail "No block map next to the installer"
+          [ -f "$latest" ] || fail "No latest.yml in apps/desktop/release"
           (cd "$(dirname "$exe")" && sha256sum "$name") > SHA256SUMS.txt || fail "sha256sum failed"
           # The notes template is read from the commit of this workflow run, so a
           # manual retry of an older tag still uses the current template.
@@ -120,11 +126,11 @@ jobs:
 
           if gh release view "$tag" --repo "$REPO" > /dev/null 2>&1; then
             echo "::notice title=Release::$tag already exists, uploading the installer again"
-            run gh release upload "$tag" "$exe" SHA256SUMS.txt --repo "$REPO" --clobber
+            run gh release upload "$tag" "$exe" "$blockmap" "$latest" SHA256SUMS.txt --repo "$REPO" --clobber
           else
             flags=()
             case "$version" in 0.*) flags+=(--prerelease) ;; esac
-            run gh release create "$tag" "$exe" SHA256SUMS.txt --repo "$REPO" --verify-tag \
+            run gh release create "$tag" "$exe" "$blockmap" "$latest" SHA256SUMS.txt --repo "$REPO" --verify-tag \
               --title "SuiviEvalLab $version" --notes-file notes.md "${flags[@]}"
           fi
           echo "::notice title=Release::$tag published, $name, sha256 $(cut -d' ' -f1 SHA256SUMS.txt)"

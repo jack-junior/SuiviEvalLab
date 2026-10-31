@@ -8,6 +8,12 @@ files:
   - dist/**/*
   - package.json
 asar: true
+# Automatic updates read the GitHub releases (latest.yml, installer and block map).
+# The release workflow uploads these files itself; electron-builder only writes them.
+publish:
+  provider: github
+  owner: jack-junior
+  repo: SuiviEvalLab
 extraResources:
   # Embedded Python (prepared by tools/windows/prepare-runtimes.ps1)
   - from: ../../build/runtime/python
@@ -41,5 +47,7 @@ nsis:
   shortcutName: SuiviEvalLab
   artifactName: SuiviEvalLab-${version}-installation.exe
   unicode: true
+  # Block map of the installer: an update downloads only the blocks that changed.
+  differentialPackage: true
   installerIcon: build-resources/icon.ico
   uninstallerIcon: build-resources/icon.ico

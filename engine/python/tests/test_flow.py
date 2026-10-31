@@ -165,6 +165,10 @@ def test_indicator_types_on_real_data(engine, tmp_path):
     assert count["rounds"][0]["result"]["estimate"] == pytest.approx(expected, rel=1e-9)
     assert count["rounds"][0]["result"]["method_key"] == "survey_total"
     assert count["comparison"]["test_key"] == "z_survey_total"
+    # 2019 weights expand to the population, 2020 weights are normalised: counts are not comparable.
+    assert count["comparison"]["warning"] == "weights_scale"
+    keys = {i["key"] for i in engine("report.checks")["items"]}
+    assert "count_weights_scale" in keys
 
     # Ratio: children per household, per 100 households (weighted).
     ratio = save(

@@ -1,0 +1,13 @@
+SuiviEvalLab 0.3 : kit de test
+==============================
+
+1. Installez SuiviEvalLab 0.3.0 (page Releases du dépôt GitHub).
+2. Ouvrez GUIDE-DE-TEST.docx et suivez les scénarios dans l'ordre.
+3. Notez vos résultats et remarques directement dans le guide, sous chaque scénario.
+
+donnees/   enquêtes publiques réelles (Irak, Bangladesh), fichiers originaux non modifiés
+modeles/   modèle Word d'organisation pour le rapport
+SOURCES.txt  origine, licence et empreinte de chaque fichier
+
+Les résultats attendus du guide ont été calculés deux fois : par l'application, et
+indépendamment dans R (package survey) à partir des fichiers bruts.

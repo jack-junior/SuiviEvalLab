@@ -732,6 +732,33 @@ export const fr = {
   "plan.exporting": "Export en cours...",
   "plan.done": "Plan de suivi enregistré : {name}.",
   "plan.file": "Plan de suivi",
+  "updates.title": "Mises à jour",
+  "updates.lead":
+    "Version installée : {version}. Quand internet est disponible, l'application cherche une nouvelle version au démarrage puis toutes les six heures, la télécharge en arrière-plan (seulement ce qui a changé) et vous laisse choisir le moment de l'installer. Vos projets ne sont pas touchés.",
+  "updates.auto": "Chercher les mises à jour automatiquement",
+  "updates.check": "Vérifier maintenant",
+  "updates.idle": "Aucune vérification pour le moment.",
+  "updates.checking": "Recherche d'une nouvelle version...",
+  "updates.none": "L'application est à jour (vérifié le {date}).",
+  "updates.downloading": "Téléchargement de la version {version} : {percent} % ({done} sur {total} Mo).",
+  "updates.ready": "La version {version} est prête à être installée.",
+  "updates.install": "Redémarrer et installer",
+  "updates.installing": "Installation...",
+  "updates.later": "Plus tard",
+  "updates.notes": "Nouveautés",
+  "updates.error":
+    "La recherche n'a pas abouti (pas de connexion ?). Nouvel essai à la prochaine vérification. Détail : {detail}",
+  "updates.off": "La recherche automatique est désactivée.",
+  "updates.locked": "Les mises à jour automatiques sont désactivées par votre organisation.",
+  "updates.unsupported": "Les mises à jour automatiques fonctionnent dans l'application installée.",
+  "updates.policy":
+    "Si vous quittez sans redémarrer, la mise à jour s'installe à la fermeture. Une organisation peut désactiver les mises à jour sur ses postes par une stratégie de groupe (registre HKLM\\Software\\Policies\\SuiviEvalLab, valeur Updates = off).",
+  "analysis.weightsScale":
+    "Attention : les poids des deux enquêtes ne sont pas à la même échelle (poids moyen {a} contre {b}). Un effectif pondéré n'est comparable que si les deux enquêtes utilisent des poids d'extrapolation à la population ; avec des poids normalisés, comparez plutôt une part (pourcentage).",
+  "checks.count_weights_scale":
+    "« {name} » : les poids des deux enquêtes ne sont pas à la même échelle, la comparaison des effectifs n'a pas de sens.",
+  "quality.weights_normalised":
+    "{col} : la somme des poids ({n}) est proche du nombre de lignes. Ces poids corrigent les parts et les moyennes, mais un effectif pondéré n'est pas un nombre de ménages dans la population.",
 };
 
 export type MessageKey = keyof typeof fr;
@@ -1452,4 +1479,30 @@ export const en: Record<MessageKey, string> = {
   "plan.exporting": "Exporting...",
   "plan.done": "Monitoring plan saved: {name}.",
   "plan.file": "Monitoring plan",
+  "updates.title": "Updates",
+  "updates.lead":
+    "Installed version: {version}. When internet is available, the app looks for a new version at start and every six hours, downloads it in the background (only what changed) and lets you choose when to install it. Your projects are not touched.",
+  "updates.auto": "Look for updates automatically",
+  "updates.check": "Check now",
+  "updates.idle": "No check yet.",
+  "updates.checking": "Looking for a new version...",
+  "updates.none": "The app is up to date (checked on {date}).",
+  "updates.downloading": "Downloading version {version}: {percent}% ({done} of {total} MB).",
+  "updates.ready": "Version {version} is ready to install.",
+  "updates.install": "Restart and install",
+  "updates.installing": "Installing...",
+  "updates.later": "Later",
+  "updates.notes": "What's new",
+  "updates.error": "The check did not succeed (no connection?). It will try again at the next check. Detail: {detail}",
+  "updates.off": "Automatic checks are turned off.",
+  "updates.locked": "Automatic updates are turned off by your organisation.",
+  "updates.unsupported": "Automatic updates work in the installed app.",
+  "updates.policy":
+    "If you quit without restarting, the update is installed on closing. An organisation can turn updates off on its computers with a group policy (registry HKLM\\Software\\Policies\\SuiviEvalLab, value Updates = off).",
+  "analysis.weightsScale":
+    "Warning: the weights of the two surveys are not on the same scale (mean weight {a} against {b}). A weighted count can only be compared when both surveys use weights that expand to the population; with normalised weights, compare a share (percentage) instead.",
+  "checks.count_weights_scale":
+    '"{name}": the weights of the two surveys are not on the same scale, comparing the counts makes no sense.',
+  "quality.weights_normalised":
+    "{col}: the weights sum ({n}) is close to the number of rows. These weights correct shares and means, but a weighted count is not a number of households in the population.",
 };

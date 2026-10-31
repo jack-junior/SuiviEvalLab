@@ -20,6 +20,8 @@ The example project uses extracts of the REACH Initiative Iraq Multi-Cluster Nee
 
 No administrator rights needed. Python and R are included.
 
+From 0.3.0 on, the app updates itself: it downloads new versions in the background and installs them when you restart it. Your projects are separate files and are never touched by an update.
+
 ## Develop
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and workflow, [docs/conventions.md](docs/conventions.md) for the rules, and [docs/architecture.md](docs/architecture.md) for how the pieces fit.

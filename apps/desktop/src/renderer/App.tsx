@@ -15,6 +15,7 @@ import { Report } from "./screens/Report";
 import { Tests } from "./screens/Tests";
 import { useProject, View } from "./state";
 import { Icon } from "./ui";
+import { UpdateBanner } from "./updates";
 
 const LANGS: { code: Lang; label: string; name: string }[] = [
   { code: "fr", label: "FR", name: "Français" },
@@ -214,6 +215,7 @@ export function App() {
             <span className="muted version">{t("side.version", { version: info?.version ?? "" })}</span>
           </span>
         </div>
+        <UpdateBanner />
         <div className={(view === "analysis" || view === "tests") && snap ? "col col-split" : "col"}>
           {showEngines ? (
             <Engines info={info} versions={versions} error={engineError} onRecheck={loadVersions} />

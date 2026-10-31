@@ -67,3 +67,10 @@ def test_no_false_alarm_on_real_survey_columns():
     flagged = {i["column"] for i in issues if i["key"] == "outliers"}
     assert "weights" not in flagged and "X_uuid" not in flagged
     assert all(i["count"] / df.height <= quality.MAX_OUTLIER_SHARE for i in issues if i["key"] == "outliers")
+
+
+def test_normalised_weights_noticed():
+    df = pl.DataFrame({"w": ["0.8", "1.2"] * 50, "x": ["a"] * 100})
+    spec = spec_for(df, design={"weights": "w", "strata": [], "cluster": None})
+    found = {i["key"]: i for i in quality.diagnose(df, spec)["issues"]}
+    assert found["weights_normalised"]["count"] == 100 and found["weights_normalised"]["severity"] == "info"

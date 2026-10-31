@@ -123,6 +123,24 @@ jobs:
           node tools/e2e/electron-smoke.mjs apps/desktop/release/win-unpacked/SuiviEvalLab.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      # A second installer one patch above, served locally as a release: the
+      # installed app must find it, download it and install it by itself.
+      - name: Automatic update test
+        shell: pwsh
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: |
+          $v = (Get-Content apps/desktop/package.json -Raw | ConvertFrom-Json).version
+          $p = $v.Split(".")
+          $next = "{0}.{1}.{2}" -f $p[0], $p[1], ([int]$p[2] + 1)
+          Push-Location apps/desktop
+          npx electron-builder --win nsis --publish never "-c.extraMetadata.version=$next" "-c.directories.output=release-next"
+          $code = $LASTEXITCODE
+          Pop-Location
+          if ($code -ne 0) { exit $code }
+          node tools/e2e/update-test.mjs apps/desktop/release apps/desktop/release-next
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - uses: actions/upload-artifact@v6
         if: always()
         with:

@@ -489,7 +489,25 @@ class Service:
                 self._results[key] = self.bridge.call("compare", {"path_a": pa, "path_b": pb, **args})
             except RpcError as exc:
                 return {"error_key": "r_error", "detail": str(exc)}
-        return {**self._scale(self._results[key], ind.get("multiplier") or 1.0), "a_id": a["id"], "b_id": b["id"]}
+        out = {**self._scale(self._results[key], ind.get("multiplier") or 1.0), "a_id": a["id"], "b_id": b["id"]}
+        if ind["unit"] == "count":
+            wa, wb = self.mean_weight(a), self.mean_weight(b)
+            # A weighted count is a number in the population only if both surveys use
+            # expansion weights on the same scale; normalised weights (mean near 1) are not.
+            if wa and wb and max(wa, wb) / min(wa, wb) > 10:
+                out["warning"] = "weights_scale"
+                out["mean_weights"] = [wa, wb]
+        return out
+
+    def mean_weight(self, ds: dict[str, Any]) -> float | None:
+        col = (ds.get("design") or {}).get("weights")
+        if not col:
+            return None
+        df = self.cleaned(ds["id"])[1]
+        if col not in df.columns:
+            return None
+        w = df[col].cast(pl.Float64, strict=False).drop_nulls()
+        return float(w.mean()) if w.len() and w.mean() and w.mean() > 0 else None  # type: ignore[operator]
 
     def indicator_analysis(self, indicator_id: Any) -> dict[str, Any]:
         ind = self.project.record("indicator", indicator_id)
