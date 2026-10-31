@@ -28,9 +28,54 @@ def _err(message: str, key: str) -> RpcError:
     return RpcError(message, INVALID_PARAMS, data={"key": key})
 
 
+STAT_FORMATS = (".sav", ".zsav", ".dta")
+
+
+def _code_text(series: pl.Series) -> pl.Series:
+    """Numbers as SPSS and Stata store codes (1.0) written as people type them (1)."""
+    if series.dtype.is_float():
+        as_int = series.cast(pl.Int64, strict=False)
+        whole = series.is_not_null() & (series == as_int.cast(pl.Float64))
+        text = pl.select(
+            pl.when(whole).then(as_int.cast(pl.Utf8)).otherwise(series.cast(pl.Utf8)).alias(series.name)
+        ).to_series()
+        return text
+    return series.cast(pl.Utf8)
+
+
+def read_stat(path: Path, n_rows: int | None = None) -> tuple[pl.DataFrame, dict[str, Any]]:
+    """SPSS (.sav, .zsav) or Stata (.dta) file, every value as text, with its labels."""
+    import pyreadstat
+
+    reader = pyreadstat.read_dta if path.suffix.lower() == ".dta" else pyreadstat.read_sav
+    try:
+        df, meta = reader(
+            str(path),
+            output_format="polars",
+            apply_value_formats=False,
+            row_limit=n_rows or 0,
+            disable_datetime_conversion=True,
+        )
+    except Exception as exc:  # noqa: BLE001
+        raise _err(f"Cannot read {path.name}: {exc}", "file_unreadable") from None
+    df = pl.DataFrame([_code_text(df[c]) for c in df.columns])
+    columns = {c: {"default": str(lbl)} for c, lbl in (meta.column_names_to_labels or {}).items() if lbl}
+    values: dict[str, dict[str, dict[str, str]]] = {}
+    for col, mapping in (meta.variable_value_labels or {}).items():
+        out = {}
+        for code, lbl in mapping.items():
+            key = str(int(code)) if isinstance(code, float) and code.is_integer() else str(code)
+            out[key] = {"default": str(lbl)}
+        if out:
+            values[col] = out
+    return df, {"columns": columns, "values": values}
+
+
 def _read(path: Path, sheet: str | None, n_rows: int | None = None) -> pl.DataFrame:
-    """Read one sheet (or the CSV) with every column as text."""
+    """Read one sheet (or the CSV, SPSS or Stata file) with every column as text."""
     suffix = path.suffix.lower()
+    if suffix in STAT_FORMATS:
+        return read_stat(path, n_rows)[0]
     try:
         if suffix == ".csv":
             # Kobo and Excel CSV files may use ";" as separator: sniff the first line.
@@ -60,7 +105,7 @@ def _read(path: Path, sheet: str | None, n_rows: int | None = None) -> pl.DataFr
 
 
 def sheet_names(path: Path) -> list[str]:
-    if path.suffix.lower() == ".csv":
+    if path.suffix.lower() == ".csv" or path.suffix.lower() in STAT_FORMATS:
         return [path.stem]
     import fastexcel
 
@@ -145,7 +190,8 @@ def inspect(path: Path, sheet: str | None = None) -> dict[str, Any]:
     if not sheets:
         raise _err(f"{path.name} contains no sheet", "file_empty")
     chosen = sheet if sheet in sheets else _best_sheet(path, sheets)
-    df = normalise(_read(path, None if path.suffix.lower() == ".csv" else chosen, n_rows=200))
+    single = path.suffix.lower() == ".csv" or path.suffix.lower() in STAT_FORMATS
+    df = normalise(_read(path, None if single else chosen, n_rows=200))
     return {
         "file_name": path.name,
         "sheets": sheets,
@@ -161,7 +207,7 @@ def inspect(path: Path, sheet: str | None = None) -> dict[str, Any]:
 
 def _best_sheet(path: Path, sheets: list[str]) -> str:
     """The sheet with the most columns, skipping read-me and questionnaire sheets."""
-    if len(sheets) == 1 or path.suffix.lower() == ".csv":
+    if len(sheets) == 1 or path.suffix.lower() == ".csv" or path.suffix.lower() in STAT_FORMATS:
         return sheets[0]
     skip = ("read", "lisez", "questionnaire", "choices", "survey", "coverage", "log", "key", "tool", "deleted")
     best, best_cols = sheets[0], -1
@@ -178,7 +224,8 @@ def _best_sheet(path: Path, sheets: list[str]) -> str:
 
 
 def load(path: Path, sheet: str | None) -> pl.DataFrame:
-    df = normalise(_read(path, None if path.suffix.lower() == ".csv" else sheet))
+    single = path.suffix.lower() == ".csv" or path.suffix.lower() in STAT_FORMATS
+    df = normalise(_read(path, None if single else sheet))
     if df.height == 0:
         raise _err("The sheet contains no data rows", "file_empty")
     if df.height > MAX_ROWS:
@@ -208,6 +255,10 @@ def validate_design(design: Any, columns: list[str]) -> dict[str, Any]:
     return {"weights": weights, "strata": strata, "cluster": cluster}
 
 
+def now() -> str:
+    return datetime.now(UTC).isoformat(timespec="seconds")
+
+
 def new_spec(name: str, round_: str, path: Path, sheet: str | None, df: pl.DataFrame, params: dict[str, Any]) -> dict:
     if round_ not in ROUNDS:
         raise _err(f"round must be one of {ROUNDS}", "invalid_round")
@@ -221,13 +272,14 @@ def new_spec(name: str, round_: str, path: Path, sheet: str | None, df: pl.DataF
         "name": name,
         "round": round_,
         "source_name": path.name,
-        "sheet": sheet if path.suffix.lower() != ".csv" else None,
-        "imported_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        "sheet": sheet if path.suffix.lower() not in (".csv", *STAT_FORMATS) else None,
+        "imported_at": now(),
         "rows": df.height,
         "na_values": na_values,
         "id_column": id_column,
         "design": validate_design(params.get("design") or guess_design(df.columns), df.columns),
         "attribution": str(params.get("attribution") or "")[:500],
-        "labels": {"columns": {}, "values": {}},
+        # SPSS and Stata files carry their own variable and value labels.
+        "labels": read_stat(path, 1)[1] if path.suffix.lower() in STAT_FORMATS else {"columns": {}, "values": {}},
         "columns": describe_columns(df, na_values),
     }

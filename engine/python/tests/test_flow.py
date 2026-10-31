@@ -263,3 +263,112 @@ def test_report_on_organisation_template(engine, tmp_path):
     assert "Accès à l'éducation" in report.sections[0].header.paragraphs[0].text
     engine("report.clear_template")
     assert engine("project.get")["project"]["report_template"] is None
+
+
+@pytest.mark.parametrize("ext", ["sav", "dta"])
+def test_import_spss_and_stata_with_labels(engine, tmp_path, ext):
+    """SPSS and Stata files built from real Bangladesh WASH data (REACH 2018): codes and labels kept."""
+    engine("project.create", {"path": str(tmp_path / "s.sme"), "name": "x"})
+    path = Path(__file__).parent / "fixtures" / f"wash_bgd_2018.{ext}"
+    info = engine("dataset.inspect", {"path": str(path)})
+    assert info["columns"][:3] == ["uuid", "camp_id", "enu_gen"] and info["sample"][0][1] == "19"
+    snap = engine("dataset.import", {"path": str(path), "name": "WASH", "round": "baseline"})
+    ds = next(d for d in snap["datasets"] if d["id"] == snap["created"])
+    assert ds["rows"] == 600
+    labels = ds["labels"]
+    assert labels["columns"]["res_age"]["default"] == "How old are you?"
+    assert labels["values"]["drnk_wat"]["2"]["default"] == "Tubewells/borehole/handpump"
+    # Codes stay the reference: whole numbers written as typed ("2", not "2.0").
+    values = engine("dataset.column_values", {"id": ds["id"], "column": "drnk_wat"})
+    codes = {v["value"] for v in values["values"]}
+    assert "2" in codes and not any(c.endswith(".0") for c in codes)
+    # Numeric columns keep their values (ages from the original file).
+    age = engine("dataset.column_values", {"id": ds["id"], "column": "res_age"})
+    assert age["stats"] and 15 <= age["stats"]["min"] and age["stats"]["max"] < 120
+
+
+def test_merge_containers_with_households(engine, tmp_path):
+    """Kobo repeat joined to its household (real WASH data): counts, columns, weights, labels, refresh."""
+    engine("project.create", {"path": str(tmp_path / "m.sme"), "name": "x"})
+    path = str(Path(__file__).parent / "fixtures" / "wash_bgd_containers.xlsx")
+    hh = engine("dataset.import", {"path": path, "name": "Ménages", "sheet": "Menages"})["created"]
+    ct = engine("dataset.import", {"path": path, "name": "Contenants", "sheet": "Contenants"})["created"]
+    engine("dataset.set_labels", {"id": hh, "column": "reported_camp_name", "lang": "fr", "label": "Camp"})
+    engine("dataset.update", {"id": hh, "design": {"weights": "Camp weights", "strata": ["reported_camp_name"]}})
+
+    households = pl.read_excel(path, sheet_name="Menages", infer_schema_length=0)
+    containers = pl.read_excel(path, sheet_name="Contenants", infer_schema_length=0)
+    known = set(households["_index"].to_list())
+    expected = int(containers["_parent_index"].is_in(list(known)).sum())
+
+    params = {"left": ct, "right": hh, "left_key": "_parent_index", "right_key": "_index", "name": "C + M"}
+    snap = engine("dataset.merge", params)
+    m = next(d for d in snap["datasets"] if d["id"] == snap["created"])
+    stats = m["merge"]["stats"]
+    assert m["rows"] == containers.height == stats["rows"]
+    assert stats["matched"] == expected and stats["left_unmatched"] == containers.height - expected
+    names = [c["name"] for c in m["columns"]]
+    # The household index clashes with the container index: it takes a suffix; the right key is dropped.
+    assert "_index" in names and "Camp weights" in names and "reported_camp_name" in names
+    # Containers carry no weight: the household design comes with the household.
+    assert m["design"] == {"weights": "Camp weights", "strata": ["reported_camp_name"], "cluster": None}
+    assert m["labels"]["columns"]["reported_camp_name"] == {"fr": "Camp"}
+
+    # Each container carries the camp of its household.
+    rows = engine("dataset.preview", {"id": m["id"], "limit": 200, "columns": ["_parent_index", "reported_camp_name"]})
+    camp = dict(zip(households["_index"], households["reported_camp_name"], strict=True))
+    for parent, name in rows["rows"]:
+        assert name == camp.get(parent)
+
+    # Inner join keeps matched rows only; a correction in the household file reaches the merged file.
+    inner = engine("dataset.merge", {**params, "how": "inner", "name": "inner"})
+    i = next(d for d in inner["datasets"] if d["id"] == inner["created"])
+    assert i["clean_rows"] == expected
+    engine("cleaning.add", {"dataset_id": hh, "rule": {"kind": "exclude", "column": "_index", "values": ["116"]}})
+    after = engine("project.get")
+    i = next(d for d in after["datasets"] if d["id"] == i["id"])
+    assert i["clean_rows"] == expected - int((containers["_parent_index"] == "116").sum())
+
+    # A source used by a merged file cannot be deleted; the other way works.
+    server_error = None
+    try:
+        engine("dataset.delete", {"id": hh})
+    except AssertionError as exc:
+        server_error = str(exc)
+    assert server_error and "dataset_in_use" in server_error
+
+
+def test_merge_refuses_a_repeated_key(engine, tmp_path):
+    """Duplicated parent keys (the BGD follow-up file appends two form versions) are refused, not multiplied."""
+    engine("project.create", {"path": str(tmp_path / "r.sme"), "name": "x"})
+    path = str(Path(__file__).parent / "fixtures" / "wash_bgd_containers.xlsx")
+    hh = engine("dataset.import", {"path": path, "name": "M", "sheet": "Menages"})["created"]
+    ct = engine("dataset.import", {"path": path, "name": "C", "sheet": "Contenants"})["created"]
+    with pytest.raises(AssertionError, match="merge_key_repeats"):
+        # Households to containers: a household has several containers, so the key repeats.
+        engine(
+            "dataset.merge", {"left": hh, "right": ct, "left_key": "_index", "right_key": "_parent_index", "name": "x"}
+        )
+
+
+@pytest.mark.skipif(not os.environ.get("SME_FULL_DATA"), reason="full HDX files not downloaded")
+def test_merge_on_full_bangladesh_files(engine, tmp_path):
+    """Baseline: 5,476 containers, 5,438 with their household. Follow-up: duplicated _index refused."""
+    folder = Path(os.environ["SME_FULL_DATA"])
+    engine("project.create", {"path": str(tmp_path / "f.sme"), "name": "x"})
+    base = str(folder / "bgd_wash_baseline_2018.xlsx")
+    hh = engine("dataset.import", {"path": base, "name": "M", "sheet": "Dataset"})["created"]
+    ct = engine("dataset.import", {"path": base, "name": "C", "sheet": "Dataset_containergroup"})["created"]
+    snap = engine(
+        "dataset.merge", {"left": ct, "right": hh, "left_key": "_parent_index", "right_key": "_index", "name": "x"}
+    )
+    m = next(d for d in snap["datasets"] if d["id"] == snap["created"])
+    assert m["merge"]["stats"]["rows"] == 5476 and m["merge"]["stats"]["matched"] == 5438
+
+    follow = str(folder / "bgd_wash_followup_2018.xlsx")
+    fh = engine("dataset.import", {"path": follow, "name": "M2", "sheet": "Household Dataset"})["created"]
+    fi = engine("dataset.import", {"path": follow, "name": "I2", "sheet": "Individuals Dataset"})["created"]
+    with pytest.raises(AssertionError, match="merge_key_repeats"):
+        engine(
+            "dataset.merge", {"left": fi, "right": fh, "left_key": "_parent_index", "right_key": "_index", "name": "y"}
+        )

@@ -6,6 +6,7 @@ import { useI18n } from "../i18n";
 import { pickLabel, useLabels } from "../labels";
 import { useProject } from "../state";
 import { Confirm, Empty, Field, Icon, IconButton, Notice, Panel } from "../ui";
+import { MergePanel } from "./MergePanel";
 
 const ROUNDS: Round[] = ["baseline", "midline", "endline", "monitoring"];
 
@@ -13,6 +14,7 @@ export function Data() {
   const { t, number } = useI18n();
   const { snap, error, focus, go } = useProject();
   const [importing, setImporting] = useState(false);
+  const [merging, setMerging] = useState(false);
   if (!snap) return null;
   const current = snap.datasets.find((d) => d.id === focus) ?? null;
 
@@ -26,9 +28,16 @@ export function Data() {
           <p className="lead">{t("data.lead")}</p>
         </div>
         {snap.datasets.length > 0 && (
-          <button className="btn primary" onClick={() => setImporting(true)} data-testid="import-data">
-            {t("data.import")}
-          </button>
+          <div className="row-actions">
+            {snap.datasets.length > 1 && (
+              <button className="btn" onClick={() => setMerging(true)} data-testid="merge-data">
+                {t("merge.open")}
+              </button>
+            )}
+            <button className="btn primary" onClick={() => setImporting(true)} data-testid="import-data">
+              {t("data.import")}
+            </button>
+          </div>
         )}
       </div>
       {error && <Notice kind="error">{error}</Notice>}
@@ -47,8 +56,12 @@ export function Data() {
         <div className="cards">
           {snap.datasets.map((d) => (
             <button key={d.id} className="card" onClick={() => go("data", d.id)} data-testid="dataset-card">
-              <span className="card-kicker">{t(`rounds.${d.round}`)}</span>
+              <span className="card-kicker">
+                {t(`rounds.${d.round}`)}
+                {d.merge && `, ${t("merge.kicker")}`}
+              </span>
               <span className="card-title">{d.name}</span>
+              {d.error && <span className="card-meta st-late">{t("merge.broken")}</span>}
               <span className="card-meta">
                 {t("data.rowsAfter", { rows: number(d.rows, 0), clean: number(d.clean_rows, 0) })}
               </span>
@@ -61,6 +74,7 @@ export function Data() {
         </div>
       )}
       {importing && <ImportPanel onClose={() => setImporting(false)} />}
+      {merging && <MergePanel onClose={() => setMerging(false)} />}
     </div>
   );
 }
@@ -363,6 +377,7 @@ function DatasetDetail({ ds, onBack }: { ds: Dataset; onBack: () => void }) {
                 columns: number(ds.columns.length, 0),
               })}
             </p>
+            {ds.merge && <MergeLine ds={ds} />}
             <p className="muted small">{designText(ds.design, t)}</p>
             <p className="muted small">
               {ds.form_source
@@ -387,6 +402,7 @@ function DatasetDetail({ ds, onBack }: { ds: Dataset; onBack: () => void }) {
         </div>
       </div>
       {error && <Notice kind="error">{error}</Notice>}
+      {ds.error && <Notice kind="error">{t("merge.brokenText", { detail: ds.error })}</Notice>}
       {exported && <Notice kind="ok">{exported}</Notice>}
 
       <div className="tabs" role="tablist">
@@ -422,6 +438,28 @@ function DatasetDetail({ ds, onBack }: { ds: Dataset; onBack: () => void }) {
         />
       )}
     </div>
+  );
+}
+
+function MergeLine({ ds }: { ds: Dataset }) {
+  const { t, number } = useI18n();
+  const { snap, go } = useProject();
+  const m = ds.merge!;
+  const name = (id: string) => snap?.datasets.find((d) => d.id === id)?.name ?? "?";
+  return (
+    <p className="muted small" data-testid="merge-line">
+      {t("merge.line", {
+        left: name(m.left),
+        right: name(m.right),
+        lk: m.left_key,
+        rk: m.right_key,
+        matched: number(m.stats.matched, 0),
+        rows: number(m.stats.left_rows, 0),
+      })}{" "}
+      <button className="link" onClick={() => go("data", m.right)}>
+        {t("merge.openSource", { name: name(m.right) })}
+      </button>
+    </p>
   );
 }
 

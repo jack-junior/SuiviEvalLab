@@ -44,6 +44,7 @@ const ALLOWED = new Set([
   "test.delete",
   "dataset.attach_form",
   "dataset.set_labels",
+  "dataset.merge",
   "report.generate",
   "report.set_template",
   "report.clear_template",

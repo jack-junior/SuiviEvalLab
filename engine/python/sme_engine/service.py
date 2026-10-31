@@ -15,7 +15,7 @@ from typing import Any
 
 import polars as pl
 
-from . import cleaning, datasets, indicators, stattests, xlsform
+from . import cleaning, datasets, indicators, merge, stattests, xlsform
 from .project import Project, Workspace, _err, _text
 from .r_bridge import RBridge
 from .rpc import INVALID_PARAMS, RpcError, Server
@@ -29,6 +29,7 @@ class Service:
         self.bridge = bridge
         self._raw: dict[str, pl.DataFrame] = {}
         self._clean: dict[str, tuple[str, pl.DataFrame, list[dict[str, Any]]]] = {}
+        self._merged: dict[str, tuple[str, pl.DataFrame, dict[str, int]]] = {}
         self._results: dict[str, Any] = {}
 
     # ----- state ------------------------------------------------------------------
@@ -39,6 +40,7 @@ class Service:
 
     def reset_caches(self) -> None:
         self._raw.clear()
+        self._merged.clear()
         self._clean.clear()
         self._results.clear()
 
@@ -47,11 +49,16 @@ class Service:
         ds_list = []
         for ds in p.records("dataset"):
             rules = p.records("cleaning_rule", ds["id"])
-            _, cleaned, effects = self.cleaned(ds["id"])
+            try:
+                _, cleaned, effects = self.cleaned(ds["id"])
+            except RpcError as exc:  # a merged file whose sources no longer join
+                ds_list.append({**ds, "rules": rules, "clean_rows": 0, "error": str(exc)})
+                continue
             by_id = {e["id"]: e for e in effects}
             for r in rules:
                 r["effect"] = by_id.get(r["id"])
-            ds_list.append({**ds, "rules": rules, "clean_rows": cleaned.height})
+            extra = {"merge": {**ds["merge"], "stats": self.merged(ds)[2]}} if ds.get("merge") else {}
+            ds_list.append({**ds, **extra, "rules": rules, "clean_rows": cleaned.height})
         return {
             "project": p.info(),
             "framework": p.framework(),
@@ -71,16 +78,33 @@ class Service:
         return self.project.record("dataset", dataset_id)
 
     def raw(self, dataset_id: str) -> pl.DataFrame:
+        spec = self.dataset_spec(dataset_id)
+        if spec.get("merge"):
+            return self.merged(spec)[1]
         if dataset_id not in self._raw:
             self._raw[dataset_id] = datasets.from_parquet(self.project.blob("dataset", "raw", dataset_id))
         return self._raw[dataset_id]
+
+    def merged(self, spec: dict[str, Any]) -> tuple[str, pl.DataFrame, dict[str, int]]:
+        """Rows of a merged dataset, joined from the cleaned data of its sources. Cached."""
+        m = spec["merge"]
+        lsig, left, _ = self.cleaned(m["left"])
+        rsig, right, _ = self.cleaned(m["right"])
+        signature = hashlib.sha256(json.dumps([lsig, rsig, m], sort_keys=True).encode()).hexdigest()
+        cached = self._merged.get(spec["id"])
+        if cached and cached[0] == signature:
+            return cached
+        df, stats = merge.join(left, right, m)
+        self._merged[spec["id"]] = (signature, df, stats)
+        return self._merged[spec["id"]]
 
     def cleaned(self, dataset_id: str) -> tuple[str, pl.DataFrame, list[dict[str, Any]]]:
         """Raw data with missing codes as nulls, then the enabled rules in order. Cached."""
         spec = self.dataset_spec(dataset_id)
         rules = self.project.records("cleaning_rule", dataset_id)
+        source = self.merged(spec)[0] if spec.get("merge") else None
         signature = hashlib.sha256(
-            json.dumps([spec["na_values"], rules], sort_keys=True, ensure_ascii=False).encode()
+            json.dumps([spec["na_values"], rules, source], sort_keys=True, ensure_ascii=False).encode()
         ).hexdigest()
         cached = self._clean.get(dataset_id)
         if cached and cached[0] == signature:
@@ -184,8 +208,59 @@ class Service:
         df.write_csv(path, include_bom=True, null_value="")
         return {"path": str(path), "rows": df.height}
 
+    def merge_datasets(self, params: dict[str, Any]) -> dict[str, Any]:
+        """A new dataset joining two others by a key (individuals to their household)."""
+        left = self.dataset_spec(params.get("left"))
+        right = self.dataset_spec(params.get("right"))
+        m = merge.validate(params, left, right)
+        df, stats = merge.join(self.cleaned(left["id"])[1], self.cleaned(right["id"])[1], m)
+        names = merge.renamed(
+            [c["name"] for c in left["columns"]], [c["name"] for c in right["columns"]], m["right_key"]
+        )
+        if params.get("dry_run"):
+            clashes = [n for c, n in names.items() if n != c]
+            return {"stats": stats, "added": len(names), "renamed": clashes}
+        design = left.get("design") or {}
+        if not design.get("weights"):
+            # Individuals often carry no weight; the household weight comes with the household.
+            rd = right.get("design") or {}
+            design = {
+                "weights": names.get(rd.get("weights") or "", None),
+                "cluster": names.get(rd.get("cluster") or "", None),
+                "strata": [names[c] for c in rd.get("strata") or [] if c in names],
+            }
+            if not design["weights"]:
+                design = datasets.guess_design(df.columns)
+        spec = {
+            "name": _text(params, "name", max_len=200),
+            "round": params.get("round") or left["round"],
+            "source_name": f"{left['name']} + {right['name']}",
+            "sheet": None,
+            "imported_at": datasets.now(),
+            "rows": df.height,
+            "na_values": [],
+            "id_column": left.get("id_column"),
+            "design": datasets.validate_design(design, df.columns),
+            "attribution": "; ".join(a for a in {left.get("attribution") or "", right.get("attribution") or ""} if a),
+            "labels": merge.labels(left, right, names),
+            "columns": datasets.describe_columns(df, []),
+            "merge": {**m, "stats": stats},
+        }
+        if spec["round"] not in datasets.ROUNDS:
+            raise _err("Unknown round", "invalid_round")
+        new_id = self.project.insert_record("dataset", spec, raw=b"")
+        return {**self.snapshot(), "created": new_id}
+
     def delete_dataset(self, dataset_id: Any) -> dict[str, Any]:
+        users = [
+            d["name"]
+            for d in self.project.records("dataset")
+            if (d.get("merge") or {}).get("left") == dataset_id or (d.get("merge") or {}).get("right") == dataset_id
+        ]
+        if users:
+            raise _err(f"This file is used by the merged file {users[0]}: delete that one first", "dataset_in_use")
         self.project.delete_record("dataset", dataset_id)
+        self._merged.pop(dataset_id, None)
         self._raw.pop(dataset_id, None)
         self._clean.pop(dataset_id, None)
         self._results.clear()
@@ -585,6 +660,10 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
     @server.method("dataset.export")
     def ds_export(params: dict[str, Any]) -> dict[str, Any]:
         return svc.export_dataset(params)
+
+    @server.method("dataset.merge")
+    def ds_merge(params: dict[str, Any]) -> dict[str, Any]:
+        return svc.merge_datasets(params)
 
     @server.method("dataset.delete")
     def ds_delete(params: dict[str, Any]) -> dict[str, Any]:

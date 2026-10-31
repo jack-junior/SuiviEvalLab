@@ -133,8 +133,30 @@ export interface Dataset {
   attribution?: string;
   labels?: Labels;
   form_source?: { file: string; survey: string; choices: string | null };
+  /** Set for a merged dataset: rows computed from two other datasets. */
+  merge?: MergeSpec;
+  /** Set when a merged dataset can no longer be computed (its sources no longer join). */
+  error?: string;
   columns: ColumnInfo[];
   rules: Rule[];
+}
+
+export interface MergeStats {
+  left_rows: number;
+  right_rows: number;
+  rows: number;
+  matched: number;
+  left_unmatched: number;
+  right_unmatched: number;
+}
+
+export interface MergeSpec {
+  left: string;
+  right: string;
+  left_key: string;
+  right_key: string;
+  how: "left" | "inner";
+  stats: MergeStats;
 }
 
 /** Labels by language code ("fr", "en", "default", or a questionnaire language). */
