@@ -9,6 +9,9 @@ Rule kinds
 - recode:     replace the values listed in `from` by `to` in `column` (`to` null = missing).
 - range:      set numbers of `column` outside [min, max] to missing.
 - exclude:    drop the rows where `column` takes one of `values` (null in values = missing).
+
+Advanced kinds (new variables, classes, conditions, consistency checks, text and
+dates) are in cleaning_more.py.
 """
 
 from __future__ import annotations
@@ -17,9 +20,11 @@ from typing import Any
 
 import polars as pl
 
+from . import cleaning_more
 from .rpc import INVALID_PARAMS, RpcError
 
-KINDS = ("duplicates", "recode", "range", "exclude")
+BASIC = ("duplicates", "recode", "range", "exclude")
+KINDS = BASIC + cleaning_more.KINDS
 
 
 def _err(message: str, key: str) -> RpcError:
@@ -59,6 +64,8 @@ def validate(rule: dict[str, Any], columns: list[str]) -> dict[str, Any]:
     if not isinstance(note, str):
         raise _err("note must be text", "rule_invalid")
     out: dict[str, Any] = {"kind": kind, "note": note.strip()[:500], "enabled": rule.get("enabled", True) is not False}
+    if kind in cleaning_more.KINDS:
+        return cleaning_more.validate(rule, columns, out)
 
     def column(name: Any) -> str:
         if not isinstance(name, str) or name not in columns:
@@ -85,6 +92,11 @@ def validate(rule: dict[str, Any], columns: list[str]) -> dict[str, Any]:
     return out
 
 
+def new_columns(rule: dict[str, Any]) -> list[str]:
+    """Columns a rule adds to the cleaned table (none for the basic kinds)."""
+    return cleaning_more.new_columns(rule) if rule["kind"] in cleaning_more.KINDS else []
+
+
 def missing_to_null(df: pl.DataFrame, na_values: list[str]) -> pl.DataFrame:
     """Turn the dataset's missing-value codes into real nulls."""
     return df.with_columns(pl.when(pl.all().is_in(na_values)).then(None).otherwise(pl.all()).name.keep())
@@ -100,6 +112,10 @@ def apply(df: pl.DataFrame, rules: list[dict[str, Any]]) -> tuple[pl.DataFrame, 
             effects.append({"id": rule.get("id"), "applied": False, "rows_removed": 0, "cells_changed": 0})
             continue
         kind = rule["kind"]
+        if kind in cleaning_more.KINDS:
+            df, removed, changed = cleaning_more.apply(df, rule)
+            effects.append({"id": rule.get("id"), "applied": True, "rows_removed": removed, "cells_changed": changed})
+            continue
         if kind == "duplicates":
             df = df.unique(subset=rule["columns"], keep="first", maintain_order=True)
         elif kind == "recode":
