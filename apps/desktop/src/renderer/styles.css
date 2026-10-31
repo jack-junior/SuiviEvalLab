@@ -1457,7 +1457,7 @@ button.cell-sub {
 
 .choice-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
 }
 .choice-row .choice p {
@@ -1787,4 +1787,63 @@ button.cell-sub {
   border-left: 3px solid var(--action);
   border-radius: 8px;
   background: var(--action-teinte);
+}
+
+.home-links {
+  line-height: 2;
+}
+.model-list {
+  display: grid;
+  gap: 6px;
+}
+.model-option {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--ligne);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--encre);
+  cursor: pointer;
+}
+.model-option[aria-checked="true"] {
+  border-color: var(--action);
+  background: var(--action-teinte);
+}
+.model-name {
+  font-weight: 600;
+}
+.model-chain {
+  font-size: 12.5px;
+  color: var(--encre-2);
+}
+.custom-levels {
+  display: grid;
+  gap: 8px;
+}
+.custom-level {
+  display: grid;
+  grid-template-columns: 60px 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.tree-assumptions {
+  display: block;
+  font-size: 12.5px;
+  color: var(--encre-2);
+  margin-top: 2px;
+}
+
+.routine-grid input.input {
+  min-width: 70px;
+  padding: 4px 6px;
+}
+.routine-grid input.num {
+  text-align: right;
+}
+.paste-box textarea.mono {
+  font-family: var(--code);
+  font-size: 12.5px;
 }

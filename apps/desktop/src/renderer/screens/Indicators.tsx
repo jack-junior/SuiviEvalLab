@@ -7,6 +7,7 @@ import { useLabels } from "../labels";
 import { useProject } from "../state";
 import { Confirm, Empty, Field, IconButton, Notice, Panel, useValueFormat } from "../ui";
 import { IndicatorRule } from "./IndicatorRule";
+import { useLevels } from "../frameworks";
 
 type Draft = Omit<Indicator, "id" | "node_id"> & { id?: string; node_id: string };
 
@@ -49,6 +50,7 @@ const fromInput = (s: string, unit: string): number | null => {
 
 export function Indicators() {
   const { t } = useI18n();
+  const levels = useLevels();
   const { snap, run, error, focus } = useProject();
   const { colText, valText } = useLabels();
   const fmt = useValueFormat();
@@ -56,6 +58,7 @@ export function Indicators() {
   const [targetText, setTargetText] = useState("");
   const [baseText, setBaseText] = useState("");
   const [deleting, setDeleting] = useState<Indicator | null>(null);
+  const [categoriesText, setCategoriesText] = useState("");
 
   const columns = useMemo(() => {
     const map = new Map<string, { type: string; distinct: number; datasets: string[] }>();
@@ -69,7 +72,8 @@ export function Indicators() {
   }, [snap?.datasets]);
 
   if (!snap) return null;
-  const results = snap.framework.filter((n) => n.level !== "activity");
+  const results = snap.framework.filter((n) => levels.carries(n.level));
+  const routine = draft?.source_type === "routine";
 
   const edit = (d: Draft) => {
     // Indicators saved before version 0.3 keep their single condition in column + success_values.
@@ -85,6 +89,7 @@ export function Indicators() {
     });
     setTargetText(toInput(d.target, d.unit));
     setBaseText(toInput(d.baseline_manual, d.unit));
+    setCategoriesText((d.categories ?? []).join(", "));
   };
 
   const save = async () => {
@@ -93,12 +98,18 @@ export function Indicators() {
       ...draft,
       target: fromInput(targetText, draft.unit),
       baseline_manual: fromInput(baseText, draft.unit),
+      categories: categoriesText
+        .split(/[,;]/)
+        .map((c) => c.trim())
+        .filter(Boolean),
     };
     const ok = await run("indicator.save", { id: draft.id, node_id: draft.node_id, indicator });
     if (ok) setDraft(null);
   };
 
   const ruleText = (ind: Indicator) => {
+    if (ind.source_type === "routine")
+      return t("indicators.ruleRoutine", { how: t(`indicators.agg_${ind.aggregation ?? "sum"}`).toLowerCase() });
     const conds = ind.conditions?.length
       ? ind.conditions
       : ind.column && ind.unit === "percent"
@@ -162,7 +173,7 @@ export function Indicators() {
           <section key={node.id} className={`ind-group${focus === node.id ? " focused" : ""}`}>
             <div className="ind-group-head">
               <span className="tree-level">
-                {t(`levels.${node.level}`)} {node.code}
+                {levels.name(node.level)} {node.code}
               </span>
               <span className="ind-group-title">{node.title}</span>
               <IconButton icon="plus" label={t("indicators.addHere")} onClick={() => edit(blank(node.id))} />
@@ -229,7 +240,7 @@ export function Indicators() {
               >
                 {results.map((n) => (
                   <option key={n.id} value={n.id}>
-                    {t("common.labelled", { a: `${t(`levels.${n.level}`)} ${n.code}`.trim(), b: n.title })}
+                    {t("common.labelled", { a: `${levels.name(n.level)} ${n.code}`.trim(), b: n.title })}
                   </option>
                 ))}
               </select>
@@ -259,9 +270,36 @@ export function Indicators() {
           </Field>
 
           <div className="field">
+            <span className="label">{t("indicators.sourceType")}</span>
+            <div className="kind-grid">
+              {(["survey", "routine"] as const).map((k) => (
+                <button
+                  key={k}
+                  className="kind"
+                  aria-pressed={(draft.source_type ?? "survey") === k}
+                  onClick={() =>
+                    setDraft({
+                      ...draft,
+                      source_type: k,
+                      unit: k === "routine" && draft.unit === "ratio" ? "count" : draft.unit,
+                    })
+                  }
+                  data-testid={`source-${k}`}
+                >
+                  <span className="kind-title">{t(`indicators.source_${k}`)}</span>
+                  <span className="kind-text">{t(`indicators.sourceText_${k}`)}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="field">
             <span className="label">{t("indicators.unit")}</span>
             <div className="chips">
-              {(["percent", "mean", "count", "ratio"] as const).map((u) => (
+              {(routine
+                ? (["count", "percent", "mean"] as const)
+                : (["percent", "mean", "count", "ratio"] as const)
+              ).map((u) => (
                 <button
                   key={u}
                   className="chip"
@@ -290,7 +328,40 @@ export function Indicators() {
           </div>
 
           <h3 className="panel-section">{t("indicators.calculation")}</h3>
-          {columns.size === 0 ? (
+          {routine ? (
+            <>
+              <div className="field">
+                <span className="label">{t("indicators.aggregation")}</span>
+                <div className="chips">
+                  {(["sum", "last", "mean"] as const).map((a) => (
+                    <button
+                      key={a}
+                      className="chip"
+                      aria-pressed={(draft.aggregation ?? (draft.unit === "percent" ? "last" : "sum")) === a}
+                      onClick={() => setDraft({ ...draft, aggregation: a })}
+                      data-testid={`aggregation-${a}`}
+                    >
+                      {t(`indicators.agg_${a}`)}
+                    </button>
+                  ))}
+                </div>
+                <div className="field-hint">{t("indicators.aggregationHint")}</div>
+              </div>
+              <Field label={t("indicators.categories")} hint={t("indicators.categoriesHint")}>
+                {(id) => (
+                  <input
+                    id={id}
+                    className="input"
+                    value={categoriesText}
+                    onChange={(e) => setCategoriesText(e.target.value)}
+                    placeholder={t("indicators.categoriesPlaceholder")}
+                    data-testid="indicator-categories"
+                  />
+                )}
+              </Field>
+              <p className="muted small">{t("indicators.routineValuesWhere")}</p>
+            </>
+          ) : columns.size === 0 ? (
             <p className="muted small">{t("indicators.noDataYet")}</p>
           ) : (
             <IndicatorRule draft={draft} onChange={(d) => setDraft({ ...draft, ...d })} columns={columns} />
