@@ -1,0 +1,76 @@
+# User and contributor guide, published on GitHub Pages (French).
+site_name: SuiviEvalLab, documentation
+site_description: Logiciel de suivi-évaluation, du cadre de résultats au rapport Word.
+site_author: GAYI Komi Selassi, SANOUSSI Moudjibou
+site_url: https://jack-junior.github.io/SuiviEvalLab/
+repo_url: https://github.com/jack-junior/SuiviEvalLab
+repo_name: jack-junior/SuiviEvalLab
+edit_uri: edit/main/docs/guide/
+copyright: GAYI Komi Selassi et SANOUSSI Moudjibou. Licence GPL-3.0-or-later.
+docs_dir: docs/guide
+site_dir: build/site
+strict: true
+
+theme:
+  name: material
+  language: fr
+  logo: assets/logo.svg
+  favicon: assets/favicon.png
+  font: false
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Mode sombre
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Mode clair
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.highlight
+    - search.suggest
+    - toc.follow
+    - content.action.edit
+
+extra_css:
+  - assets/style.css
+extra_javascript:
+  - assets/zoom.js
+
+extra:
+  generator: false
+
+plugins:
+  - search:
+      lang: fr
+
+markdown_extensions:
+  - tables
+  - attr_list
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+
+nav:
+  - Présentation: index.md
+  - Architecture et choix techniques: architecture.md
+  - Manuel de l'application:
+      - Prise en main et accueil: manuel/accueil.md
+      - Vue d'ensemble et cadre de résultats: manuel/cadre.md
+      - Indicateurs: manuel/indicateurs.md
+      - Données: manuel/donnees.md
+      - Analyse et tests: manuel/analyse.md
+      - Rapport et livrables: manuel/rapport.md
+      - Outils: manuel/outils.md
+  - Contribuer: contribuer.md
+  - Tester: tester.md
+  - Annexes: annexes.md
