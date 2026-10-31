@@ -17,7 +17,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
-from . import __version__, frameworks, routine, stattests, xlsform
+from . import __version__, cleaning_more, frameworks, routine, stattests, xlsform
 
 INK = RGBColor(0x1F, 0x1E, 0x1C)
 ACTION = RGBColor(0x1D, 0x4F, 0x91)
@@ -100,6 +100,8 @@ T = {
         "missing": "valeur manquante",
         "effect_rows": "{n} lignes retirées",
         "effect_cells": "{n} valeurs modifiées",
+        "effect_created": "{n} valeurs calculées",
+        "effect_flagged": "{n} lignes incohérentes",
         "effect_none": "aucun changement",
         "disabled": "désactivée",
         "annex_methods": "Annexe B. Méthodes statistiques",
@@ -200,6 +202,8 @@ T = {
         "missing": "missing value",
         "effect_rows": "{n} rows removed",
         "effect_cells": "{n} values changed",
+        "effect_created": "{n} values computed",
+        "effect_flagged": "{n} inconsistent rows",
         "effect_none": "no change",
         "disabled": "disabled",
         "annex_methods": "Appendix B. Statistical methods",
@@ -394,6 +398,8 @@ def _design_text(design: dict[str, Any], t: dict[str, Any]) -> str:
 def _rule_text(rule: dict[str, Any], t: dict[str, Any], f: Fmt) -> str:
     q = (lambda v: f"« {v} »") if f.lang == "fr" else (lambda v: f'"{v}"')
     kind = rule["kind"]
+    if kind in cleaning_more.KINDS:
+        return cleaning_more.describe(rule, f.lang)
     tpl = t["rule_text"][kind]
     if kind == "duplicates":
         return tpl.format(columns=", ".join(q(c) for c in rule["columns"]))
@@ -419,7 +425,12 @@ def _effect_text(rule: dict[str, Any], t: dict[str, Any]) -> str:
     if e.get("rows_removed"):
         parts.append(t["effect_rows"].format(n=e["rows_removed"]))
     if e.get("cells_changed"):
-        parts.append(t["effect_cells"].format(n=e["cells_changed"]))
+        key = "effect_cells"
+        if rule["kind"] in ("compute", "classes", "date"):
+            key = "effect_created"
+        elif rule["kind"] == "check":
+            key = "effect_flagged"
+        parts.append(t[key].format(n=e["cells_changed"]))
     return ", ".join(parts) or t["effect_none"]
 
 
