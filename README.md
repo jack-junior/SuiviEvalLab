@@ -8,6 +8,10 @@
 
 Version **0.3.0**: results framework, indicators (shares with one or several conditions, means, counts, ratios, crossed breakdowns), import of Excel, Kobo (with questionnaire labels), CSV, SPSS or Stata data, merge of households and individuals, cleaning journal, indicators estimated in R with their confidence intervals and survey design, baseline and endline comparison, a test assistant that concludes in words, a Word report in French or English on your organisation's own template, a read-only HTML dashboard to share, a data quality diagnosis, checks before the report, automatic project copies, a sample size calculator and the monitoring plan in Excel. An example project runs on real public survey data. See the [roadmap](docs/roadmap.md).
 
+## Documentation
+
+The user and contributor guide (French) is published at <https://jack-junior.github.io/SuiviEvalLab/>. Its sources are in [docs/guide](docs/guide); `python tools/docs/build_word.py` produces the Word version.
+
 ## Example data
 
 The example project uses extracts of the REACH Initiative Iraq Multi-Cluster Needs Assessments VII (2019) and VIII (2020), published on the Humanitarian Data Exchange under CC BY 4.0. Details in [engine/python/sme_engine/examples/README.md](engine/python/sme_engine/examples/README.md).
