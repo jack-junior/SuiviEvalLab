@@ -1,10 +1,76 @@
 // Word report: what it contains, the language, generation and opening.
 
-import { useState } from "react";
-import { openFile, pick } from "../api";
+import { useEffect, useState } from "react";
+import { call, openFile, pick } from "../api";
 import { Lang, useI18n } from "../i18n";
 import { useProject } from "../state";
 import { Icon, Notice } from "../ui";
+
+interface CheckItem {
+  key: string;
+  severity: "warning" | "info";
+  view: "indicators" | "analysis" | "data";
+  id: string | null;
+  name: string;
+  detail?: string;
+  n?: number;
+  round?: string;
+  code?: string;
+}
+
+function Checks() {
+  const { t, number } = useI18n();
+  const { snap, go, describe } = useProject();
+  const [state, setState] = useState<{ for: unknown; items?: CheckItem[]; err?: string } | null>(null);
+  useEffect(() => {
+    let live = true;
+    call<{ items: CheckItem[] }>("report.checks")
+      .then((r) => live && setState({ for: snap, items: r.items }))
+      .catch((e) => live && setState({ for: snap, err: describe(e) }));
+    return () => {
+      live = false;
+    };
+  }, [snap, describe]);
+  const current = state?.for === snap ? state : null;
+  if (!current) return <p className="muted">{t("checks.running")}</p>;
+  if (current.err) return <Notice kind="error">{current.err}</Notice>;
+  const items = current.items ?? [];
+  const warnings = items.filter((i) => i.severity === "warning");
+  const remarks = items.filter((i) => i.severity === "info");
+  const line = (i: CheckItem, k: number) => (
+    <li key={`${i.key}-${i.id}-${k}`}>
+      {t(`checks.${i.key}`, {
+        name: i.name,
+        n: number(i.n ?? 0, 0),
+        round: i.round ? t(`rounds.${i.round}`) : "",
+        detail: i.detail ?? "",
+        code: i.code ?? "",
+      })}{" "}
+      <button className="link" onClick={() => go(i.view, i.id)}>
+        {t("checks.fix")}
+      </button>
+    </li>
+  );
+  return (
+    <section className="stack" data-testid="report-checks">
+      <h2>{t("checks.title")}</h2>
+      {warnings.length === 0 ? (
+        <Notice kind="ok">{t("checks.ok")}</Notice>
+      ) : (
+        <div className="checks warn">
+          <p>{t("checks.warnings", { n: number(warnings.length, 0) })}</p>
+          <ul data-testid="check-warnings">{warnings.map(line)}</ul>
+        </div>
+      )}
+      {remarks.length > 0 && (
+        <details className="quality-infos">
+          <summary>{t("checks.remarks", { n: number(remarks.length, 0) })}</summary>
+          <ul>{remarks.map(line)}</ul>
+        </details>
+      )}
+    </section>
+  );
+}
 
 export function Report() {
   const { t, lang } = useI18n();
@@ -124,6 +190,8 @@ export function Report() {
           </button>
         </Notice>
       )}
+
+      {ready && <Checks />}
 
       <div className="row-actions start">
         <button

@@ -1707,3 +1707,42 @@ button.cell-sub {
 .merge-check p {
   margin: 0;
 }
+
+.quality-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+}
+.quality-row + .quality-row {
+  border-top: 1px solid var(--ligne);
+}
+.quality-infos summary {
+  cursor: pointer;
+  color: var(--encre-2);
+}
+.quality-infos ul {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  color: var(--encre-2);
+  font-size: 13px;
+}
+
+.checks.warn {
+  border: 1px solid var(--ligne);
+  border-left: 3px solid var(--en-cours);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 10px 14px;
+}
+.checks p {
+  margin: 0 0 6px;
+}
+.checks ul {
+  margin: 0;
+  padding-left: 20px;
+}
+.checks li + li {
+  margin-top: 4px;
+}

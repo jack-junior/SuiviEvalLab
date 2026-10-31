@@ -7,6 +7,7 @@ import { pickLabel, useLabels } from "../labels";
 import { useProject } from "../state";
 import { Confirm, Empty, Field, Icon, IconButton, Notice, Panel } from "../ui";
 import { MergePanel } from "./MergePanel";
+import { Quality } from "./Quality";
 
 const ROUNDS: Round[] = ["baseline", "midline", "endline", "monitoring"];
 
@@ -336,7 +337,7 @@ function DesignFields({
 
 // ----- one dataset ------------------------------------------------------------------
 
-type Tab = "cleaning" | "preview" | "columns";
+type Tab = "cleaning" | "quality" | "preview" | "columns";
 
 function DatasetDetail({ ds, onBack }: { ds: Dataset; onBack: () => void }) {
   const { t, number } = useI18n();
@@ -407,7 +408,7 @@ function DatasetDetail({ ds, onBack }: { ds: Dataset; onBack: () => void }) {
       {exported && <Notice kind="ok">{exported}</Notice>}
 
       <div className="tabs" role="tablist">
-        {(["cleaning", "preview", "columns"] as Tab[]).map((k) => (
+        {(["cleaning", "quality", "preview", "columns"] as Tab[]).map((k) => (
           <button
             key={k}
             role="tab"
@@ -422,6 +423,7 @@ function DatasetDetail({ ds, onBack }: { ds: Dataset; onBack: () => void }) {
         ))}
       </div>
       {tab === "cleaning" && <Journal ds={ds} />}
+      {tab === "quality" && <Quality ds={ds} />}
       {tab === "preview" && <Preview ds={ds} />}
       {tab === "columns" && <Columns ds={ds} />}
 

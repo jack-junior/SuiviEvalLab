@@ -47,6 +47,8 @@ const ALLOWED = new Set([
   "dataset.merge",
   "report.generate",
   "report.share",
+  "report.checks",
+  "dataset.quality",
   "report.set_template",
   "report.clear_template",
 ]);

@@ -15,7 +15,7 @@ from typing import Any
 
 import polars as pl
 
-from . import cleaning, datasets, indicators, merge, stattests, xlsform
+from . import cleaning, datasets, indicators, merge, quality, stattests, xlsform
 from .project import Project, Workspace, _err, _text
 from .r_bridge import RBridge
 from .rpc import INVALID_PARAMS, RpcError, Server
@@ -454,7 +454,10 @@ class Service:
     def estimate(self, ind: dict[str, Any], ds: dict[str, Any], by: bool = True) -> dict[str, Any] | None:
         if not indicators.ready(ind):
             return None
-        prepared = self._prepare(ind, ds, by)
+        try:
+            prepared = self._prepare(ind, ds, by)
+        except RpcError as exc:  # a merged dataset whose sources no longer join
+            return {"error_key": "dataset_error", "detail": str(exc), "dataset_id": ds["id"]}
         if prepared is None:
             return {"error_key": "column_missing", "dataset_id": ds["id"]}
         table, args = prepared
@@ -665,6 +668,11 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
     def ds_merge(params: dict[str, Any]) -> dict[str, Any]:
         return svc.merge_datasets(params)
 
+    @server.method("dataset.quality")
+    def ds_quality(params: dict[str, Any]) -> dict[str, Any]:
+        spec = svc.dataset_spec(params.get("id"))
+        return quality.diagnose(svc.cleaned(spec["id"])[1], spec)
+
     @server.method("dataset.delete")
     def ds_delete(params: dict[str, Any]) -> dict[str, Any]:
         return svc.delete_dataset(params.get("id"))
@@ -740,6 +748,12 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
         meta = svc.project.meta()
         template = base64.b64decode(meta["report_template"]) if meta.get("report_template") else None
         return generate(svc, Path(_text(params, "path", max_len=4000)), lang, template)
+
+    @server.method("report.checks")
+    def rep_checks(_: dict[str, Any]) -> dict[str, Any]:
+        from .checks import run as checks
+
+        return checks(svc)
 
     @server.method("report.share")
     def rep_share(params: dict[str, Any]) -> dict[str, Any]:

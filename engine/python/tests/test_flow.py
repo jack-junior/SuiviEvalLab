@@ -415,3 +415,18 @@ def test_dashboard_hides_small_groups():
     ]
     out = share._breakdown(ind, rounds, share.S["fr"], Fmt("fr"), lambda c, v=None: v or c)
     assert "50,0\u202f%" in out and "100,0" not in out and "moins de 5 obs." in out
+
+
+@needs_r
+def test_checks_before_the_report(engine, tmp_path):
+    snap = engine("project.create", {"path": str(tmp_path / "c.sme"), "name": "x", "example": True, "lang": "fr"})
+    clean = engine("report.checks")
+    assert clean["warnings"] == 0, clean["items"]
+    ind = snap["indicators"][0]
+    spec = {k: v for k, v in ind.items() if k not in ("id", "node_id")}
+    engine("indicator.save", {"id": ind["id"], "indicator": {**spec, "target": None}})
+    node = snap["indicators"][1]["node_id"]
+    engine("indicator.save", {"node_id": node, "indicator": {"name": "Sans règle", "unit": "percent"}})
+    keys = {(i["key"], i["name"]) for i in engine("report.checks")["items"]}
+    assert ("indicator_no_target", ind["name"]) in keys
+    assert ("indicator_incomplete", "Sans règle") in keys
