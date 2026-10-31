@@ -182,6 +182,7 @@ function ImportPanel({ onClose }: { onClose: () => void }) {
                   className="input"
                   value={info.sheet}
                   onChange={(e) => file && inspect(file, e.target.value)}
+                  data-testid="import-sheet"
                 >
                   {info.sheets.map((s) => (
                     <option key={s}>{s}</option>

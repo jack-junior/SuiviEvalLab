@@ -36,10 +36,14 @@ No component opens a network port. Each engine runs in its own process, so a cra
 | `engine/python/sme_engine/methods.py` | System and demo methods; registers the others |
 | `engine/python/sme_engine/service.py` | Project, framework, indicator, data, cleaning, analysis and report methods |
 | `engine/python/sme_engine/project.py` | `.sme` file: SQLite schema, framework tree, positioned JSON records |
-| `engine/python/sme_engine/datasets.py` | Excel, Kobo and CSV import (everything kept as text), column description, design guess |
+| `engine/python/sme_engine/datasets.py` | Excel, Kobo, CSV, SPSS and Stata import (everything kept as text), column description, design guess |
+| `engine/python/sme_engine/xlsform.py` | Labels from a Kobo or ODK questionnaire (XLSForm), in several languages |
+| `engine/python/sme_engine/merge.py` | Merged datasets: many-to-one join of two cleaned datasets by a key |
+| `engine/python/sme_engine/stattests.py` | Test assistant: validation, data preparation, conclusions in words |
+| `engine/python/sme_engine/share.py` | Read-only HTML dashboard (aggregated results only) |
 | `engine/python/sme_engine/cleaning.py` | Cleaning journal: four rule kinds applied in order to a copy of the raw data |
 | `engine/python/sme_engine/indicators.py` | Indicator validation, achievement rate and status |
-| `engine/python/sme_engine/report.py` | Word report (python-docx), French and English text |
+| `engine/python/sme_engine/report.py` | Word report (python-docx), French and English text, on the built-in layout or the organisation's template |
 | `engine/python/sme_engine/example.py` | Example project on real REACH data (`examples/`) |
 | `engine/r/worker.R` | R command loop |
 | `engine/r/R/*.R` | Statistical functions (`sme_*`) |
@@ -47,7 +51,9 @@ No component opens a network port. Each engine runs in its own process, so a cra
 
 ## Project file
 
-A project is one SQLite file with the `.sme` extension (`PRAGMA application_id` marks it). Every change is written at once; there is no save button. Tables: `meta`, `framework_node`, `indicator`, `dataset` (the raw table as Parquet, never modified) and `cleaning_rule`. Indicators, datasets and rules keep their settings as JSON in a `spec` column, validated by the Python engine. Cleaned data and results are recomputed from the raw data and the journal, and cached in memory.
+A project is one SQLite file with the `.sme` extension (`PRAGMA application_id` marks it). Every change is written at once; there is no save button. Tables: `meta`, `framework_node`, `indicator`, `dataset` (the raw table as Parquet, never modified), `cleaning_rule` and `saved_test`. Indicators, datasets, rules and tests keep their settings as JSON in a `spec` column, validated by the Python engine. Cleaned data and results are recomputed from the raw data and the journal, and cached in memory. The schema has a version number (2 since 0.3); older files are migrated when opened.
+
+A merged dataset stores no rows: they are joined from the cleaned data of its two sources whenever those change, then its own journal applies. A source used by a merge cannot be deleted. Labels (XLSForm, SPSS or Stata metadata, or typed by the user) live in the dataset spec; codes stay the reference for every calculation. The organisation's Word template is kept in `meta`, so the project file carries it.
 
 ## Files and the interface
 
