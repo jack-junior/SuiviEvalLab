@@ -1280,6 +1280,40 @@ button.cell-sub {
   font-size: 12.5px;
   color: var(--encre-2);
 }
+.kind-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.kind-group-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--encre-2);
+}
+.condition-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.1fr) minmax(0, 1fr) 32px;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.class-row {
+  display: grid;
+  grid-template-columns: 90px 90px minmax(0, 1fr) 32px;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.class-row.head {
+  margin-bottom: 2px;
+}
+.small-tag {
+  margin-left: 8px;
+  cursor: default;
+  font-family: inherit;
+}
 
 /* ----- analysis ----- */
 .split {

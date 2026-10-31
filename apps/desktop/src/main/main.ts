@@ -51,6 +51,8 @@ const ALLOWED = new Set([
   "dataset.attach_form",
   "dataset.set_labels",
   "dataset.merge",
+  "dataset.stack",
+  "cleaning.export_r",
   "report.generate",
   "report.share",
   "report.checks",
@@ -74,6 +76,7 @@ type DialogKind =
   | "csv-save"
   | "html-save"
   | "xlsx-save"
+  | "r-save"
   | "template-open";
 
 // End-to-end tests answer dialogs through SME_E2E_DIALOGS (paths separated by "|").
@@ -90,7 +93,8 @@ async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token
       kind === "report-save" ||
       kind === "csv-save" ||
       kind === "html-save" ||
-      kind === "xlsx-save"
+      kind === "xlsx-save" ||
+      kind === "r-save"
     ) {
       const filter = {
         "project-save": { name: "SuiviEvalLab", extensions: ["sme"], file: "Projet.sme" },
@@ -98,6 +102,7 @@ async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token
         "csv-save": { name: "CSV", extensions: ["csv"], file: "Donnees.csv" },
         "html-save": { name: "HTML", extensions: ["html"], file: "Tableau-de-bord.html" },
         "xlsx-save": { name: "Excel", extensions: ["xlsx"], file: "Plan-de-suivi.xlsx" },
+        "r-save": { name: "R", extensions: ["R"], file: "Nettoyage.R" },
       }[kind];
       const res = await dialog.showSaveDialog(win, {
         defaultPath: path.join(docs, defaultName ?? filter.file),
@@ -297,6 +302,7 @@ app.whenReady().then(() => {
       "csv-save",
       "html-save",
       "xlsx-save",
+      "r-save",
       "template-open",
     ];
     if (typeof kind !== "string" || !kinds.includes(kind as DialogKind)) return null;

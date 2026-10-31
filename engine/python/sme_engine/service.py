@@ -18,6 +18,7 @@ import polars as pl
 from . import (
     __version__,
     cleaning,
+    cleaning_more,
     datasets,
     frameworks,
     indicators,
@@ -69,6 +70,8 @@ class Service:
             by_id = {e["id"]: e for e in effects}
             for r in rules:
                 r["effect"] = by_id.get(r["id"])
+                if r["kind"] in cleaning_more.KINDS:
+                    r["description"] = {lang: cleaning_more.describe(r, lang) for lang in ("fr", "en")}
             extra: dict[str, Any] = {}
             if ds.get("merge"):
                 extra["merge"] = {**ds["merge"], "stats": self.merged(ds)[2]}
@@ -220,7 +223,7 @@ class Service:
         """Labels typed by the user for one column and its values, in one language."""
         spec = self.dataset_spec(params.get("id"))
         column = params.get("column")
-        if column not in [c["name"] for c in spec["columns"]]:
+        if column not in self.column_names(spec["id"]):
             raise _err(f"Unknown column: {column}", "column_not_found")
         lang = params.get("lang") if params.get("lang") in ("fr", "en") else "default"
         labels = spec.setdefault("labels", {"columns": {}, "values": {}})
