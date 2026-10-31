@@ -41,6 +41,10 @@ No component opens a network port. Each engine runs in its own process, so a cra
 | `engine/python/sme_engine/merge.py` | Merged datasets: many-to-one join of two cleaned datasets by a key |
 | `engine/python/sme_engine/stattests.py` | Test assistant: validation, data preparation, conclusions in words |
 | `engine/python/sme_engine/share.py` | Read-only HTML dashboard (aggregated results only) |
+| `engine/python/sme_engine/quality.py` | Data quality diagnosis, with a proposed cleaning rule per issue |
+| `engine/python/sme_engine/checks.py` | Checks before the report |
+| `engine/python/sme_engine/plan.py` | Monitoring plan workbook (xlsxwriter) |
+| `engine/python/sme_engine/backups.py` | Automatic project copies at opening, and restore |
 | `engine/python/sme_engine/cleaning.py` | Cleaning journal: four rule kinds applied in order to a copy of the raw data |
 | `engine/python/sme_engine/indicators.py` | Indicator validation, achievement rate and status |
 | `engine/python/sme_engine/report.py` | Word report (python-docx), French and English text, on the built-in layout or the organisation's template |
@@ -54,6 +58,8 @@ No component opens a network port. Each engine runs in its own process, so a cra
 A project is one SQLite file with the `.sme` extension (`PRAGMA application_id` marks it). Every change is written at once; there is no save button. Tables: `meta`, `framework_node`, `indicator`, `dataset` (the raw table as Parquet, never modified), `cleaning_rule` and `saved_test`. Indicators, datasets, rules and tests keep their settings as JSON in a `spec` column, validated by the Python engine. Cleaned data and results are recomputed from the raw data and the journal, and cached in memory. The schema has a version number (2 since 0.3); older files are migrated when opened.
 
 A merged dataset stores no rows: they are joined from the cleaned data of its two sources whenever those change, then its own journal applies. A source used by a merge cannot be deleted. Labels (XLSForm, SPSS or Stata metadata, or typed by the user) live in the dataset spec; codes stay the reference for every calculation. The organisation's Word template is kept in `meta`, so the project file carries it.
+
+Each opening copies the project (SQLite backup API, before any migration) into `SME_BACKUP_DIR`, set by the host to the user's application folder; the last ten copies of each project are kept, and a restore first copies the current state.
 
 ## Files and the interface
 

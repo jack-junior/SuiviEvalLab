@@ -41,6 +41,8 @@ Summary of the statistical catalogue. Every method below is computed in R.
 - Comparisons of counts without a design are descriptive (no test). Ratios and totals with a design: difference with SE = sqrt(SE_A² + SE_B²) and a z test.
 - Test assistant (`engine/r/R/tests.R`): groups (chi-squared, Fisher when an expected count is below 5, Rao-Scott with a design; Welch t, `svyttest`; Welch ANOVA, `svyglm` with a Wald test), value against a target (exact binomial, one-sample t, z test on the design estimate), same people twice (paired t with a Wilcoxon fallback, McNemar or exact McNemar). Effect sizes: Cohen's h and d, Cramér's V, Hedges' g, omega squared, dz.
 - Read-only dashboard: breakdown groups under 5 observations are hidden.
+- Sample size (`engine/r/R/sample.R`): Cochran's formula for a share or a mean, `power.prop.test` and `power.t.test` for a change between two independent rounds; then design effect, finite population correction (estimates only), number of domains and response rate.
+- Quality diagnosis: outliers beyond 3 interquartile ranges, on a log scale for positive amounts whose maximum exceeds 20 times the median; not reported when they exceed 2 % of the values (then they are the shape of the distribution).
 
 ### Implemented in version 0.2 (`engine/r/R/estimate.R`)
 

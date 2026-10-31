@@ -11,6 +11,11 @@ SuiviEvalLab couvre le parcours complet du suivi-évaluation, sur votre ordinate
 - Rapport Word sur le modèle de votre organisation (page de garde, styles, en-têtes), avec des balises comme `{{contenu}}` et `{{projet}}`.
 - Import SPSS (.sav) et Stata (.dta) avec leurs libellés ; fusion de deux fichiers par une clé, par exemple les individus avec leur ménage.
 - Partage en lecture seule : un tableau de bord en un seul fichier HTML, sans aucune donnée individuelle, qui s'ouvre dans n'importe quel navigateur.
+- Diagnostic qualité des données : doublons, pondérations manquantes, réponses hors questionnaire, valeurs extrêmes... chaque problème se corrige en un clic par une règle du journal.
+- Vérifications avant le rapport : ce qui manque (cible, référence, données) et où le corriger.
+- Copies automatiques du projet à chaque ouverture, restaurables depuis « Mes projets ».
+- Calcul de taille d'échantillon, pour préparer une enquête.
+- Plan de suivi en Excel : la fiche de référence des indicateurs, avec méthode, fréquence et responsable.
 
 ### Installer
 
@@ -35,6 +40,11 @@ SuiviEvalLab covers the whole monitoring and evaluation path, on your computer a
 - Word report on your organisation's template (cover page, styles, headers), with placeholders such as `{{content}}` and `{{project}}`.
 - SPSS (.sav) and Stata (.dta) import with their labels; merge of two files by a key, for example individuals with their household.
 - Read-only sharing: a dashboard in a single HTML file, with no individual data, that opens in any browser.
+- Data quality diagnosis: duplicates, missing weights, answers outside the questionnaire, extreme values... each problem is fixed in one click by a journal rule.
+- Checks before the report: what is missing (target, baseline, data) and where to fix it.
+- Automatic copies of the project at each opening, restored from "My projects".
+- Sample size calculator, to prepare a survey.
+- Monitoring plan in Excel: the indicator reference sheet, with method, frequency and responsible person.
 
 ### Install
 

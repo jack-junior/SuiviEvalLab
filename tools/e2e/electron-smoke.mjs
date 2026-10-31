@@ -60,6 +60,7 @@ const dialogs = [
   fileMerge,
   fileMerge,
   path.join(work, "tableau.html"),
+  path.join(work, "plan.xlsx"),
   path.join(work, "exemple.sme"),
 ];
 
@@ -195,6 +196,12 @@ try {
   await id("tab-columns").click();
   await page.getByText("How old are you?").first().waitFor({ timeout: 30_000 });
   notice("E2E SPSS", "SPSS file imported with its variable labels");
+  await id("tab-quality").click();
+  await id("quality").waitFor({ timeout: 60_000 });
+  notice(
+    "E2E quality",
+    (await id("quality").innerText()).replace(/\s+/g, " ").slice(0, 200),
+  );
 
   // Merge: water containers (a Kobo repeat) with their household.
   await importFile("Menages", "Menages");
@@ -224,8 +231,30 @@ try {
     `Dashboard written, ${Math.round(board.length / 1024)} KB`,
   );
 
+  // Checks before the report, and the monitoring plan in Excel.
+  await id("report-checks").waitFor({ timeout: 120_000 });
+  notice(
+    "E2E checks",
+    (await id("report-checks").innerText()).replace(/\s+/g, " ").slice(0, 200),
+  );
+  await id("export-plan").click();
+  await id("plan-done").waitFor({ timeout: 120_000 });
+  if (statSync(path.join(work, "plan.xlsx")).size < 5_000)
+    throw new Error("Monitoring plan too small");
+  await shot("report-checks");
+
   // 2. Example project
   await id("close-project").click();
+
+  // Sample size, from the home screen without a project.
+  await id("open-sample").click();
+  await id("ss-goal-compare_prop").click();
+  await id("sample-result").waitFor({ timeout: 60_000 });
+  const sample = await id("sample-result").innerText();
+  notice("E2E sample size", sample.split("\n")[0]);
+  if (!/\d/.test(sample)) throw new Error(`Unexpected sample size: ${sample}`);
+  await shot("sample-size");
+  await page.keyboard.press("Escape");
   await id("open-example").click();
   await id("overview-table").waitFor({ timeout: 180_000 });
   await page
@@ -268,7 +297,7 @@ try {
   await shot("example-analysis-en-dark");
   notice(
     "E2E",
-    "Full path verified: framework, import, cleaning, indicator, analysis, report, SPSS, merge, dashboard, example, test, languages",
+    "Full path verified: framework, import, cleaning, indicator, analysis, report, SPSS, quality, merge, dashboard, checks, plan, sample size, example, test, languages",
   );
 } finally {
   await app.close();
