@@ -16,6 +16,7 @@ SuiviEvalLab couvre le parcours complet du suivi-évaluation, sur votre ordinate
 - Copies automatiques du projet à chaque ouverture, restaurables depuis « Mes projets ».
 - Calcul de taille d'échantillon, pour préparer une enquête.
 - Plan de suivi en Excel : la fiche de référence des indicateurs, avec méthode, fréquence et responsable.
+- Mises à jour automatiques : à partir de cette version, l'application se met à jour toute seule. Elle télécharge les nouvelles versions en arrière-plan et les installe quand vous redémarrez. Vos projets ne sont jamais touchés.
 
 ### Installer
 
@@ -23,7 +24,7 @@ SuiviEvalLab couvre le parcours complet du suivi-évaluation, sur votre ordinate
 2. L'installeur n'est pas encore signé. Windows SmartScreen affiche donc « Windows a protégé votre ordinateur » : cliquez sur « Informations complémentaires », puis « Exécuter quand même ».
 3. L'installation se fait dans votre compte utilisateur et ne demande pas de droits d'administrateur. R et Python sont inclus.
 
-Les projets créés avec la 0.2 s'ouvrent dans la 0.3. Pour vérifier le fichier, comparez son empreinte avec `SHA256SUMS.txt` : `Get-FileHash .\SuiviEvalLab-<version>-installation.exe`.
+Pour passer de la 0.2 à la 0.3, lancez simplement ce nouvel installeur : inutile de désinstaller. Les projets créés avec la 0.2 s'ouvrent dans la 0.3. Pour vérifier le fichier, comparez son empreinte avec `SHA256SUMS.txt` : `Get-FileHash .\SuiviEvalLab-<version>-installation.exe`.
 
 ---
 
@@ -45,6 +46,7 @@ SuiviEvalLab covers the whole monitoring and evaluation path, on your computer a
 - Automatic copies of the project at each opening, restored from "My projects".
 - Sample size calculator, to prepare a survey.
 - Monitoring plan in Excel: the indicator reference sheet, with method, frequency and responsible person.
+- Automatic updates: from this version on, the app updates itself. It downloads new versions in the background and installs them when you restart. Your projects are never touched.
 
 ### Install
 
@@ -52,6 +54,6 @@ SuiviEvalLab covers the whole monitoring and evaluation path, on your computer a
 2. The installer is not signed yet, so Windows SmartScreen shows "Windows protected your PC": click "More info", then "Run anyway".
 3. It installs for your user account only, without administrator rights. R and Python are included.
 
-Projects created with 0.2 open in 0.3. To check the file, compare its hash with `SHA256SUMS.txt`: `Get-FileHash .\SuiviEvalLab-<version>-installation.exe`.
+To move from 0.2 to 0.3, just run this installer: no need to uninstall. Projects created with 0.2 open in 0.3. To check the file, compare its hash with `SHA256SUMS.txt`: `Get-FileHash .\SuiviEvalLab-<version>-installation.exe`.
 
 Example data: REACH Initiative, Iraq Multi-Cluster Needs Assessments VII and VIII, Humanitarian Data Exchange, CC BY 4.0. Test data: REACH-UNICEF Bangladesh WASH surveys 2018, Humanitarian Data Exchange, CC BY 4.0. Licence: GPL-3.0-or-later.

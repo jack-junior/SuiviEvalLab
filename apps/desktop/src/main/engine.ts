@@ -93,6 +93,34 @@ export class EngineClient {
     setTimeout(() => proc?.kill(), 3000).unref();
   }
 
+  /**
+   * Stop the engines and wait until they have exited, so their files are free (an
+   * update replaces them). The Python engine closes R when its input ends; if it
+   * does not exit in time, the whole process tree is killed.
+   */
+  stopAndWait(timeoutMs = 8000): Promise<void> {
+    const proc = this.proc;
+    this.stopping = true;
+    if (!proc || proc.exitCode !== null) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      const done = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+      proc.once("exit", done);
+      const timer = setTimeout(() => {
+        this.log("Le moteur ne s'arrête pas : arrêt forcé");
+        if (process.platform === "win32" && proc.pid) {
+          spawn("taskkill", ["/pid", String(proc.pid), "/T", "/F"], { windowsHide: true }).on("exit", done);
+        } else {
+          proc.kill("SIGKILL");
+          setTimeout(done, 500);
+        }
+      }, timeoutMs);
+      if (proc.stdin && !proc.stdin.destroyed) proc.stdin.end();
+    });
+  }
+
   private onLine(line: string): void {
     let msg: {
       id?: number;

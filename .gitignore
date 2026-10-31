@@ -9,3 +9,4 @@ __pycache__/
 .Rhistory
 .DS_Store
 Thumbs.db
+/apps/desktop/release-next/

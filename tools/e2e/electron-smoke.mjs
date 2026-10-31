@@ -295,6 +295,11 @@ try {
   await id("nav-analysis").click();
   await id("rounds-table").waitFor({ timeout: 120_000 });
   await shot("example-analysis-en-dark");
+
+  // Updates section (in this test build, checks are off: the update test does them).
+  await id("engines-link").click();
+  await id("updates-section").waitFor({ timeout: 30_000 });
+  notice("E2E updates", await id("update-status").innerText());
   notice(
     "E2E",
     "Full path verified: framework, import, cleaning, indicator, analysis, report, SPSS, quality, merge, dashboard, checks, plan, sample size, example, test, languages",

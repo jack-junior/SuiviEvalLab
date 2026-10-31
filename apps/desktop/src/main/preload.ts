@@ -12,6 +12,18 @@ contextBridge.exposeInMainWorld("sme", {
   reveal: (file: string) => ipcRenderer.invoke("project:reveal", file),
   saveSummary: (file: string, summary: Record<string, number>) => ipcRenderer.invoke("project:summary", file, summary),
   openFile: (token: string) => ipcRenderer.invoke("file:reveal", token),
+  updates: {
+    get: () => ipcRenderer.invoke("updates:get"),
+    check: () => ipcRenderer.invoke("updates:check"),
+    setAuto: (auto: boolean) => ipcRenderer.invoke("updates:set-auto", auto),
+    install: () => ipcRenderer.invoke("updates:install"),
+    openNotes: (url: string) => ipcRenderer.invoke("app:open-notes", url),
+    onState: (listener: (state: unknown) => void) => {
+      const handler = (_e: unknown, state: unknown) => listener(state);
+      ipcRenderer.on("updates:state", handler);
+      return () => ipcRenderer.removeListener("updates:state", handler);
+    },
+  },
   onEvent: (listener: (event: { method: string; params: unknown }) => void) => {
     const handler = (_e: unknown, event: { method: string; params: unknown }) => listener(event);
     ipcRenderer.on("engine:event", handler);

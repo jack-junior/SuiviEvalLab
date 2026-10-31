@@ -1774,3 +1774,17 @@ button.cell-sub {
   margin: 4px 0;
   padding-left: 20px;
 }
+
+.update-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 24px;
+  padding: 10px 14px;
+  border: 1px solid var(--ligne);
+  border-left: 3px solid var(--action);
+  border-radius: 8px;
+  background: var(--action-teinte);
+}

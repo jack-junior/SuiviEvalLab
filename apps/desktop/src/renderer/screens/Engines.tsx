@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AppInfo, call, EngineCallError, Proportion, Versions } from "../api";
 import { useI18n } from "../i18n";
+import { UpdatesSection } from "../updates";
 
 type Health = "waiting" | "ready" | "error";
 
@@ -111,6 +112,8 @@ export function Engines({
           <p className="small muted">{t("engines.logs", { path: info.logs })}</p>
         )}
       </section>
+
+      <UpdatesSection />
 
       <section className="stack">
         <h2>{t("demo.title")}</h2>

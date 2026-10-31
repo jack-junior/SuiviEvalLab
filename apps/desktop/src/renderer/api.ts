@@ -24,6 +24,31 @@ interface SmeBridge {
   reveal?: (file: string) => Promise<void>;
   saveSummary?: (file: string, summary: Record<string, number>) => Promise<void>;
   openFile?: (token: string) => Promise<boolean>;
+  updates?: UpdatesBridge;
+}
+
+export type UpdateStatus =
+  "unsupported" | "off" | "locked" | "idle" | "checking" | "none" | "downloading" | "ready" | "error";
+export interface UpdateState {
+  status: UpdateStatus;
+  current: string;
+  auto: boolean;
+  locked: boolean;
+  version?: string;
+  percent?: number;
+  transferred?: number;
+  total?: number;
+  checkedAt?: string;
+  error?: string;
+  notesUrl?: string;
+}
+interface UpdatesBridge {
+  get: () => Promise<UpdateState>;
+  check: () => Promise<UpdateState>;
+  setAuto: (auto: boolean) => Promise<UpdateState>;
+  install: () => Promise<void>;
+  openNotes: (url: string) => Promise<void>;
+  onState: (listener: (s: UpdateState) => void) => () => void;
 }
 
 export type PickKind =
@@ -391,3 +416,6 @@ export const revealProject = (file: string) => bridge.reveal?.(file) ?? Promise.
 export const saveSummary = (file: string, summary: Record<string, number>) =>
   bridge.saveSummary?.(file, summary) ?? Promise.resolve();
 export const openFile = (token: string) => bridge.openFile?.(token) ?? Promise.resolve(false);
+
+/** Automatic updates; absent in the browser preview. */
+export const updates = (): UpdatesBridge | null => bridge.updates ?? null;
