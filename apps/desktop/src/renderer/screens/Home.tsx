@@ -2,10 +2,21 @@
 // projects known to this computer with their progress.
 
 import { useEffect, useState } from "react";
-import { call, forgetProject, pick, Recent, recents, recentToken, revealProject, Snapshot } from "../api";
+import {
+  call,
+  FrameworkModel,
+  forgetProject,
+  pick,
+  Recent,
+  recents,
+  recentToken,
+  revealProject,
+  Snapshot,
+} from "../api";
 import { useI18n } from "../i18n";
 import { useProject } from "../state";
 import { Confirm, Field, Icon, IconButton, Notice, Panel } from "../ui";
+import { customValid, ModelPicker, useModels } from "./ModelPicker";
 import { SampleSizePanel } from "./SampleSize";
 
 const REOPEN_KEY = "sme.reopenLast";
@@ -29,6 +40,9 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
   const [reopen, setReopen] = useState(readReopen);
   const [history, setHistory] = useState<Recent | null>(null);
   const [sampling, setSampling] = useState(false);
+  const models = useModels();
+  const [model, setModel] = useState<FrameworkModel | null>(null);
+  const chosen = model ?? models?.[0] ?? null;
 
   const opened = (s: Snapshot | null) => {
     if (s) go(s.indicators.length ? "overview" : "framework");
@@ -68,7 +82,13 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
   const create = async () => {
     const file = await pick("project-save", `${name.trim() || t("home.defaultName")}.sme`);
     if (!file) return;
-    opened(await run("project.create", { file_token: file.token, name: name.trim() || t("home.defaultName") }));
+    opened(
+      await run("project.create", {
+        file_token: file.token,
+        name: name.trim() || t("home.defaultName"),
+        model: chosen,
+      }),
+    );
   };
 
   const open = async () => {
@@ -103,35 +123,9 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
           <Icon name="plus" size={22} />
           <h2>{t("home.newTitle")}</h2>
           <p className="muted">{t("home.newText")}</p>
-          {creating ? (
-            <div className="stack">
-              <Field label={t("home.projectName")}>
-                {(id) => (
-                  <input
-                    id={id}
-                    className="input"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && create()}
-                    placeholder={t("home.namePlaceholder")}
-                    data-testid="new-name"
-                  />
-                )}
-              </Field>
-              <div className="row-actions">
-                <button className="btn" onClick={() => setCreating(false)}>
-                  {t("common.cancel")}
-                </button>
-                <button className="btn primary" onClick={create} disabled={!!busy} data-testid="new-create">
-                  {t("home.chooseLocation")}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button className="btn primary" onClick={() => setCreating(true)} data-testid="new-project">
-              {t("home.newAction")}
-            </button>
-          )}
+          <button className="btn primary" onClick={() => setCreating(true)} data-testid="new-project">
+            {t("home.newAction")}
+          </button>
         </div>
 
         <div className="choice">
@@ -142,24 +136,20 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
             {t("home.openAction")}
           </button>
         </div>
-
-        <div className="choice">
-          <Icon name="chart" size={22} />
-          <h2>{t("home.exampleTitle")}</h2>
-          <p className="muted">{t("home.exampleText")}</p>
-          <button
-            className="btn"
-            onClick={example}
-            disabled={!!busy || !enginesReady}
-            data-testid="open-example"
-            title={enginesReady ? undefined : t("home.enginesStarting")}
-          >
-            {busy === t("home.exampleBusy") ? t("home.exampleBusy") : t("home.exampleAction")}
-          </button>
-        </div>
       </section>
 
-      <p className="muted small">
+      <p className="muted small home-links">
+        <button
+          className="link"
+          onClick={example}
+          disabled={!!busy || !enginesReady}
+          data-testid="open-example"
+          title={enginesReady ? undefined : t("home.enginesStarting")}
+        >
+          <Icon name="chart" /> {busy === t("home.exampleBusy") ? t("home.exampleBusy") : t("home.exampleLink")}
+        </button>{" "}
+        {t("home.exampleHint")}
+        <br />
         <button className="link" onClick={() => setSampling(true)} disabled={!enginesReady} data-testid="open-sample">
           <Icon name="calc" /> {t("sample.open")}
         </button>{" "}
@@ -240,6 +230,46 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
         )}
       </section>
       {sampling && <SampleSizePanel onClose={() => setSampling(false)} />}
+      {creating && (
+        <Panel
+          title={t("home.newTitle")}
+          onClose={() => setCreating(false)}
+          testId="new-panel"
+          footer={
+            <>
+              <button className="btn" onClick={() => setCreating(false)}>
+                {t("common.cancel")}
+              </button>
+              <button
+                className="btn primary"
+                onClick={create}
+                disabled={!!busy || !chosen || !customValid(chosen)}
+                data-testid="new-create"
+              >
+                {t("home.chooseLocation")}
+              </button>
+            </>
+          }
+        >
+          <Field label={t("home.projectName")}>
+            {(id) => (
+              <input
+                id={id}
+                className="input"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t("home.namePlaceholder")}
+                data-testid="new-name"
+              />
+            )}
+          </Field>
+          <div className="field">
+            <span className="label">{t("models.title")}</span>
+            <p className="muted small">{t("models.createHint")}</p>
+            {chosen && <ModelPicker value={chosen} onChange={setModel} />}
+          </div>
+        </Panel>
+      )}
       {history && <BackupsPanel project={history} onClose={() => setHistory(null)} onOpened={opened} />}
     </div>
   );

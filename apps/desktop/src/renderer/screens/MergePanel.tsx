@@ -2,7 +2,7 @@
 // The merged dataset keeps no data of its own; it follows the cleaning of its sources.
 
 import { useEffect, useState } from "react";
-import { call, Dataset, MergeStats, Round } from "../api";
+import { allColumns, call, Dataset, MergeStats, Round } from "../api";
 import { useI18n } from "../i18n";
 import { useLabels } from "../labels";
 import { useProject } from "../state";
@@ -17,8 +17,8 @@ interface Check {
 
 /** Kobo repeats link `_parent_index` to `_index`; otherwise a column both files share, ids first. */
 export function guessKeys(left: Dataset, right: Dataset): [string, string] {
-  const l = left.columns.map((c) => c.name);
-  const r = right.columns.map((c) => c.name);
+  const l = allColumns(left).map((c) => c.name);
+  const r = allColumns(right).map((c) => c.name);
   if (l.includes("_parent_index") && r.includes("_index")) return ["_parent_index", "_index"];
   const common = l.filter((c) => r.includes(c) && !c.startsWith("_"));
   const id = common.find((c) => /(^|_)(id|code|key)$|^id_|_id_/i.test(c)) ?? common[0];
@@ -93,7 +93,7 @@ export function MergePanel({ onClose }: { onClose: () => void }) {
             onChange={(e) => setKey(side, e.target.value)}
             data-testid={testId}
           >
-            {(ds?.columns ?? []).map((c) => (
+            {(ds ? allColumns(ds) : []).map((c) => (
               <option key={c.name} value={c.name}>
                 {labels.colText(c.name, ds)}
               </option>

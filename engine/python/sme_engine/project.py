@@ -3,9 +3,11 @@
 One project is open at a time. Every change is written immediately, so there is
 no separate "save" step and nothing is lost if the app closes.
 
-Schema version 1 holds the project metadata, the results framework, the
-indicators, the imported datasets (raw data kept unchanged as Parquet) and the
-cleaning journal of each dataset.
+The schema holds the project metadata (with the framework model), the results
+framework, the indicators and the values of routine indicators, the imported
+datasets (raw data kept unchanged as Parquet), the cleaning journal of each
+dataset and the saved tests. Version 2 added saved tests, version 3 the
+assumptions of the framework and routine values.
 """
 
 from __future__ import annotations
@@ -17,10 +19,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from . import frameworks
 from .rpc import INVALID_PARAMS, RpcError
 
 APPLICATION_ID = 0x534D4531  # "SME1": marks a file as a SuiviEvalLab project
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 EXTENSION = ".sme"
 
 # Framework levels, from the top. The interface translates them; projects store keys.
@@ -37,6 +40,7 @@ CREATE TABLE framework_node (
     level       TEXT NOT NULL CHECK (level IN ('impact', 'outcome', 'output', 'activity')),
     title       TEXT NOT NULL,
     description TEXT NOT NULL DEFAULT '',
+    assumptions TEXT NOT NULL DEFAULT '',  -- logframe column: assumptions and risks
     position    INTEGER NOT NULL
 );
 CREATE INDEX framework_node_parent ON framework_node(parent_id, position);
@@ -59,6 +63,13 @@ CREATE TABLE saved_test (
     id          TEXT PRIMARY KEY,
     position    INTEGER NOT NULL,
     spec        TEXT NOT NULL            -- JSON, see stattests.py
+);
+
+CREATE TABLE routine_value (
+    id           TEXT PRIMARY KEY,
+    indicator_id TEXT NOT NULL REFERENCES indicator(id) ON DELETE CASCADE,
+    position     INTEGER NOT NULL,
+    spec         TEXT NOT NULL           -- JSON, see routine.py
 );
 
 CREATE TABLE cleaning_rule (
@@ -100,7 +111,7 @@ class Project:
     # ----- opening and creating -------------------------------------------------
 
     @classmethod
-    def create(cls, path: str | Path, name: str) -> Project:
+    def create(cls, path: str | Path, name: str, model: dict[str, Any] | None = None) -> Project:
         path = Path(path)
         if path.suffix.lower() != EXTENSION:
             path = path.with_suffix(EXTENSION)
@@ -118,6 +129,8 @@ class Project:
                 "INSERT INTO meta(key, value) VALUES (?, ?)",
                 [("name", name), ("created_at", now), ("updated_at", now), ("app_schema", str(SCHEMA_VERSION))],
             )
+            if model:
+                conn.execute("INSERT INTO meta(key, value) VALUES ('framework_model', ?)", (json.dumps(model),))
         return cls(path, conn)
 
     @classmethod
@@ -156,6 +169,15 @@ class Project:
                     "CREATE TABLE IF NOT EXISTS saved_test "
                     "(id TEXT PRIMARY KEY, position INTEGER NOT NULL, spec TEXT NOT NULL)"
                 )
+            if version < 3:
+                # 0.4: assumptions in the framework, values of routine monitoring indicators.
+                cols = [r[1] for r in conn.execute("PRAGMA table_info(framework_node)")]
+                if "assumptions" not in cols:
+                    conn.execute("ALTER TABLE framework_node ADD COLUMN assumptions TEXT NOT NULL DEFAULT ''")
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS routine_value (id TEXT PRIMARY KEY, indicator_id TEXT NOT NULL "
+                    "REFERENCES indicator(id) ON DELETE CASCADE, position INTEGER NOT NULL, spec TEXT NOT NULL)"
+                )
             conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
     @staticmethod
@@ -187,7 +209,11 @@ class Project:
             "updated_at": meta.get("updated_at"),
             "counts": {level: counts.get(level, 0) for level in LEVELS},
             "report_template": meta.get("report_template_name") or None,
+            "framework_model": frameworks.from_meta(meta),
         }
+
+    def model(self) -> dict[str, Any]:
+        return frameworks.from_meta(self.meta())
 
     def set_meta(self, key: str, value: str | None) -> None:
         with self.conn:
@@ -211,7 +237,8 @@ class Project:
     def framework(self) -> list[dict[str, Any]]:
         """All nodes in display order, with their computed code (1, 1.2, 1.2.3)."""
         rows = self.conn.execute(
-            "SELECT id, parent_id, level, title, description, position FROM framework_node ORDER BY position"
+            "SELECT id, parent_id, level, title, description, assumptions, position "
+            "FROM framework_node ORDER BY position"
         ).fetchall()
         children: dict[str | None, list[sqlite3.Row]] = {}
         for row in rows:
@@ -231,6 +258,7 @@ class Project:
                         "level": row["level"],
                         "title": row["title"],
                         "description": row["description"],
+                        "assumptions": row["assumptions"],
                         "code": code,
                         "depth": depth,
                         "children": len(kids),
@@ -249,14 +277,17 @@ class Project:
             raise _err(f"Unknown framework node: {node_id}", "node_not_found")
         return row
 
-    def add_node(self, parent_id: str | None, title: str, description: str = "") -> dict[str, Any]:
+    def add_node(
+        self, parent_id: str | None, title: str, description: str = "", assumptions: str = ""
+    ) -> dict[str, Any]:
+        depth = len(self.model()["levels"])
         if parent_id is None:
             level = LEVELS[0]
         else:
             parent = self._node(parent_id)
             index = LEVELS.index(parent["level"])
-            if index == len(LEVELS) - 1:
-                raise _err("Activities cannot have children", "node_no_children")
+            if index >= depth - 1:
+                raise _err("The last level of the framework cannot have children", "node_no_children")
             level = LEVELS[index + 1]
         position = self.conn.execute(
             "SELECT COALESCE(MAX(position), 0) + 1 FROM framework_node WHERE parent_id IS ?", (parent_id,)
@@ -264,17 +295,21 @@ class Project:
         node_id = uuid.uuid4().hex
         with self.conn:
             self.conn.execute(
-                "INSERT INTO framework_node(id, parent_id, level, title, description, position) VALUES (?,?,?,?,?,?)",
-                (node_id, parent_id, level, title, description, position),
+                "INSERT INTO framework_node(id, parent_id, level, title, description, assumptions, position) "
+                "VALUES (?,?,?,?,?,?,?)",
+                (node_id, parent_id, level, title, description, assumptions, position),
             )
             self._touch()
         return {"id": node_id}
 
-    def update_node(self, node_id: str, title: str, description: str) -> None:
-        self._node(node_id)
+    def update_node(self, node_id: str, title: str, description: str, assumptions: str | None = None) -> None:
+        node = self._node(node_id)
+        if assumptions is None:
+            assumptions = node["assumptions"]
         with self.conn:
             self.conn.execute(
-                "UPDATE framework_node SET title = ?, description = ? WHERE id = ?", (title, description, node_id)
+                "UPDATE framework_node SET title = ?, description = ?, assumptions = ? WHERE id = ?",
+                (title, description, assumptions, node_id),
             )
             self._touch()
 
@@ -317,7 +352,13 @@ class Project:
 
     # ----- positioned JSON records (indicators, datasets, cleaning rules) --------
 
-    _SCOPES = {"indicator": "node_id", "dataset": None, "cleaning_rule": "dataset_id", "saved_test": None}
+    _SCOPES = {
+        "indicator": "node_id",
+        "dataset": None,
+        "cleaning_rule": "dataset_id",
+        "saved_test": None,
+        "routine_value": "indicator_id",
+    }
 
     def records(self, table: str, scope: str | None = None) -> list[dict[str, Any]]:
         col = self._SCOPES[table]

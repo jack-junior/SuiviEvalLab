@@ -1,12 +1,14 @@
 // Data: import Excel, Kobo or CSV files, survey design, cleaning journal, preview.
 
 import { useEffect, useMemo, useState } from "react";
-import { call, Dataset, Design, Inspection, Picked, pick, Round, Rule, RuleKind } from "../api";
+import { allColumns, call, Dataset, Design, Inspection, Picked, pick, Round, Rule, RuleKind } from "../api";
 import { useI18n } from "../i18n";
 import { pickLabel, useLabels } from "../labels";
 import { useProject } from "../state";
 import { Confirm, Empty, Field, Icon, IconButton, Notice, Panel } from "../ui";
+import { ADVANCED, AdvancedFields, GROUPS } from "./AdvancedRule";
 import { MergePanel } from "./MergePanel";
+import { StackPanel } from "./StackPanel";
 import { Quality } from "./Quality";
 
 const ROUNDS: Round[] = ["baseline", "midline", "endline", "monitoring"];
@@ -16,6 +18,7 @@ export function Data() {
   const { snap, error, focus, go } = useProject();
   const [importing, setImporting] = useState(false);
   const [merging, setMerging] = useState(false);
+  const [stacking, setStacking] = useState(false);
   if (!snap) return null;
   const current = snap.datasets.find((d) => d.id === focus) ?? null;
 
@@ -31,9 +34,14 @@ export function Data() {
         {snap.datasets.length > 0 && (
           <div className="row-actions">
             {snap.datasets.length > 1 && (
-              <button className="btn" onClick={() => setMerging(true)} data-testid="merge-data">
-                {t("merge.open")}
-              </button>
+              <>
+                <button className="btn" onClick={() => setStacking(true)} data-testid="stack-data">
+                  {t("stack.open")}
+                </button>
+                <button className="btn" onClick={() => setMerging(true)} data-testid="merge-data">
+                  {t("merge.open")}
+                </button>
+              </>
             )}
             <button className="btn primary" onClick={() => setImporting(true)} data-testid="import-data">
               {t("data.import")}
@@ -60,6 +68,7 @@ export function Data() {
               <span className="card-kicker">
                 {t(`rounds.${d.round}`)}
                 {d.merge && `, ${t("merge.kicker")}`}
+                {d.stack && `, ${t("stack.kicker")}`}
               </span>
               <span className="card-title">{d.name}</span>
               {d.error && <span className="card-meta st-late">{t("merge.broken")}</span>}
@@ -76,6 +85,7 @@ export function Data() {
       )}
       {importing && <ImportPanel onClose={() => setImporting(false)} />}
       {merging && <MergePanel onClose={() => setMerging(false)} />}
+      {stacking && <StackPanel onClose={() => setStacking(false)} />}
     </div>
   );
 }
@@ -340,7 +350,7 @@ function DesignFields({
 type Tab = "cleaning" | "quality" | "preview" | "columns";
 
 function DatasetDetail({ ds, onBack }: { ds: Dataset; onBack: () => void }) {
-  const { t, number } = useI18n();
+  const { t, number, lang } = useI18n();
   const { run, error } = useProject();
   const [tab, setTab] = useState<Tab>("cleaning");
   const [settings, setSettings] = useState(false);
@@ -352,6 +362,13 @@ function DatasetDetail({ ds, onBack }: { ds: Dataset; onBack: () => void }) {
     if (!f) return;
     const r = await run<{ matched_columns: number }>("dataset.attach_form", { id: ds.id, file_token: f.token });
     if (r) setExported(t("data.formAttached", { n: number(r.matched_columns, 0), name: f.name }));
+  };
+
+  const exportR = async () => {
+    const f = await pick("r-save", `${t("data.rFile")}-${ds.name}.R`);
+    if (!f) return;
+    const r = await run<{ rules: number; data: string }>("cleaning.export_r", { id: ds.id, file_token: f.token, lang });
+    if (r) setExported(t("data.rExported", { name: f.name, n: number(r.rules, 0) }));
   };
 
   const exportCsv = async () => {
@@ -376,10 +393,11 @@ function DatasetDetail({ ds, onBack }: { ds: Dataset; onBack: () => void }) {
                 file: ds.source_name,
                 rows: number(ds.rows, 0),
                 clean: number(ds.clean_rows, 0),
-                columns: number(ds.columns.length, 0),
+                columns: number(allColumns(ds).length, 0),
               })}
             </p>
             {ds.merge && <MergeLine ds={ds} />}
+            {ds.stack && <StackLine ds={ds} />}
             <p className="muted small">{designText(ds.design, t)}</p>
             <p className="muted small">
               {ds.form_source
@@ -399,6 +417,11 @@ function DatasetDetail({ ds, onBack }: { ds: Dataset; onBack: () => void }) {
             <button className="btn" onClick={exportCsv}>
               <Icon name="download" /> {t("data.export")}
             </button>
+            {ds.rules.length > 0 && (
+              <button className="btn" onClick={exportR} data-testid="export-r">
+                {t("data.exportR")}
+              </button>
+            )}
             <IconButton icon="trash" label={t("common.delete")} onClick={() => setDeleting(true)} />
           </div>
         </div>
@@ -466,6 +489,26 @@ function MergeLine({ ds }: { ds: Dataset }) {
   );
 }
 
+function StackLine({ ds }: { ds: Dataset }) {
+  const { t, number } = useI18n();
+  const { snap, go } = useProject();
+  const st = ds.stack!;
+  const name = (id: string) => snap?.datasets.find((d) => d.id === id)?.name ?? "?";
+  return (
+    <p className="muted small" data-testid="stack-line">
+      {t("stack.line", { n: number(st.sources.length, 0), column: st.source_column })}{" "}
+      {st.sources.map((id, i) => (
+        <span key={id}>
+          {i > 0 && ", "}
+          <button className="link" onClick={() => go("data", id)}>
+            {name(id)}
+          </button>
+        </span>
+      ))}
+    </p>
+  );
+}
+
 function SettingsPanel({ ds, onClose }: { ds: Dataset; onClose: () => void }) {
   const { t } = useI18n();
   const { run } = useProject();
@@ -505,7 +548,7 @@ function SettingsPanel({ ds, onClose }: { ds: Dataset; onClose: () => void }) {
         </div>
       </div>
       <DesignFields
-        columns={ds.columns.map((c) => c.name)}
+        columns={allColumns(ds).map((c) => c.name)}
         design={design}
         onChange={setDesign}
         idCol={idCol}
@@ -516,8 +559,9 @@ function SettingsPanel({ ds, onClose }: { ds: Dataset; onClose: () => void }) {
 }
 
 export function useRuleText() {
-  const { t, number } = useI18n();
+  const { t, number, lang } = useI18n();
   return (r: Rule) => {
+    if (r.description) return r.description[lang] ?? r.description.fr;
     const q = (v: string | null | undefined) =>
       v === null || v === undefined ? t("cleaning.missing") : t("cleaning.quote", { v });
     switch (r.kind) {
@@ -537,6 +581,8 @@ export function useRuleText() {
         });
       case "exclude":
         return t("cleaning.text_exclude", { column: r.column ?? "", values: (r.values ?? []).map(q).join(", ") });
+      default:
+        return t(`cleaning.kind_${r.kind}`);
     }
   };
 }
@@ -552,7 +598,14 @@ function Journal({ ds }: { ds: Dataset }) {
     if (!e) return "";
     const parts = [];
     if (e.rows_removed) parts.push(tn("cleaning.rowsRemoved", e.rows_removed));
-    if (e.cells_changed) parts.push(tn("cleaning.cellsChanged", e.cells_changed));
+    if (e.cells_changed) {
+      const key = ["compute", "classes", "date"].includes(r.kind)
+        ? "cleaning.cellsCreated"
+        : r.kind === "check" && r.action !== "missing"
+          ? "cleaning.rowsFlagged"
+          : "cleaning.cellsChanged";
+      parts.push(tn(key, e.cells_changed));
+    }
     return parts.join(", ") || t("cleaning.noChange");
   };
   return (
@@ -630,9 +683,11 @@ function RulePanel({ ds, onClose }: { ds: Dataset; onClose: () => void }) {
   const [note, setNote] = useState("");
   const [values, setValues] = useState<{ value: string | null; n: number }[]>([]);
   const [stats, setStats] = useState<{ min: number; max: number } | null>(null);
+  const [advanced, setAdvanced] = useState<Partial<Rule> | null>(null);
+  const isAdvanced = ADVANCED.includes(kind);
 
   useEffect(() => {
-    if (!column) return;
+    if (!column || isAdvanced) return;
     call<{ values: { value: string | null; n: number }[]; stats: { min: number; max: number } | null }>(
       "dataset.column_values",
       { id: ds.id, column },
@@ -642,19 +697,21 @@ function RulePanel({ ds, onClose }: { ds: Dataset; onClose: () => void }) {
         setStats(r.stats);
       })
       .catch(() => setValues([]));
-  }, [column, ds.id]);
+  }, [column, ds.id, isAdvanced]);
 
   const num = (s: string) => (s.trim() === "" ? null : Number(s.replace(",", ".")));
   const rule = useMemo(() => {
+    if (isAdvanced) return { ...advanced, note };
     if (kind === "duplicates") return { kind, columns: dupCols, note };
     if (kind === "recode")
       return { kind, column, from: selected.filter((v) => v !== null), to: toMissing ? null : to, note };
     if (kind === "range") return { kind, column, min: num(min), max: num(max), note };
     return { kind, column, values: selected, note };
-  }, [kind, dupCols, column, selected, to, toMissing, min, max, note]);
+  }, [kind, isAdvanced, advanced, dupCols, column, selected, to, toMissing, min, max, note]);
 
-  const valid =
-    kind === "duplicates"
+  const valid = isAdvanced
+    ? advanced !== null
+    : kind === "duplicates"
       ? dupCols.length > 0
       : !!column && (kind === "range" ? min.trim() !== "" || max.trim() !== "" : selected.length > 0);
 
@@ -678,22 +735,32 @@ function RulePanel({ ds, onClose }: { ds: Dataset; onClose: () => void }) {
         </>
       }
     >
-      <div className="kind-grid">
-        {(["recode", "exclude", "range", "duplicates"] as RuleKind[]).map((k) => (
-          <button
-            key={k}
-            className="kind"
-            aria-pressed={kind === k}
-            onClick={() => setKind(k)}
-            data-testid={`kind-${k}`}
-          >
-            <span className="kind-title">{t(`cleaning.kind_${k}`)}</span>
-            <span className="kind-text">{t(`cleaning.kindText_${k}`)}</span>
-          </button>
-        ))}
-      </div>
+      {GROUPS.map((g) => (
+        <div key={g.key} className="kind-group">
+          <span className="kind-group-title">{t(`cleaning.group_${g.key}`)}</span>
+          <div className="kind-grid">
+            {g.kinds.map((k) => (
+              <button
+                key={k}
+                className="kind"
+                aria-pressed={kind === k}
+                onClick={() => {
+                  setKind(k);
+                  setAdvanced(null);
+                }}
+                data-testid={`kind-${k}`}
+              >
+                <span className="kind-title">{t(`cleaning.kind_${k}`)}</span>
+                <span className="kind-text">{t(`cleaning.kindText_${k}`)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
 
-      {kind === "duplicates" ? (
+      {isAdvanced ? (
+        <AdvancedFields key={kind} kind={kind} ds={ds} onChange={setAdvanced} />
+      ) : kind === "duplicates" ? (
         <div className="field">
           <span className="label">{t("cleaning.dupColumns")}</span>
           <div className="chips">
@@ -714,7 +781,7 @@ function RulePanel({ ds, onClose }: { ds: Dataset; onClose: () => void }) {
               aria-label={t("cleaning.addColumn")}
             >
               <option value="">{t("cleaning.addColumn")}</option>
-              {ds.columns
+              {allColumns(ds)
                 .filter((c) => !dupCols.includes(c.name))
                 .map((c) => (
                   <option key={c.name}>{c.name}</option>
@@ -737,7 +804,7 @@ function RulePanel({ ds, onClose }: { ds: Dataset; onClose: () => void }) {
               data-testid="rule-column"
             >
               <option value="">{t("common.choose")}</option>
-              {ds.columns
+              {allColumns(ds)
                 .filter((c) => kind !== "range" || c.type === "number")
                 .map((c) => (
                   <option key={c.name}>{c.name}</option>
@@ -950,7 +1017,8 @@ function Columns({ ds }: { ds: Dataset }) {
   const { col } = useLabels();
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
-  const list = ds.columns.filter((c) => {
+  const created = new Set((ds.derived_columns ?? []).map((c) => c.name));
+  const list = allColumns(ds).filter((c) => {
     const needle = q.toLowerCase();
     return c.name.toLowerCase().includes(needle) || (col(c.name, ds) ?? "").toLowerCase().includes(needle);
   });
@@ -978,7 +1046,10 @@ function Columns({ ds }: { ds: Dataset }) {
           <tbody>
             {list.slice(0, 500).map((c) => (
               <tr key={c.name}>
-                <td className="mono">{c.name}</td>
+                <td className="mono">
+                  {c.name}
+                  {created.has(c.name) && <span className="tag small-tag">{t("data.createdColumn")}</span>}
+                </td>
                 <td>
                   <button
                     className="link label-edit"
