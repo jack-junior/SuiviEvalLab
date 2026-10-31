@@ -84,9 +84,20 @@ export interface FrameworkNode {
   level: Level;
   title: string;
   description: string;
+  assumptions: string;
   code: string;
   depth: number;
   children: number;
+}
+
+export interface FrameworkLevel {
+  fr: string;
+  en: string;
+  indicators: boolean;
+}
+export interface FrameworkModel {
+  id: "standard" | "eu" | "usaid" | "un" | "worldbank" | "custom";
+  levels: FrameworkLevel[];
 }
 
 export type Unit = "percent" | "mean" | "count" | "ratio";
@@ -120,6 +131,21 @@ export interface Indicator {
   frequency?: Frequency;
   responsible?: string;
   target_date?: string;
+  /** survey: computed from the datasets; routine: values typed period by period. */
+  source_type?: "survey" | "routine";
+  aggregation?: "sum" | "last" | "mean";
+  categories?: string[];
+}
+
+export interface RoutinePeriod {
+  period: string;
+  end: string | null;
+  achieved: number | null;
+  planned: number | null;
+  by: Record<string, number>;
+  note: string;
+  to_date?: number | null;
+  planned_to_date?: number | null;
 }
 
 export interface ColumnInfo {
@@ -212,6 +238,7 @@ export interface ProjectInfo {
   updated_at: string;
   counts: Record<Level, number>;
   report_template: string | null;
+  framework_model: FrameworkModel;
 }
 
 export interface Snapshot {

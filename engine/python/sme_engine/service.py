@@ -15,7 +15,7 @@ from typing import Any
 
 import polars as pl
 
-from . import cleaning, datasets, indicators, merge, quality, stattests, xlsform
+from . import cleaning, datasets, frameworks, indicators, merge, quality, routine, stattests, xlsform
 from .project import Project, Workspace, _err, _text
 from .r_bridge import RBridge
 from .rpc import INVALID_PARAMS, RpcError, Server
@@ -329,8 +329,8 @@ class Service:
         else:
             node_id = params.get("node_id")
             node = self.project._node(node_id)
-            if node["level"] == "activity":
-                raise _err("Indicators belong to results, not activities", "indicator_on_activity")
+            if not frameworks.carries_indicators(self.project.model(), node["level"]):
+                raise _err("This level of the framework does not carry indicators", "indicator_on_activity")
             created = self.project.insert_record("indicator", spec, scope=node_id)
         self._results.clear()
         return {**self.snapshot(), "saved": created}
@@ -509,8 +509,32 @@ class Service:
         w = df[col].cast(pl.Float64, strict=False).drop_nulls()
         return float(w.mean()) if w.len() and w.mean() and w.mean() > 0 else None  # type: ignore[operator]
 
+    def routine_values(self, indicator_id: str) -> list[dict[str, Any]]:
+        recs = self.project.records("routine_value", indicator_id)
+        return [{k: v for k, v in r.items() if k not in ("id", "indicator_id")} for r in recs]
+
+    def save_routine(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Replace all the period values of a routine indicator (the grid is saved as a whole)."""
+        ind = self.project.record("indicator", params.get("indicator_id"))
+        if ind.get("source_type") != "routine":
+            raise _err("This indicator is computed from survey data", "routine_not_routine")
+        rows = routine.validate_values(params.get("values"), ind.get("categories") or [], ind["unit"] == "percent")
+        with self.project.conn:
+            self.project.conn.execute("DELETE FROM routine_value WHERE indicator_id = ?", (ind["id"],))
+        for row in rows:
+            self.project.insert_record("routine_value", row, scope=ind["id"])
+        self._results.clear()
+        return {**self.snapshot(), "analysis": self.indicator_analysis(ind["id"]), "saved": len(rows)}
+
     def indicator_analysis(self, indicator_id: Any) -> dict[str, Any]:
         ind = self.project.record("indicator", indicator_id)
+        if ind.get("source_type") == "routine":
+            return {
+                "indicator": ind,
+                "rounds": [],
+                "comparison": None,
+                **routine.analyse(ind, self.routine_values(ind["id"])),
+            }
         rounds = []
         for ds in self._ordered_datasets():
             est = self.estimate(ind, ds)
@@ -569,6 +593,11 @@ class Service:
         rows = []
         ordered = self._ordered_datasets()
         for ind in self.ordered_indicators():
+            if ind.get("source_type") == "routine":
+                an = routine.analyse(ind, self.routine_values(ind["id"]))
+                keys = ("baseline", "baseline_source", "current", "current_round", "target", "achievement", "status")
+                rows.append({"indicator_id": ind["id"], "node_id": ind["node_id"], **{k: an[k] for k in keys}})
+                continue
             usable = []
             for ds in ordered:
                 est = self.estimate(ind, ds, by=False)
@@ -590,7 +619,8 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
     def create(params: dict[str, Any]) -> dict[str, Any]:
         path = _text(params, "path", max_len=4000)
         name = _text(params, "name", max_len=200)
-        opened(Project.create(path, name))
+        model = frameworks.validate(params["model"]) if params.get("model") else None
+        opened(Project.create(path, name, model))
         if params.get("example") is True:
             from .example import fill_example
 
@@ -691,12 +721,73 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
         parent_id = params.get("parent_id")
         if parent_id is not None and not isinstance(parent_id, str):
             raise _err("parent_id must be a string or null", "invalid_params")
-        created = svc.project.add_node(parent_id, _text(params, "title"), _text(params, "description", required=False))
+        created = svc.project.add_node(
+            parent_id,
+            _text(params, "title"),
+            _text(params, "description", required=False),
+            _text(params, "assumptions", required=False),
+        )
         return {**svc.snapshot(), "created": created["id"]}
 
     @server.method("framework.update")
     def fw_update(params: dict[str, Any]) -> dict[str, Any]:
-        svc.project.update_node(params.get("id"), _text(params, "title"), _text(params, "description", required=False))
+        svc.project.update_node(
+            params.get("id"),
+            _text(params, "title"),
+            _text(params, "description", required=False),
+            _text(params, "assumptions", required=False) if "assumptions" in params else None,
+        )
+        return svc.snapshot()
+
+    @server.method("routine.get")
+    def routine_get(params: dict[str, Any]) -> dict[str, Any]:
+        return svc.indicator_analysis(params.get("indicator_id"))
+
+    @server.method("routine.save")
+    def routine_save(params: dict[str, Any]) -> dict[str, Any]:
+        return svc.save_routine(params)
+
+    @server.method("routine.parse")
+    def routine_parse(params: dict[str, Any]) -> dict[str, Any]:
+        """Rows pasted from Excel, read but not saved: the grid shows them for checking first."""
+        ind = svc.project.record("indicator", params.get("indicator_id"))
+        text = params.get("text")
+        if not isinstance(text, str) or len(text) > 200_000:
+            raise _err("Nothing to read", "routine_invalid")
+        cats = ind.get("categories") or []
+        rows = routine.validate_values(routine.parse_paste(text, cats), cats, ind["unit"] == "percent")
+        return {"values": rows}
+
+    @server.method("framework.models")
+    def fw_models(_: dict[str, Any]) -> dict[str, Any]:
+        """The models offered when creating a project (no project needed)."""
+        return {"models": [{"id": k, "levels": v} for k, v in frameworks.MODELS.items()], "default": frameworks.DEFAULT}
+
+    @server.method("framework.set_model")
+    def fw_set_model(params: dict[str, Any]) -> dict[str, Any]:
+        """Change the framework model. Refused if existing nodes or indicators would not fit."""
+        model = frameworks.validate(params.get("model"))
+        p = svc.project
+        depth = len(model["levels"])
+        nodes = p.framework()
+        too_deep = [n for n in nodes if frameworks.level_index(n["level"]) >= depth]
+        if too_deep:
+            raise _err(
+                f"{len(too_deep)} elements of the framework are below the last level of this model",
+                "framework_model_too_shallow",
+            )
+        with_ind = {i["node_id"] for i in p.records("indicator")}
+        blocked = [
+            n
+            for n in nodes
+            if n["id"] in with_ind and not model["levels"][frameworks.level_index(n["level"])]["indicators"]
+        ]
+        if blocked:
+            raise _err(
+                f"Indicators are attached to {len(blocked)} elements of a level without indicators in this model",
+                "framework_model_indicators",
+            )
+        p.set_meta("framework_model", json.dumps(model, ensure_ascii=False))
         return svc.snapshot()
 
     @server.method("framework.delete")

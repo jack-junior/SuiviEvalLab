@@ -17,7 +17,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
-from . import __version__, stattests, xlsform
+from . import __version__, frameworks, routine, stattests, xlsform
 
 INK = RGBColor(0x1F, 0x1E, 0x1C)
 ACTION = RGBColor(0x1D, 0x4F, 0x91)
@@ -79,6 +79,7 @@ T = {
         "col_level": "Niveau",
         "col_title": "Intitulé",
         "col_indicators": "Indicateurs",
+        "col_assumptions": "Hypothèses et risques",
         "annex_data": "Annexe A. Données et nettoyage",
         "ds_line": "Fichier {file} ({sheet}), importé le {date} : {rows} lignes, {clean} après nettoyage.",
         "design": "Plan d'enquête : {text}.",
@@ -178,6 +179,7 @@ T = {
         "col_level": "Level",
         "col_title": "Title",
         "col_indicators": "Indicators",
+        "col_assumptions": "Assumptions and risks",
         "annex_data": "Appendix A. Data and cleaning",
         "ds_line": "File {file} ({sheet}), imported on {date}: {rows} rows, {clean} after cleaning.",
         "design": "Survey design: {text}.",
@@ -483,6 +485,63 @@ def _narrative(ind: dict[str, Any], an: dict[str, Any], t: dict[str, Any], f: Fm
     return out
 
 
+def _routine_section(doc: Any, svc: Any, ind: dict[str, Any], an: dict[str, Any], lang: str, f: Fmt, workdir: Path):
+    """A routine monitoring indicator: reading, chart of the values to date, table of the periods."""
+    t, rt = T[lang], routine.TEXT[lang]
+    unit = ind["unit"]
+    doc.add_paragraph(" ".join(routine.sentences(ind, an, lang, f)))
+    done = [p for p in an["periods"] if p.get("to_date") is not None]
+    if not done:
+        return
+    png = workdir / f"chart_{ind['id']}.png"
+    svc.bridge.call(
+        "chart",
+        {
+            "out": str(png),
+            "labels": [p["period"] for p in done],
+            "values": [p["to_date"] for p in done],
+            "lows": [None for _ in done],
+            "highs": [None for _ in done],
+            "target": an.get("target"),
+            "percent": unit == "percent",
+            "title": "",
+            "ylab": t["chart_ylab_percent"] if unit == "percent" else (ind.get("unit_label") or ""),
+            "target_label": t["chart_target"],
+            "decimal": "," if lang == "fr" else ".",
+        },
+    )
+    doc.add_picture(str(png), width=Cm(15))
+    cats = ind.get("categories") or []
+    header = [
+        rt["col_period"],
+        rt["col_achieved"],
+        *cats,
+        rt["col_planned"],
+        rt["col_to_date"],
+        rt["col_planned_to_date"],
+    ]
+    rows = [
+        [
+            p["period"],
+            f.value(p.get("achieved"), unit),
+            *[f.value(p.get("by", {}).get(c), unit) for c in cats],
+            f.value(p.get("planned"), unit),
+            f.value(p.get("to_date"), unit),
+            f.value(p.get("planned_to_date"), unit),
+        ]
+        for p in an["periods"]
+    ]
+    _table(doc, header, rows)
+    if ind.get("source"):
+        p = doc.add_paragraph()
+        r1 = p.add_run(t["source"])
+        r1.font.size = Pt(9)
+        r1.font.color.rgb = MUTED
+        r2 = p.add_run(ind["source"])
+        r2.font.size = Pt(9)
+        r2.font.color.rgb = MUTED
+
+
 def generate(svc: Any, path: Path, lang: str, template: bytes | None = None) -> dict[str, Any]:
     t = T[lang]
     f = Fmt(lang)
@@ -569,7 +628,7 @@ def generate(svc: Any, path: Path, lang: str, template: bytes | None = None) -> 
         inds = [i for i in snap["indicators"] if i["node_id"] == node["id"]]
         if not inds:
             continue
-        label = t["levels"][node["level"]]
+        label = frameworks.name(project["framework_model"], node["level"], lang)
         _heading(
             doc,
             f"{label} {node['code']} : {node['title']}"
@@ -586,6 +645,9 @@ def generate(svc: Any, path: Path, lang: str, template: bytes | None = None) -> 
                 p = doc.add_paragraph()
                 p.add_run(t["definition"]).bold = True
                 p.add_run(ind["definition"])
+            if an.get("source") == "routine":
+                _routine_section(doc, svc, ind, an, lang, f, workdir)
+                continue
             usable = [r for r in an["rounds"] if "error_key" not in r["result"]]
             if not usable:
                 doc.add_paragraph(t["no_data"])
@@ -679,8 +741,17 @@ def generate(svc: Any, path: Path, lang: str, template: bytes | None = None) -> 
     fw_rows = []
     for node in snap["framework"]:
         names = "; ".join(i["name"] for i in snap["indicators"] if i["node_id"] == node["id"])
-        fw_rows.append([node["code"] or "", t["levels"][node["level"]], node["title"], names])
-    _table(doc, [t["col_code"], t["col_level"], t["col_title"], t["col_indicators"]], fw_rows, [1.4, 2, 7.8, 5.4])
+        fw_rows.append(
+            [node["code"] or "", frameworks.name(project["framework_model"], node["level"], lang), node["title"], names]
+        )
+    if any(n.get("assumptions") for n in snap["framework"]):
+        # Logframe column: assumptions and risks of each element.
+        for row, node in zip(fw_rows, snap["framework"], strict=True):
+            row.insert(3, node.get("assumptions") or "")
+        header = [t["col_code"], t["col_level"], t["col_title"], t["col_assumptions"], t["col_indicators"]]
+        _table(doc, header, fw_rows, [1.2, 2.2, 5.4, 4, 4])
+    else:
+        _table(doc, [t["col_code"], t["col_level"], t["col_title"], t["col_indicators"]], fw_rows, [1.4, 2, 7.8, 5.4])
 
     # Appendix A
     _heading(doc, t["annex_data"], level=1)
@@ -722,6 +793,8 @@ def generate(svc: Any, path: Path, lang: str, template: bytes | None = None) -> 
         _bullet(doc, t["methods"][key])
     for key in sorted(used_tests):
         _bullet(doc, t["tests"][key])
+    for how in sorted({a["aggregation"] for a in analyses.values() if a.get("source") == "routine"}):
+        _bullet(doc, routine.TEXT[lang]["method"].format(how=routine.TEXT[lang]["how"][how]))
     doc.add_paragraph(t["achievement_def"])
 
     attributions = [ds["attribution"] for ds in snap["datasets"] if ds.get("attribution")]

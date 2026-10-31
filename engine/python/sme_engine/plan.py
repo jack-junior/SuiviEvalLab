@@ -14,6 +14,7 @@ from typing import Any
 
 import xlsxwriter
 
+from . import frameworks
 from .report import Fmt, T
 
 P = {
@@ -41,7 +42,7 @@ P = {
             "Réalisation",
             "Statut",
         ],
-        "fw_cols": ["Code", "Niveau", "Intitulé", "Description", "Indicateurs"],
+        "fw_cols": ["Code", "Niveau", "Intitulé", "Description", "Hypothèses et risques", "Indicateurs"],
         "units": {"percent": "Pourcentage", "mean": "Moyenne", "count": "Effectif", "ratio": "Ratio"},
         "freq": {
             "": "",
@@ -63,6 +64,8 @@ P = {
         "and": " et ",
         "or": " ou ",
         "incomplete": "Règle de calcul à compléter",
+        "routine": "Suivi de routine : valeurs relevées par période, {how}",
+        "how": {"sum": "cumulées", "last": "dernière valeur", "mean": "moyenne des périodes"},
         "generated": "Généré le {date} avec SuiviEvalLab",
     },
     "en": {
@@ -89,7 +92,7 @@ P = {
             "Achievement",
             "Status",
         ],
-        "fw_cols": ["Code", "Level", "Title", "Description", "Indicators"],
+        "fw_cols": ["Code", "Level", "Title", "Description", "Assumptions and risks", "Indicators"],
         "units": {"percent": "Percentage", "mean": "Mean", "count": "Count", "ratio": "Ratio"},
         "freq": {
             "": "",
@@ -111,6 +114,8 @@ P = {
         "and": " and ",
         "or": " or ",
         "incomplete": "Calculation rule to complete",
+        "routine": "Routine monitoring: values recorded per period, {how}",
+        "how": {"sum": "cumulative", "last": "latest value", "mean": "mean of the periods"},
         "generated": "Generated on {date} with SuiviEvalLab",
     },
 }
@@ -119,6 +124,8 @@ P = {
 def calculation(ind: dict[str, Any], lang: str, label: Any, f: Fmt) -> str:
     """The calculation rule of an indicator, in words, with readable labels."""
     p = P[lang]
+    if ind.get("source_type") == "routine":
+        return p["routine"].format(how=p["how"][ind.get("aggregation") or "sum"])
     conds = ind.get("conditions") or (
         [{"column": ind["column"], "values": ind.get("success_values") or []}] if ind.get("column") else []
     )
@@ -157,6 +164,7 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
     snap = svc.snapshot()
     label = svc.labeller(lang)
     nodes = {n["id"]: n for n in snap["framework"]}
+    model = snap["project"]["framework_model"]
     summary = {r["indicator_id"]: r for r in svc.overview()["rows"]}
     if path.suffix.lower() != ".xlsx":
         path = path.with_suffix(".xlsx")
@@ -204,7 +212,7 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
         status = s.get("status", "unknown")
         values = [
             node.get("code") or "",
-            t["levels"].get(node.get("level", ""), ""),
+            frameworks.name(model, node["level"], lang) if node else "",
             node.get("title", ""),
             ind["name"],
             ind.get("definition") or "",
@@ -227,7 +235,7 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
     ws.autofilter(3, 0, max(row - 1, 3), len(p["cols"]) - 1)
 
     fw = wb.add_worksheet(p["sheet_fw"])
-    for i, w in enumerate([8, 12, 50, 50, 50]):
+    for i, w in enumerate([8, 18, 46, 40, 36, 46]):
         fw.set_column(i, i, w)
     fw.write_row(0, 0, p["fw_cols"], head)
     fw.set_landscape()
@@ -239,7 +247,14 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
         fw.write_row(
             i,
             0,
-            [node.get("code") or "", t["levels"][node["level"]], node["title"], node.get("description") or "", names],
+            [
+                node.get("code") or "",
+                frameworks.name(model, node["level"], lang),
+                node["title"],
+                node.get("description") or "",
+                node.get("assumptions") or "",
+                names,
+            ],
             cell,
         )
     wb.close()
