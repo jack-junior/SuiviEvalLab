@@ -1439,3 +1439,135 @@ button.cell-sub {
   display: block;
   font-weight: 600;
 }
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.brand img {
+  flex: none;
+  border-radius: 7px;
+}
+.app.folded .side-top {
+  flex-direction: column;
+  gap: 10px;
+}
+
+.choice-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.choice-row .choice p {
+  flex: 1;
+}
+.input.search {
+  max-width: 260px;
+}
+.projects {
+  border: 1px solid var(--ligne);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.project-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 10px;
+}
+.project-row + .project-row {
+  border-top: 1px solid var(--ligne);
+}
+.project-row:hover .row-tools,
+.project-row:focus-within .row-tools {
+  opacity: 1;
+}
+.project-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  border: 0;
+  background: none;
+  padding: 12px 16px;
+  cursor: pointer;
+  border-radius: 12px;
+}
+.project-open:hover:not(:disabled) .project-title {
+  color: var(--action);
+}
+.project-open:disabled {
+  cursor: default;
+}
+.project-row.missing .project-title,
+.project-row.missing .project-path {
+  color: var(--encre-3);
+}
+.project-title {
+  font-weight: 600;
+}
+.project-path {
+  font-size: 12.5px;
+  color: var(--encre-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 12.5px;
+  color: var(--encre-2);
+  margin-top: 2px;
+}
+.project-status {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.inline-check {
+  align-self: flex-start;
+  padding-left: 0;
+}
+
+.code {
+  font-family: var(--code);
+  font-size: 11.5px;
+  color: var(--encre-3);
+}
+.form-check {
+  background: var(--action-teinte);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.label-edit {
+  font-size: 13px;
+  color: var(--encre);
+}
+.label-edit:hover {
+  color: var(--action);
+}
+.value-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.value-label-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 160px) 52px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+.value-label-row .mono {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.value-label-row .small {
+  text-align: right;
+}

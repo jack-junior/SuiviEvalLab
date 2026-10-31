@@ -27,6 +27,7 @@ interface I18n {
   hasKey: (key: string) => key is MessageKey;
   /** Count text: uses `${key}_one` or `${key}_other` (French: 0 and 1 take the singular). */
   tn: (key: string, n: number, vars?: Vars) => string;
+  date: (iso: string | null | undefined) => string;
   number: (x: number, digits?: number) => string;
   percent: (share: number, digits?: number) => string;
 }
@@ -60,6 +61,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         return vars ? text.replace(/\{(\w+)\}/g, (m, name: string) => (name in vars ? String(vars[name]) : m)) : text;
       },
       hasKey: (key): key is MessageKey => key in catalogue,
+      date: (iso) =>
+        iso ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso)) : "",
       tn: (key, n, vars) => {
         const one = lang === "fr" ? Math.abs(n) < 2 : n === 1;
         const text = catalogue[`${key}_${one ? "one" : "other"}` as MessageKey] ?? key;

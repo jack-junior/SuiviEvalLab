@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { call, Dataset, Design, Inspection, Picked, pick, Round, Rule, RuleKind } from "../api";
 import { useI18n } from "../i18n";
+import { pickLabel, useLabels } from "../labels";
 import { useProject } from "../state";
 import { Confirm, Empty, Field, Icon, IconButton, Notice, Panel } from "../ui";
 
@@ -83,6 +84,7 @@ function ImportPanel({ onClose }: { onClose: () => void }) {
   const [idCol, setIdCol] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [useForm, setUseForm] = useState(true);
 
   const inspect = async (f: Picked, sheet?: string) => {
     setLoading(true);
@@ -120,6 +122,7 @@ function ImportPanel({ onClose }: { onClose: () => void }) {
         round,
         design,
         id_column: idCol,
+        form: useForm && info.form ? info.form : null,
       },
       "import",
     );
@@ -221,6 +224,19 @@ function ImportPanel({ onClose }: { onClose: () => void }) {
               ))}
             </div>
           </div>
+          {info.form && (
+            <label className="check form-check">
+              <input
+                type="checkbox"
+                checked={useForm}
+                onChange={(e) => setUseForm(e.target.checked)}
+                data-testid="use-form"
+              />
+              <span className="check-text">
+                {t("data.useForm", { survey: info.form.survey, choices: info.form.choices ?? "" })}
+              </span>
+            </label>
+          )}
           <DesignFields columns={cols} design={design} onChange={setDesign} idCol={idCol} onIdCol={setIdCol} />
         </>
       )}
@@ -315,6 +331,13 @@ function DatasetDetail({ ds, onBack }: { ds: Dataset; onBack: () => void }) {
   const [deleting, setDeleting] = useState(false);
   const [exported, setExported] = useState<string | null>(null);
 
+  const attachForm = async () => {
+    const f = await pick("data-open");
+    if (!f) return;
+    const r = await run<{ matched_columns: number }>("dataset.attach_form", { id: ds.id, file_token: f.token });
+    if (r) setExported(t("data.formAttached", { n: number(r.matched_columns, 0), name: f.name }));
+  };
+
   const exportCsv = async () => {
     const f = await pick("csv-save", `${ds.name}.csv`);
     if (!f) return;
@@ -341,6 +364,16 @@ function DatasetDetail({ ds, onBack }: { ds: Dataset; onBack: () => void }) {
               })}
             </p>
             <p className="muted small">{designText(ds.design, t)}</p>
+            <p className="muted small">
+              {ds.form_source
+                ? t("data.labelsFrom", { file: ds.form_source.file })
+                : Object.keys(ds.labels?.columns ?? {}).length > 0
+                  ? t("data.labelsTyped")
+                  : t("data.noLabels")}{" "}
+              <button className="link" onClick={attachForm} data-testid="attach-form">
+                {t("data.attachForm")}
+              </button>
+            </p>
           </div>
           <div className="row-actions">
             <button className="btn" onClick={() => setSettings(true)}>
@@ -544,6 +577,7 @@ function Journal({ ds }: { ds: Dataset }) {
 function RulePanel({ ds, onClose }: { ds: Dataset; onClose: () => void }) {
   const { t, number } = useI18n();
   const { run } = useProject();
+  const { valText, val } = useLabels();
   const [kind, setKind] = useState<RuleKind>("recode");
   const [column, setColumn] = useState<string>("");
   const [selected, setSelected] = useState<(string | null)[]>([]);
@@ -690,7 +724,10 @@ function RulePanel({ ds, onClose }: { ds: Dataset; onClose: () => void }) {
                       setSelected(e.target.checked ? [...selected, v.value] : selected.filter((x) => x !== v.value))
                     }
                   />
-                  <span className="check-text">{v.value ?? t("cleaning.missing")}</span>
+                  <span className="check-text">
+                    {v.value === null ? t("cleaning.missing") : valText(column, v.value, ds)}
+                    {v.value !== null && val(column, v.value, ds) && <span className="code"> {v.value}</span>}
+                  </span>
                   <span className="muted small">{number(v.n, 0)}</span>
                 </label>
               ))}
@@ -771,6 +808,9 @@ function Preview({ ds }: { ds: Dataset }) {
   const { t, number } = useI18n();
   const { describe } = useProject();
   const [cleaned, setCleaned] = useState(true);
+  const [showLabels, setShowLabels] = useState(false);
+  const { col, val } = useLabels();
+  const hasLabels = Object.keys(ds.labels?.values ?? {}).length > 0 || Object.keys(ds.labels?.columns ?? {}).length > 0;
   const [offset, setOffset] = useState(0);
   const [page, setPage] = useState<{ total: number; columns: string[]; rows: (string | null)[][] } | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -795,6 +835,17 @@ function Preview({ ds }: { ds: Dataset }) {
           <button className="chip" aria-pressed={!cleaned} onClick={() => (setCleaned(false), setOffset(0))}>
             {t("data.raw")}
           </button>
+          {hasLabels && (
+            <label className="check inline-check">
+              <input
+                type="checkbox"
+                checked={showLabels}
+                onChange={(e) => setShowLabels(e.target.checked)}
+                data-testid="show-labels"
+              />
+              <span className="check-text">{t("data.showLabels")}</span>
+            </label>
+          )}
         </div>
         {page && (
           <div className="pager">
@@ -828,7 +879,9 @@ function Preview({ ds }: { ds: Dataset }) {
               <tr>
                 <th className="rownum">#</th>
                 {page.columns.map((c) => (
-                  <th key={c}>{c}</th>
+                  <th key={c} title={col(c, ds) ? `${col(c, ds)} (${c})` : c}>
+                    {showLabels ? (col(c, ds) ?? c) : c}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -838,7 +891,7 @@ function Preview({ ds }: { ds: Dataset }) {
                   <td className="rownum">{offset + i + 1}</td>
                   {r.map((v, j) => (
                     <td key={j} className={v === null ? "na" : undefined}>
-                      {v ?? t("data.na")}
+                      {v === null ? t("data.na") : showLabels ? (val(page.columns[j], v, ds) ?? v) : v}
                     </td>
                   ))}
                 </tr>
@@ -853,8 +906,13 @@ function Preview({ ds }: { ds: Dataset }) {
 
 function Columns({ ds }: { ds: Dataset }) {
   const { t, number, percent } = useI18n();
+  const { col } = useLabels();
   const [q, setQ] = useState("");
-  const list = ds.columns.filter((c) => c.name.toLowerCase().includes(q.toLowerCase()));
+  const [editing, setEditing] = useState<string | null>(null);
+  const list = ds.columns.filter((c) => {
+    const needle = q.toLowerCase();
+    return c.name.toLowerCase().includes(needle) || (col(c.name, ds) ?? "").toLowerCase().includes(needle);
+  });
   return (
     <section className="stack">
       <input
@@ -869,6 +927,7 @@ function Columns({ ds }: { ds: Dataset }) {
           <thead>
             <tr>
               <th>{t("data.colName")}</th>
+              <th>{t("data.colLabel")}</th>
               <th>{t("data.colType")}</th>
               <th className="num">{t("data.colMissing")}</th>
               <th className="num">{t("data.colDistinct")}</th>
@@ -879,6 +938,15 @@ function Columns({ ds }: { ds: Dataset }) {
             {list.slice(0, 500).map((c) => (
               <tr key={c.name}>
                 <td className="mono">{c.name}</td>
+                <td>
+                  <button
+                    className="link label-edit"
+                    onClick={() => setEditing(c.name)}
+                    data-testid={`label-${c.name}`}
+                  >
+                    {col(c.name, ds) ?? <span className="muted">{t("data.addLabel")}</span>}
+                  </button>
+                </td>
                 <td>{t(`data.type_${c.type}`)}</td>
                 <td className="num">{percent(c.rows ? c.missing / c.rows : 0, 0)}</td>
                 <td className="num">{number(c.distinct, 0)}</td>
@@ -891,6 +959,89 @@ function Columns({ ds }: { ds: Dataset }) {
         </table>
       </div>
       <p className="muted small">{t("data.columnsNote")}</p>
+      {editing && <LabelPanel ds={ds} column={editing} onClose={() => setEditing(null)} />}
     </section>
+  );
+}
+
+/** Labels of one column and of its most frequent codes, in the interface language. */
+function LabelPanel({ ds, column, onClose }: { ds: Dataset; column: string; onClose: () => void }) {
+  const { t, lang, number } = useI18n();
+  const { run } = useProject();
+  const current = ds.labels?.columns?.[column];
+  const [label, setLabel] = useState(current?.[lang] ?? pickLabel(current, lang) ?? "");
+  const [codes, setCodes] = useState<{ value: string | null; n: number }[] | null>(null);
+  const [texts, setTexts] = useState<Record<string, string>>({});
+  useEffect(() => {
+    call<{ values: { value: string | null; n: number }[] }>("dataset.column_values", {
+      id: ds.id,
+      column,
+      cleaned: false,
+    })
+      .then((r) => {
+        setCodes(r.values);
+        const init: Record<string, string> = {};
+        for (const v of r.values)
+          if (v.value !== null) init[v.value] = pickLabel(ds.labels?.values?.[column]?.[v.value], lang) ?? "";
+        setTexts(init);
+      })
+      .catch(() => setCodes([]));
+  }, [ds.id, column, ds.labels, lang]);
+  const save = async () => {
+    if (await run("dataset.set_labels", { id: ds.id, column, lang, label, values: texts })) onClose();
+  };
+  const fewValues = (codes?.length ?? 0) <= 40;
+  return (
+    <Panel
+      title={t("data.labelsTitle", { column })}
+      onClose={onClose}
+      testId="label-panel"
+      footer={
+        <>
+          <button className="btn" onClick={onClose}>
+            {t("common.cancel")}
+          </button>
+          <button className="btn primary" onClick={save} data-testid="label-save">
+            {t("common.save")}
+          </button>
+        </>
+      }
+    >
+      <p className="muted small">{t("data.labelsHelp")}</p>
+      <Field label={t("data.columnLabel")}>
+        {(id) => (
+          <input
+            id={id}
+            className="input"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            data-testid="column-label"
+          />
+        )}
+      </Field>
+      {codes && fewValues && codes.some((c) => c.value !== null) && (
+        <div className="field">
+          <span className="label">{t("data.valueLabels")}</span>
+          <div className="value-labels">
+            {codes
+              .filter((c) => c.value !== null)
+              .map((c) => (
+                <div key={c.value} className="value-label-row">
+                  <span className="mono">{c.value}</span>
+                  <span className="muted small">{number(c.n, 0)}</span>
+                  <input
+                    className="input"
+                    value={texts[c.value!] ?? ""}
+                    onChange={(e) => setTexts({ ...texts, [c.value!]: e.target.value })}
+                    aria-label={t("data.valueLabelFor", { code: c.value! })}
+                    data-testid={`value-label-${c.value}`}
+                  />
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+      {codes && !fewValues && <p className="muted small">{t("data.tooManyValues")}</p>}
+    </Panel>
   );
 }

@@ -3,6 +3,7 @@ productName: SuiviEvalLab
 copyright: Licence GPL-3.0-or-later
 directories:
   output: release
+  buildResources: build-resources
 files:
   - dist/**/*
   - package.json
@@ -27,6 +28,7 @@ extraResources:
       - worker.R
       - R/*.R
 win:
+  icon: build-resources/icon.ico
   target:
     - target: nsis
       arch:
@@ -39,3 +41,5 @@ nsis:
   shortcutName: SuiviEvalLab
   artifactName: SuiviEvalLab-${version}-installation.exe
   unicode: true
+  installerIcon: build-resources/icon.ico
+  uninstallerIcon: build-resources/icon.ico

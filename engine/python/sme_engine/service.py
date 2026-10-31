@@ -14,7 +14,7 @@ from typing import Any
 
 import polars as pl
 
-from . import cleaning, datasets, indicators
+from . import cleaning, datasets, indicators, xlsform
 from .project import Project, Workspace, _err, _text
 from .r_bridge import RBridge
 from .rpc import INVALID_PARAMS, RpcError, Server
@@ -95,6 +95,11 @@ class Service:
         sheet = params.get("sheet")
         df = datasets.load(path, sheet if isinstance(sheet, str) else None)
         spec = datasets.new_spec(name, round_, path, sheet if isinstance(sheet, str) else None, df, params)
+        form = params.get("form")
+        if isinstance(form, dict) and isinstance(form.get("survey"), str):
+            parsed = xlsform.parse(path, form["survey"], form.get("choices"), df.columns)
+            spec["labels"] = parsed["labels"]
+            spec["form_source"] = {"file": path.name, **form}
         new_id = self.project.insert_record("dataset", spec, raw=datasets.to_parquet(df))
         self._raw[new_id] = df
         return {**self.snapshot(), "created": new_id}
@@ -119,6 +124,53 @@ class Service:
             spec["id_column"] = col
         self.project.update_record("dataset", spec["id"], spec)
         self._results.clear()
+        return self.snapshot()
+
+    def attach_form(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Read labels from a questionnaire file (XLSForm) for an imported dataset."""
+        spec = self.dataset_spec(params.get("id"))
+        path = Path(_text(params, "path", max_len=4000))
+        sheets = datasets.sheet_names(path)
+        form = xlsform.find_form(path, sheets)
+        if not form:
+            raise _err("No XLSForm survey sheet found in this file", "form_not_found")
+        parsed = xlsform.parse(path, form["survey"], form.get("choices"), [c["name"] for c in spec["columns"]])
+        if parsed["matched_columns"] == 0:
+            raise _err("The questionnaire matches no column of this dataset", "form_no_match")
+        spec["labels"] = xlsform.merge(spec.get("labels"), parsed["labels"])
+        spec["form_source"] = {"file": path.name, **form}
+        self.project.update_record("dataset", spec["id"], spec)
+        return {
+            **self.snapshot(),
+            "matched_columns": parsed["matched_columns"],
+            "matched_value_lists": parsed["matched_value_lists"],
+        }
+
+    def set_labels(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Labels typed by the user for one column and its values, in one language."""
+        spec = self.dataset_spec(params.get("id"))
+        column = params.get("column")
+        if column not in [c["name"] for c in spec["columns"]]:
+            raise _err(f"Unknown column: {column}", "column_not_found")
+        lang = params.get("lang") if params.get("lang") in ("fr", "en") else "default"
+        labels = spec.setdefault("labels", {"columns": {}, "values": {}})
+        if "label" in params:
+            text = _text(params, "label", required=False, max_len=500)
+            col_labels = labels["columns"].setdefault(column, {})
+            if text:
+                col_labels[lang] = text
+            else:
+                col_labels.pop(lang, None)
+        values = params.get("values")
+        if isinstance(values, dict):
+            target = labels["values"].setdefault(column, {})
+            for code, text in values.items():
+                entry = target.setdefault(str(code), {})
+                if isinstance(text, str) and text.strip():
+                    entry[lang] = text.strip()[:300]
+                else:
+                    entry.pop(lang, None)
+        self.project.update_record("dataset", spec["id"], spec)
         return self.snapshot()
 
     def export_dataset(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -425,6 +477,14 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
     @server.method("dataset.update")
     def ds_update(params: dict[str, Any]) -> dict[str, Any]:
         return svc.update_dataset(params)
+
+    @server.method("dataset.attach_form")
+    def ds_attach_form(params: dict[str, Any]) -> dict[str, Any]:
+        return svc.attach_form(params)
+
+    @server.method("dataset.set_labels")
+    def ds_set_labels(params: dict[str, Any]) -> dict[str, Any]:
+        return svc.set_labels(params)
 
     @server.method("dataset.export")
     def ds_export(params: dict[str, Any]) -> dict[str, Any]:

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { appInfo, AppInfo, call, EngineCallError, Versions } from "./api";
 import { Lang, useI18n } from "./i18n";
+import logo from "./logo.svg";
 import { Analysis } from "./screens/Analysis";
 import { Data } from "./screens/Data";
 import { Engines, EngineStatus } from "./screens/Engines";
@@ -84,8 +85,11 @@ export function App() {
     <div className={`app${folded ? " folded" : ""}`}>
       <aside className="side" aria-label={t("nav.label")}>
         <div className="side-top">
-          <span className="mark fold-hide">
-            SuiviEval<span>Lab</span>
+          <span className="brand">
+            <img src={logo} alt="" width="26" height="26" />
+            <span className="mark fold-hide">
+              SuiviEval<span>Lab</span>
+            </span>
           </span>
           <button
             className="icon-btn"

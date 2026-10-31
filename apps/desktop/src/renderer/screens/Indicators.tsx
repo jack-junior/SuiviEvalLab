@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { call, Indicator } from "../api";
 import { useI18n } from "../i18n";
+import { useLabels } from "../labels";
 import { useProject } from "../state";
 import { Confirm, Empty, Field, IconButton, Notice, Panel } from "../ui";
 
@@ -35,6 +36,7 @@ const fromInput = (s: string, unit: string): number | null => {
 export function Indicators() {
   const { t, percent, number } = useI18n();
   const { snap, run, error, focus } = useProject();
+  const { colText, valText, val } = useLabels();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [targetText, setTargetText] = useState("");
   const [baseText, setBaseText] = useState("");
@@ -137,7 +139,10 @@ export function Indicators() {
                       <div className="s">
                         {ind.column
                           ? ind.unit === "percent"
-                            ? t("indicators.rulePercent", { column: ind.column, values: ind.success_values.join(", ") })
+                            ? t("indicators.rulePercent", {
+                                column: colText(ind.column),
+                                values: ind.success_values.map((v) => valText(ind.column!, v)).join(", "),
+                              })
                             : t("indicators.ruleMean", { column: ind.column })
                           : t("indicators.noRule")}
                         {"  "}
@@ -269,7 +274,8 @@ export function Indicators() {
                     <option value="">{t("common.choose")}</option>
                     {[...columns.entries()].map(([name, c]) => (
                       <option key={name} value={name}>
-                        {name} {c.datasets.length < (snap.datasets.length || 1) ? t("indicators.notInAll") : ""}
+                        {colText(name)}{" "}
+                        {c.datasets.length < (snap.datasets.length || 1) ? t("indicators.notInAll") : ""}
                       </option>
                     ))}
                   </select>
@@ -297,7 +303,10 @@ export function Indicators() {
                               })
                             }
                           />
-                          <span className="check-text">{v.value}</span>
+                          <span className="check-text">
+                            {valText(draft.column!, v.value!)}
+                            {val(draft.column!, v.value) && <span className="code"> {v.value}</span>}
+                          </span>
                           <span className="muted small">{number(v.n, 0)}</span>
                         </label>
                       ))}
@@ -316,7 +325,7 @@ export function Indicators() {
                     <option value="">{t("indicators.noDisaggregation")}</option>
                     {textColumns.map(([name]) => (
                       <option key={name} value={name}>
-                        {name}
+                        {colText(name)}
                       </option>
                     ))}
                   </select>

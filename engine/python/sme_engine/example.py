@@ -65,6 +65,95 @@ TEXT = {
 }
 
 
+# Labels of the example columns. The English wording comes from the MCNA
+# questionnaires (sheet "MCNA VII Questionnaire"); the French is a translation.
+# They are stored exactly like labels typed by a user in the Columns tab.
+GOVERNORATES = {
+    "al.anbar": "Al-Anbar",
+    "al.basrah": "Al-Basrah",
+    "al.najaf": "Al-Najaf",
+    "al.qadissiya": "Al-Qadissiya",
+    "al.sulaymaniyah": "Al-Sulaymaniyah",
+    "babil": "Babil",
+    "baghdad": "Baghdad",
+    "diyala": "Diyala",
+    "duhok": "Duhok",
+    "erbil": "Erbil",
+    "kerbala": "Kerbala",
+    "kirkuk": "Kirkuk",
+    "maysan": "Maysan",
+    "ninewa": "Ninewa",
+    "salah.al.din": "Salah Al-Din",
+    "thi.qar": "Thi-Qar",
+    "wassit": "Wassit",
+}
+PLACE = {
+    "within_2km": ("À moins de 2 km", "Within 2 km"),
+    "between_2_5": ("Entre 2 et 5 km", "Between 2 and 5 km"),
+    "more_than5kmaway": ("À plus de 5 km", "More than 5 km"),
+    "none": ("Aucune école accessible", "None that the household can access"),
+    "do_not_know": ("Ne connaît pas d'école en fonctionnement", "Does not know of a functioning school"),
+}
+LABELS = {
+    "population_group": (
+        ("Groupe de population", "Population group"),
+        {
+            "idp_out_camp": ("Déplacés hors camp", "IDPs out of camp"),
+            "idp_in_camp": ("Déplacés en camp", "IDPs in camp"),
+            "returnee": ("Retournés", "Returnees"),
+            "host": ("Communauté hôte", "Host community"),
+        },
+    ),
+    "governorate_mcna": (("Gouvernorat", "Governorate"), {k: (v, v) for k, v in GOVERNORATES.items()}),
+    "district": (("District", "District"), {}),
+    "tot_child": (("Nombre d'enfants dans le ménage", "Number of children in the household"), {}),
+    "primary_school_place": (
+        (
+            "Distance de l'école primaire en fonctionnement la plus proche",
+            "How far is the closest functioning primary school",
+        ),
+        PLACE,
+    ),
+    "secondary_school_place": (
+        (
+            "Distance de l'école secondaire en fonctionnement la plus proche",
+            "How far is the closest functioning secondary school",
+        ),
+        PLACE,
+    ),
+    "child_dropout_school": (
+        (
+            "Enfants retirés de l'école pour faire face au manque de ressources (30 derniers jours)",
+            "Children dropout from school (last 30 days)",
+        ),
+        {
+            "yes": ("Oui", "Yes"),
+            "no_already_did": ("Non, déjà fait et plus possible", "No, because we already did it"),
+            "no_nobody_in_hh_did": ("Non, personne dans le ménage", "No, nobody in the household did"),
+            "not_applicable": ("Non concerné (pas d'enfant)", "Not applicable"),
+        },
+    ),
+    "weights": (("Poids de sondage", "Sampling weight"), {}),
+}
+
+
+def _set_example_labels(svc: Any, dataset_id: str) -> None:
+    columns = {c["name"] for c in svc.dataset_spec(dataset_id)["columns"]}
+    for column, ((fr_label, en_label), values) in LABELS.items():
+        if column not in columns:
+            continue
+        for lang, idx, text in (("fr", 0, fr_label), ("en", 1, en_label)):
+            svc.set_labels(
+                {
+                    "id": dataset_id,
+                    "column": column,
+                    "lang": lang,
+                    "label": text,
+                    "values": {code: pair[idx] for code, pair in values.items()},
+                }
+            )
+
+
 def fill_example(svc: Any, lang: str = "fr") -> None:
     t = TEXT.get(lang, TEXT["fr"])
     p = svc.project
@@ -175,3 +264,4 @@ def fill_example(svc: Any, lang: str = "fr") -> None:
             )
         for rule in rules:
             svc.add_rule({"dataset_id": created, "rule": rule})
+        _set_example_labels(svc, created)

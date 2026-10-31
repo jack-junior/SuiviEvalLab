@@ -14,6 +14,7 @@ from typing import Any
 
 import polars as pl
 
+from . import xlsform
 from .rpc import INVALID_PARAMS, RpcError
 
 ROUNDS = ("baseline", "midline", "endline", "monitoring")
@@ -153,6 +154,8 @@ def inspect(path: Path, sheet: str | None = None) -> dict[str, Any]:
         "sample": df.head(SAMPLE_ROWS).rows(),
         "design": guess_design(df.columns),
         "id_column": guess_id(df.columns),
+        # A Kobo or ODK questionnaire in the same workbook gives readable labels.
+        "form": xlsform.find_form(path, sheets),
     }
 
 
@@ -225,5 +228,6 @@ def new_spec(name: str, round_: str, path: Path, sheet: str | None, df: pl.DataF
         "id_column": id_column,
         "design": validate_design(params.get("design") or guess_design(df.columns), df.columns),
         "attribution": str(params.get("attribution") or "")[:500],
+        "labels": {"columns": {}, "values": {}},
         "columns": describe_columns(df, na_values),
     }

@@ -17,7 +17,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
-from . import __version__
+from . import __version__, xlsform
 
 INK = RGBColor(0x1F, 0x1E, 0x1C)
 ACTION = RGBColor(0x1D, 0x4F, 0x91)
@@ -385,6 +385,19 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
     nodes = {n["id"]: n for n in snap["framework"]}
     analyses = {ind["id"]: svc.indicator_analysis(ind["id"]) for ind in snap["indicators"]}
 
+    def readable(column: str, code: str | None = None) -> str:
+        """Readable label of a column or of one of its codes, from the first dataset that has one."""
+        for ds in snap["datasets"]:
+            labels = ds.get("labels") or {}
+            found = (
+                xlsform.pick(labels.get("values", {}).get(column, {}).get(code), lang)
+                if code is not None
+                else xlsform.pick(labels.get("columns", {}).get(column), lang)
+            )
+            if found:
+                return found
+        return code if code is not None else column
+
     doc = Document()
     _setup(doc)
     doc.add_paragraph(project["name"], style="Title")
@@ -471,11 +484,12 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
             doc.add_picture(str(png), width=Cm(15))
             # Breakdown
             if ind.get("disaggregation") and any(r["result"].get("by") for r in usable):
-                doc.add_paragraph(t["by"].format(column=ind["disaggregation"])).runs[0].bold = True
+                by_col = ind["disaggregation"]
+                doc.add_paragraph(t["by"].format(column=readable(by_col))).runs[0].bold = True
                 groups = sorted({g["group"] for r in usable for g in r["result"].get("by", [])})
                 body = []
                 for g in groups:
-                    line = [str(g)]
+                    line = [readable(by_col, str(g))]
                     for r in usable:
                         hit = next((x for x in r["result"].get("by", []) if x["group"] == g), None)
                         line.append(

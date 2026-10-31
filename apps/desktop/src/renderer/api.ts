@@ -20,6 +20,9 @@ interface SmeBridge {
   pick?: (kind: PickKind, defaultName?: string) => Promise<Picked | null>;
   recents?: () => Promise<Recent[]>;
   recentToken?: (file: string) => Promise<string | null>;
+  forget?: (file: string) => Promise<Recent[]>;
+  reveal?: (file: string) => Promise<void>;
+  saveSummary?: (file: string, summary: Record<string, number>) => Promise<void>;
   openFile?: (token: string) => Promise<boolean>;
 }
 
@@ -32,7 +35,9 @@ export interface Recent {
   path: string;
   name: string;
   opened_at: string;
+  modified: string | null;
   exists: boolean;
+  summary?: { indicators: number; achieved: number; on_track: number; late: number; unknown: number; datasets: number };
 }
 
 // ----- Project model (mirrors engine/python/sme_engine) -----------------------------
@@ -113,8 +118,17 @@ export interface Dataset {
   id_column: string | null;
   design: Design;
   attribution?: string;
+  labels?: Labels;
+  form_source?: { file: string; survey: string; choices: string | null };
   columns: ColumnInfo[];
   rules: Rule[];
+}
+
+/** Labels by language code ("fr", "en", "default", or a questionnaire language). */
+export type LangLabels = Record<string, string>;
+export interface Labels {
+  columns: Record<string, LangLabels>;
+  values: Record<string, Record<string, LangLabels>>;
 }
 
 export interface ProjectInfo {
@@ -140,6 +154,7 @@ export interface Inspection {
   sample: (string | null)[][];
   design: Design;
   id_column: string | null;
+  form: { survey: string; choices: string | null } | null;
 }
 
 export interface Estimate {
@@ -283,4 +298,8 @@ export const appInfo = () => bridge.info();
 export const pick = (kind: PickKind, defaultName?: string) => bridge.pick?.(kind, defaultName) ?? Promise.resolve(null);
 export const recents = () => bridge.recents?.() ?? Promise.resolve([]);
 export const recentToken = (file: string) => bridge.recentToken?.(file) ?? Promise.resolve(null);
+export const forgetProject = (file: string) => bridge.forget?.(file) ?? Promise.resolve([]);
+export const revealProject = (file: string) => bridge.reveal?.(file) ?? Promise.resolve();
+export const saveSummary = (file: string, summary: Record<string, number>) =>
+  bridge.saveSummary?.(file, summary) ?? Promise.resolve();
 export const openFile = (token: string) => bridge.openFile?.(token) ?? Promise.resolve(false);

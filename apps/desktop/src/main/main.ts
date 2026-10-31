@@ -2,7 +2,7 @@
 
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
 import { randomUUID } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { EngineClient, EngineError, EngineLaunch } from "./engine";
 
@@ -85,10 +85,25 @@ async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token
   return { token, name: path.basename(chosen) };
 }
 
-// Recent projects, kept in the user profile.
+// Projects known to this computer ("My projects"), kept in the user profile.
+// Each entry may carry a summary of the indicators, saved when the overview is computed.
+interface ProjectSummary {
+  indicators: number;
+  achieved: number;
+  on_track: number;
+  late: number;
+  unknown: number;
+  datasets: number;
+}
+interface KnownProject {
+  path: string;
+  name: string;
+  opened_at: string;
+  summary?: ProjectSummary;
+}
 const recentFile = () => path.join(app.getPath("userData"), "recent-projects.json");
 
-function readRecents(): { path: string; name: string; opened_at: string }[] {
+function readRecents(): KnownProject[] {
   try {
     const list = JSON.parse(readFileSync(recentFile(), "utf8"));
     return Array.isArray(list) ? list : [];
@@ -97,14 +112,33 @@ function readRecents(): { path: string; name: string; opened_at: string }[] {
   }
 }
 
-function rememberProject(file: string, name: string): void {
-  const list = readRecents().filter((r) => r.path !== file);
-  list.unshift({ path: file, name, opened_at: new Date().toISOString() });
+function writeRecents(list: KnownProject[]): void {
   try {
-    writeFileSync(recentFile(), JSON.stringify(list.slice(0, 10), null, 2), "utf8");
+    writeFileSync(recentFile(), JSON.stringify(list.slice(0, 50), null, 2), "utf8");
   } catch {
-    /* recents are a convenience only */
+    /* the project list is a convenience only */
   }
+}
+
+function rememberProject(file: string, name: string): void {
+  const list = readRecents();
+  const old = list.find((r) => r.path === file);
+  writeRecents([
+    { path: file, name, opened_at: new Date().toISOString(), summary: old?.summary },
+    ...list.filter((r) => r.path !== file),
+  ]);
+}
+
+function listProjects() {
+  return readRecents().map((r) => {
+    let modified: string | null = null;
+    try {
+      modified = statSync(r.path).mtime.toISOString();
+    } catch {
+      modified = null;
+    }
+    return { ...r, exists: modified !== null, modified };
+  });
 }
 
 function tokenForRecent(file: string): string | null {
@@ -157,6 +191,8 @@ function createWindow(): void {
     minHeight: 640,
     title: "SuiviEvalLab",
     backgroundColor: "#F6F5F2",
+    // Installed on Windows, the window takes the icon of the .exe; in development, the PNG.
+    icon: app.isPackaged ? undefined : path.join(__dirname, "..", "..", "build-resources", "icon.png"),
     show: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -217,7 +253,36 @@ app.whenReady().then(() => {
     if (typeof kind !== "string" || !kinds.includes(kind as DialogKind)) return null;
     return pickFile(kind as DialogKind, typeof defaultName === "string" ? defaultName.slice(0, 120) : undefined);
   });
-  ipcMain.handle("project:recents", () => readRecents().map((r) => ({ ...r, exists: existsSync(r.path) })));
+  ipcMain.handle("project:recents", () => listProjects());
+  ipcMain.handle("project:forget", (_e, file: unknown) => {
+    if (typeof file === "string") writeRecents(readRecents().filter((r) => r.path !== file));
+    return listProjects();
+  });
+  ipcMain.handle("project:reveal", (_e, file: unknown) => {
+    if (typeof file === "string" && readRecents().some((r) => r.path === file)) shell.showItemInFolder(file);
+  });
+  ipcMain.handle("project:summary", (_e, file: unknown, summary: unknown) => {
+    if (typeof file !== "string" || !summary || typeof summary !== "object") return;
+    const s = summary as Record<string, unknown>;
+    const n = (k: string) => (typeof s[k] === "number" ? (s[k] as number) : 0);
+    writeRecents(
+      readRecents().map((r) =>
+        r.path === file
+          ? {
+              ...r,
+              summary: {
+                indicators: n("indicators"),
+                achieved: n("achieved"),
+                on_track: n("on_track"),
+                late: n("late"),
+                unknown: n("unknown"),
+                datasets: n("datasets"),
+              },
+            }
+          : r,
+      ),
+    );
+  });
   ipcMain.handle("project:recent-token", (_e, file: unknown) =>
     typeof file === "string" ? tokenForRecent(file) : null,
   );

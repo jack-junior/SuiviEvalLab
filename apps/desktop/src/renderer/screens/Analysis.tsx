@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { IndicatorAnalysis } from "../api";
 import { useI18n } from "../i18n";
+import { useLabels } from "../labels";
 import { useProject } from "../state";
 import { Empty, Notice, ResultChart, StatusTag } from "../ui";
 
@@ -268,6 +269,7 @@ const effectSize = (v: number) => {
 
 function Breakdown({ a }: { a: IndicatorAnalysis }) {
   const { t, number } = useI18n();
+  const { colText, valText, val } = useLabels();
   const fmt = useFmt(a.indicator.unit);
   const usable = a.rounds.filter((r) => !r.result.error_key);
   if (!a.indicator.disaggregation)
@@ -275,7 +277,7 @@ function Breakdown({ a }: { a: IndicatorAnalysis }) {
   const groups = [...new Set(usable.flatMap((r) => (r.result.by ?? []).map((g) => g.group)))].sort();
   return (
     <div className="stack">
-      <p className="muted">{t("analysis.breakdownBy", { column: a.indicator.disaggregation })}</p>
+      <p className="muted">{t("analysis.breakdownBy", { column: colText(a.indicator.disaggregation) })}</p>
       <div className="table-wrap">
         <table className="table" data-testid="breakdown-table">
           <thead>
@@ -291,7 +293,10 @@ function Breakdown({ a }: { a: IndicatorAnalysis }) {
           <tbody>
             {groups.map((g) => (
               <tr key={g}>
-                <td>{g}</td>
+                <td>
+                  {valText(a.indicator.disaggregation!, g)}
+                  {val(a.indicator.disaggregation!, g) && <span className="cell-sub mono">{g}</span>}
+                </td>
                 {usable.map((r) => {
                   const hit = r.result.by?.find((x) => x.group === g);
                   return (
