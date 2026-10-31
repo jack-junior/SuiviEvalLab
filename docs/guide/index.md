@@ -4,10 +4,10 @@
 
 SuiviEvalLab est un logiciel de bureau pour les équipes de suivi-évaluation. Il couvre le travail habituel d'un chargé de S&E, depuis le cadre de résultats jusqu'au rapport remis au bailleur, dans une seule application et sur l'ordinateur de l'utilisateur :
 
-- construire le cadre de résultats du projet (impact, effets, extrants, activités) ;
-- définir les indicateurs, leur règle de calcul, leur valeur de référence et leur cible ;
+- construire le cadre de résultats du projet selon le modèle du bailleur (standard, Union européenne, USAID, Nations unies, Banque mondiale, ou niveaux propres) ;
+- définir les indicateurs, leur règle de calcul, leur valeur de référence et leur cible, qu'ils viennent d'une enquête ou du suivi de routine (registres, rapports d'activité) ;
 - importer les données d'enquête (Excel, export Kobo ou ODK, CSV, SPSS, Stata) ;
-- diagnostiquer et nettoyer les données en gardant la trace de chaque correction ;
+- diagnostiquer et nettoyer les données, créer des variables et contrôler leur cohérence, en gardant la trace de chaque correction ;
 - calculer les indicateurs avec leur intervalle de confiance, en tenant compte du plan de sondage ;
 - comparer la référence et la fin de projet, et tester d'autres questions avec un assistant ;
 - produire le rapport Word, le plan de suivi Excel et un tableau de bord à partager.
@@ -30,7 +30,7 @@ SuiviEvalLab garde ce lien de bout en bout :
 
 | Besoin | Pratique courante | Dans SuiviEvalLab |
 |---|---|---|
-| Nettoyer les données | Modifications directes dans Excel, sans trace | Le fichier d'origine n'est jamais modifié ; chaque correction est une règle du journal, justifiée, réversible et citée dans le rapport |
+| Nettoyer les données | Modifications directes dans Excel, sans trace | Le fichier d'origine n'est jamais modifié ; chaque correction est une règle du journal, justifiée, réversible, citée dans le rapport et exportable en script R |
 | Calculer un pourcentage pondéré | Formules Excel, souvent sans pondération ni intervalle | Calcul par R avec le package `survey`, pondération, strates et grappes, intervalle de confiance à 95 % |
 | Comparer deux enquêtes | Différence de deux pourcentages, sans test | Différence, intervalle de la différence, valeur p et taille d'effet, avec la conclusion rédigée |
 | Choisir un test statistique | Demander à un statisticien | L'assistant pose la question en termes de métier et choisit le test adapté |
@@ -51,9 +51,10 @@ Ce fichier peut être copié, sauvegardé ou envoyé à un collègue qui a l'app
 |---|---|---|
 | 0.1 | Fondations : application Windows, moteurs Python et R intégrés, calcul de démonstration | Publiée |
 | 0.2 | Premier parcours complet : cadre, indicateurs, import, nettoyage, calcul par R, comparaison, rapport Word | Publiée |
-| 0.3 | Libellés Kobo, nouveaux types d'indicateurs, assistant de tests, modèle Word de l'organisation, SPSS et Stata, fusion de fichiers, tableau de bord partageable, diagnostic qualité, vérifications avant le rapport, copies automatiques, taille d'échantillon, plan de suivi Excel, mises à jour automatiques | En cours de publication |
+| 0.3 | Libellés Kobo, nouveaux types d'indicateurs, assistant de tests, modèle Word de l'organisation, SPSS et Stata, fusion de fichiers, tableau de bord partageable, diagnostic qualité, vérifications avant le rapport, copies automatiques, taille d'échantillon, plan de suivi Excel, mises à jour automatiques | Publiée |
+| 0.4 | Modèles de cadre par bailleur et hypothèses, indicateurs de suivi de routine, nettoyage avancé (variables calculées, classes, dates et durées, contrôles de cohérence, texte), empilement de fichiers, journal exporté en script R | En cours de publication |
 
-Prochaines étapes envisagées : récupération directe des données depuis KoboToolbox, modèles de cadres de résultats, autres questions statistiques (corrélation, variables ordinales), puis une phase bêta avec des utilisateurs de terrain. Le travail à plusieurs sur un même projet avec des droits par indicateur est prévu après la version 1.0.
+Prochaines étapes envisagées : récupération directe des données depuis KoboToolbox, passage des données du format large au format long, autres questions statistiques (corrélation, variables ordinales), puis une phase bêta avec des utilisateurs de terrain. Le travail à plusieurs sur un même projet avec des droits par indicateur est prévu après la version 1.0.
 
 ## Organisation de ce document
 
