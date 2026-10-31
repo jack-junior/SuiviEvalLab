@@ -1,0 +1,38 @@
+SuiviEvalLab, kit de test 0.3 : sources des données
+====================================================
+
+Les fichiers 01 à 04 sont les fichiers originaux, non modifiés, téléchargés depuis
+Humanitarian Data Exchange (HDX). Licence : Creative Commons Attribution 4.0 (CC BY 4.0).
+
+01_irak_mcna_2019_reference.xlsx
+  REACH Initiative / Assessment Working Group Iraq. Iraq Multi-Cluster Needs Assessment VII (2019),
+  household dataset without personal information.
+  https://data.humdata.org/dataset/reach-iraq-mcna-vii-dataset
+  SHA-256 307485249fb3c61c2304ff8a97ff32f79575555b0896aa9d95ab11815cd57b91
+
+02_irak_mcna_2020_fin_de_projet.xlsx
+  REACH Initiative. Iraq Multi-Cluster Needs Assessment VIII (2020), household dataset without
+  personal information.
+  https://data.humdata.org/dataset/0f850d6e-2a67-4204-af08-c0237e59020f
+  SHA-256 d404fcf1c422a337962fa372908886458421ec09f815f78c25cc90653a7dc17f
+
+03_bangladesh_wash_2018_reference.xlsx
+  REACH Initiative / UNICEF. Bangladesh WASH household baseline survey, in camps, April 2018.
+  https://data.humdata.org/dataset/6f7cb50e-bf04-46a5-8e3b-0f90dca5ac94
+  SHA-256 1b727328623db9382c36371ee654e3a1f60495046689d03bc2fca7c255a02c26
+
+04_bangladesh_wash_2018_suivi.xlsx
+  REACH Initiative / UNICEF. Bangladesh WASH household survey, monsoon follow-up, October 2018.
+  https://data.humdata.org/dataset/2198d0ed-faaf-405d-bcdd-8ba5bdcdf6c1
+  SHA-256 b8a442f9a99aab45f2aff5007eaafc0c608e031e97f52d83236e31ab35c5b061
+
+05_bangladesh_wash_2018_extrait.sav et .dta
+  Extrait du fichier 04 (600 premiers ménages, 13 colonnes), valeurs inchangées, codes convertis en
+  nombres avec les libellés du questionnaire, comme dans un export SPSS ou Stata.
+  Produit par tools/datasets/make_stat_fixtures.py dans le dépôt SuiviEvalLab.
+
+modeles/modele_organisation.docx
+  Modèle Word d'une organisation fictive, produit par tools/datasets/make_report_template.py.
+
+Pour vérifier un fichier sous Windows (PowerShell) :
+  Get-FileHash .\donnees\01_irak_mcna_2019_reference.xlsx

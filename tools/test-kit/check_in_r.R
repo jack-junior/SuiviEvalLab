@@ -1,0 +1,13 @@
+suppressMessages(library(survey)); options(survey.lonely.psu="adjust")
+a <- read.csv("/tmp/i19.csv", stringsAsFactors=FALSE); b <- read.csv("/tmp/i20.csv", stringsAsFactors=FALSE)
+prep <- function(d){ d$p <- ifelse(d$primary_school_place %in% c("do_not_know","") | is.na(d$primary_school_place), NA, as.numeric(d$primary_school_place=="within_2km")); d$y <- as.numeric(d$child_dropout_school=="yes"); d }
+a <- prep(a); b <- prep(b)
+da <- svydesign(ids=~1, weights=~weights, data=a); db <- svydesign(ids=~1, weights=~weights, strata=~strata, data=b)
+pa <- svyciprop(~p, subset(da, !is.na(p)), method="logit"); pb <- svyciprop(~p, subset(db, !is.na(p)), method="logit")
+cat("p19", coef(pa), confint(pa), sum(!is.na(a$p)), "\n"); cat("p20", coef(pb), confint(pb), sum(!is.na(b$p)), "\n")
+sa <- SE(svymean(~p, subset(da,!is.na(p)))); sb <- SE(svymean(~p, subset(db,!is.na(p))))
+d <- coef(pb)-coef(pa); se <- sqrt(sa^2+sb^2); cat("diff", d, d-1.959964*se, d+1.959964*se, 2*pnorm(-abs(d/se)), "\n")
+cat("count", coef(svytotal(~y, da)), coef(svytotal(~y, db)), "\n")
+cat("mean", coef(svymean(~tot_child, da)), coef(svymean(~tot_child, db)), "\n")
+t <- svychisq(~p+population_group, subset(da,!is.na(p))); cat("raoscott", t$statistic, t$p.value, "\n")
+cat("mw", mean(a$weights), mean(b$weights), "\n")

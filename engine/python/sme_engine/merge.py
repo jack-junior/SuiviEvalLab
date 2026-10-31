@@ -61,7 +61,7 @@ def join(left: pl.DataFrame, right: pl.DataFrame, m: dict[str, Any]) -> tuple[pl
     lk, rk = m["left_key"], m["right_key"]
     keys = right[rk].cast(pl.Utf8)
     present = keys.drop_nulls()
-    dup = present.filter(present.is_duplicated()).unique()
+    dup = present.filter(present.is_duplicated()).unique().sort()
     if dup.len():
         raise _err(
             f"The key {rk} repeats in the second file ({dup.len()} values, for example {dup[0]}): "
