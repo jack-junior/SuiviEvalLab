@@ -20,10 +20,21 @@ interface SmeBridge {
   pick?: (kind: PickKind, defaultName?: string) => Promise<Picked | null>;
   recents?: () => Promise<Recent[]>;
   recentToken?: (file: string) => Promise<string | null>;
+  forget?: (file: string) => Promise<Recent[]>;
+  reveal?: (file: string) => Promise<void>;
+  saveSummary?: (file: string, summary: Record<string, number>) => Promise<void>;
   openFile?: (token: string) => Promise<boolean>;
 }
 
-export type PickKind = "project-save" | "project-open" | "data-open" | "report-save" | "csv-save";
+export type PickKind =
+  | "project-save"
+  | "project-open"
+  | "data-open"
+  | "report-save"
+  | "csv-save"
+  | "html-save"
+  | "xlsx-save"
+  | "template-open";
 export interface Picked {
   token: string;
   name: string;
@@ -32,7 +43,9 @@ export interface Recent {
   path: string;
   name: string;
   opened_at: string;
+  modified: string | null;
   exists: boolean;
+  summary?: { indicators: number; achieved: number; on_track: number; late: number; unknown: number; datasets: number };
 }
 
 // ----- Project model (mirrors engine/python/sme_engine) -----------------------------
@@ -51,20 +64,37 @@ export interface FrameworkNode {
   children: number;
 }
 
+export type Unit = "percent" | "mean" | "count" | "ratio";
+export interface Condition {
+  column: string;
+  values: string[];
+}
+
 export interface Indicator {
   id: string;
   node_id: string;
   name: string;
   definition: string;
-  unit: "percent" | "mean";
+  unit: Unit;
   direction: "increase" | "decrease";
   column: string | null;
   success_values: string[];
+  conditions: Condition[];
+  combine: "all" | "any";
+  count_mode: "rows" | "sum";
+  numerator: string | null;
+  denominator: string | null;
+  multiplier: number;
   disaggregation: string | null;
+  disaggregation2: string | null;
   baseline_manual: number | null;
   target: number | null;
   unit_label: string;
   source: string;
+  method?: string;
+  frequency?: Frequency;
+  responsible?: string;
+  target_date?: string;
 }
 
 export interface ColumnInfo {
@@ -100,6 +130,8 @@ export interface Rule {
   effect?: { applied: boolean; rows_removed: number; cells_changed: number } | null;
 }
 
+export type Frequency = "" | "monthly" | "quarterly" | "semiannual" | "annual" | "rounds" | "other";
+
 export interface Dataset {
   id: string;
   name: string;
@@ -113,8 +145,39 @@ export interface Dataset {
   id_column: string | null;
   design: Design;
   attribution?: string;
+  labels?: Labels;
+  form_source?: { file: string; survey: string; choices: string | null };
+  /** Set for a merged dataset: rows computed from two other datasets. */
+  merge?: MergeSpec;
+  /** Set when a merged dataset can no longer be computed (its sources no longer join). */
+  error?: string;
   columns: ColumnInfo[];
   rules: Rule[];
+}
+
+export interface MergeStats {
+  left_rows: number;
+  right_rows: number;
+  rows: number;
+  matched: number;
+  left_unmatched: number;
+  right_unmatched: number;
+}
+
+export interface MergeSpec {
+  left: string;
+  right: string;
+  left_key: string;
+  right_key: string;
+  how: "left" | "inner";
+  stats: MergeStats;
+}
+
+/** Labels by language code ("fr", "en", "default", or a questionnaire language). */
+export type LangLabels = Record<string, string>;
+export interface Labels {
+  columns: Record<string, LangLabels>;
+  values: Record<string, Record<string, LangLabels>>;
 }
 
 export interface ProjectInfo {
@@ -123,6 +186,7 @@ export interface ProjectInfo {
   created_at: string;
   updated_at: string;
   counts: Record<Level, number>;
+  report_template: string | null;
 }
 
 export interface Snapshot {
@@ -130,6 +194,44 @@ export interface Snapshot {
   framework: FrameworkNode[];
   indicators: Indicator[];
   datasets: Dataset[];
+  tests: TestSpec[];
+}
+
+export type TestQuestion = "groups" | "target" | "paired";
+export interface TestSpec {
+  id?: string;
+  question: TestQuestion;
+  kind: "proportion" | "mean";
+  dataset_id: string;
+  outcome: { column: string; values: string[] };
+  title: string;
+  group?: string;
+  target?: number;
+  mode?: "columns" | "datasets";
+  column_b?: string;
+  dataset_b_id?: string;
+}
+
+export interface TestResult {
+  question: TestQuestion;
+  kind: "proportion" | "mean";
+  test_key: string;
+  statistic: number | null;
+  df: number | null;
+  df2?: number | null;
+  p_value: number | null;
+  effect_size: number | null;
+  effect_key: string;
+  n: number;
+  groups?: (Estimate & { group: string })[];
+  estimate?: Estimate;
+  before?: number;
+  after?: number;
+  difference?: number;
+  notes: string[];
+  alternative: { test_key: string; statistic: number | null; p_value: number } | null;
+  design: boolean;
+  script: string;
 }
 
 export interface Inspection {
@@ -140,6 +242,7 @@ export interface Inspection {
   sample: (string | null)[][];
   design: Design;
   id_column: string | null;
+  form: { survey: string; choices: string | null } | null;
 }
 
 export interface Estimate {
@@ -163,9 +266,9 @@ export interface Comparison {
   a_id: string;
   b_id: string;
   difference: number;
-  ci_low: number;
-  ci_high: number;
-  p_value: number;
+  ci_low: number | null;
+  ci_high: number | null;
+  p_value: number | null;
   test_key: string;
   effect_size: number | null;
   effect_key: string;
@@ -283,4 +386,8 @@ export const appInfo = () => bridge.info();
 export const pick = (kind: PickKind, defaultName?: string) => bridge.pick?.(kind, defaultName) ?? Promise.resolve(null);
 export const recents = () => bridge.recents?.() ?? Promise.resolve([]);
 export const recentToken = (file: string) => bridge.recentToken?.(file) ?? Promise.resolve(null);
+export const forgetProject = (file: string) => bridge.forget?.(file) ?? Promise.resolve([]);
+export const revealProject = (file: string) => bridge.reveal?.(file) ?? Promise.resolve();
+export const saveSummary = (file: string, summary: Record<string, number>) =>
+  bridge.saveSummary?.(file, summary) ?? Promise.resolve();
 export const openFile = (token: string) => bridge.openFile?.(token) ?? Promise.resolve(false);

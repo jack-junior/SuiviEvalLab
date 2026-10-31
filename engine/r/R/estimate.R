@@ -2,7 +2,9 @@
 #
 # Every function takes a table written by the Python engine (Arrow IPC), already
 # cleaned, and a specification:
-#   type     "proportion" (share of `success` values of `var`) or "mean" (mean of `var`)
+#   type     "proportion" (share of `success` values of `var`), "mean" (mean of `var`),
+#            "total" (sum of `var`; with weights, the estimated population total) or
+#            "ratio" (sum of `var` / sum of `den`)
 #   weights  column of sampling weights, or NULL
 #   strata   character vector of stratification columns (combined), or NULL
 #   cluster  column of primary sampling units, or NULL
@@ -18,18 +20,23 @@ options(survey.lonely.psu = "adjust")
 sme_null <- function(x) if (is.null(x) || length(x) == 0 || identical(x, "")) NULL else unlist(x)
 
 # Outcome column .y (0/1 for proportions, numeric for means) and design columns.
-sme_prepare <- function(df, type, var, success, weights, strata, cluster) {
+sme_prepare <- function(df, type, var, success, weights, strata, cluster, den = NULL) {
   if (!var %in% names(df)) stop("Variable absente : ", var)
+  if (type == "ratio" && (is.null(den) || !den %in% names(df))) stop("Dénominateur absent : ", den)
   for (v in c(weights, strata, cluster)) if (!v %in% names(df)) stop("Variable absente : ", v)
   if (type == "proportion") {
     y <- ifelse(is.na(df[[var]]), NA_real_, as.numeric(df[[var]] %in% unlist(success)))
-  } else if (type == "mean") {
+  } else if (type %in% c("mean", "total", "ratio")) {
     y <- suppressWarnings(as.numeric(df[[var]]))
   } else {
     stop("Type inconnu : ", type)
   }
   df$.y <- y
   keep <- !is.na(df$.y)
+  if (type == "ratio") {
+    df$.d <- suppressWarnings(as.numeric(df[[den]]))
+    keep <- keep & !is.na(df$.d)
+  }
   if (!is.null(weights)) {
     df[[weights]] <- suppressWarnings(as.numeric(df[[weights]]))
     keep <- keep & !is.na(df[[weights]]) & df[[weights]] > 0
@@ -55,7 +62,21 @@ sme_design <- function(df, weights, strata, cluster) {
 sme_estimate_one <- function(df, type, weights, strata, cluster, level) {
   n <- nrow(df)
   if (n == 0) return(list(estimate = NULL, ci_low = NULL, ci_high = NULL, se = NULL, n = 0))
+  if (type == "ratio") {
+    # Delta-method interval from survey::svyratio; without a design, equal weights.
+    d <- if (sme_has_design(weights, strata, cluster)) sme_design(df, weights, strata, cluster) else
+      suppressWarnings(survey::svydesign(ids = ~1, data = df))
+    if (sum(df$.d) == 0) return(list(estimate = NULL, ci_low = NULL, ci_high = NULL, se = NULL, n = n))
+    r <- survey::svyratio(~.y, ~.d, d)
+    ci <- as.numeric(stats::confint(r, level = level, df = survey::degf(d)))
+    return(list(estimate = as.numeric(coef(r)), ci_low = ci[1], ci_high = ci[2],
+                se = as.numeric(survey::SE(r)), n = n))
+  }
   if (!sme_has_design(weights, strata, cluster)) {
+    if (type == "total") {
+      # A count in the sample itself: no sampling interval.
+      return(list(estimate = sum(df$.y), ci_low = NULL, ci_high = NULL, se = NULL, n = n))
+    }
     if (type == "proportion") {
       x <- sum(df$.y)
       t <- stats::prop.test(x, n, conf.level = level, correct = FALSE)
@@ -75,29 +96,35 @@ sme_estimate_one <- function(df, type, weights, strata, cluster, level) {
     return(list(estimate = as.numeric(r), ci_low = ci[1], ci_high = ci[2],
                 se = as.numeric(survey::SE(r)), n = n, successes = sum(df$.y)))
   }
-  m <- survey::svymean(~.y, d)
+  m <- if (type == "total") survey::svytotal(~.y, d) else survey::svymean(~.y, d)
   ci <- as.numeric(stats::confint(m, level = level, df = survey::degf(d)))
   list(estimate = as.numeric(m), ci_low = ci[1], ci_high = ci[2], se = as.numeric(survey::SE(m)), n = n)
 }
 
-sme_script <- function(type, var, success, weights, strata, cluster, by, level) {
-  y <- if (type == "proportion") {
+sme_script <- function(type, var, success, weights, strata, cluster, by, level, den = NULL, y_code = NULL) {
+  # `y_code`: R lines given by the Python engine when the outcome is built from
+  # several columns (conditions, groups); otherwise the outcome is the column itself.
+  y <- if (!is.null(y_code)) {
+    y_code
+  } else if (type == "proportion") {
     sprintf('donnees$y <- as.numeric(donnees$`%s` %%in%% c(%s))\ndonnees$y[is.na(donnees$`%s`)] <- NA',
             var, paste0('"', unlist(success), '"', collapse = ", "), var)
   } else {
     sprintf("donnees$y <- as.numeric(donnees$`%s`)", var)
   }
+  if (type == "ratio") y <- paste0(y, sprintf("\ndonnees$d <- as.numeric(donnees$`%s`)\ndonnees <- donnees[!is.na(donnees$d), ]", den))
   head <- paste0(
     "# Donnees nettoyees exportees par SuiviEvalLab (une ligne par observation)\n",
     'donnees <- read.csv("donnees_nettoyees.csv", na.strings = "", check.names = FALSE)\n', y,
     "\ndonnees <- donnees[!is.na(donnees$y), ]\n"
   )
-  if (!sme_has_design(weights, strata, cluster)) {
-    body <- if (type == "proportion") {
-      sprintf("prop.test(sum(donnees$y), nrow(donnees), conf.level = %s, correct = FALSE)", level)
-    } else {
-      sprintf("t.test(donnees$y, conf.level = %s)", level)
-    }
+  design <- sme_has_design(weights, strata, cluster)
+  if (!design && type != "ratio") {
+    body <- switch(type,
+      proportion = sprintf("prop.test(sum(donnees$y), nrow(donnees), conf.level = %s, correct = FALSE)", level),
+      mean = sprintf("t.test(donnees$y, conf.level = %s)", level),
+      total = "sum(donnees$y)"
+    )
     return(paste0(head, body))
   }
   st <- if (is.null(strata)) "" else
@@ -110,22 +137,24 @@ sme_script <- function(type, var, success, weights, strata, cluster, by, level) 
     if (is.null(strata)) "NULL" else "~strate",
     if (is.null(weights)) "NULL" else sprintf("~`%s`", weights)
   )
-  est <- if (type == "proportion") {
-    sprintf('svyciprop(~y, plan, method = "logit", level = %s)', level)
-  } else {
-    sprintf("confint(svymean(~y, plan), level = %s, df = degf(plan))", level)
-  }
+  est <- switch(type,
+    proportion = sprintf('svyciprop(~y, plan, method = "logit", level = %s)', level),
+    mean = sprintf("confint(svymean(~y, plan), level = %s, df = degf(plan))", level),
+    total = sprintf("confint(svytotal(~y, plan), level = %s, df = degf(plan))", level),
+    ratio = sprintf("confint(svyratio(~y, ~d, plan), level = %s, df = degf(plan))", level)
+  )
   if (!is.null(by)) {
-    est <- paste0(est, sprintf("\nsvyby(~y, ~`%s`, plan, %s, vartype = \"ci\")", by,
-                               if (type == "proportion") 'svyciprop, method = "logit"' else "svymean"))
+    fun <- switch(type, proportion = 'svyciprop, method = "logit"', mean = "svymean", total = "svytotal", ratio = NULL)
+    est <- paste0(est, if (is.null(fun)) sprintf("\nsvyby(~y, ~`%s`, plan, svyratio, denominator = ~d, vartype = \"ci\")", by)
+                       else sprintf("\nsvyby(~y, ~`%s`, plan, %s, vartype = \"ci\")", by, fun))
   }
   paste0(head, plan, est)
 }
 
 sme_estimate <- function(path, type, var, success = NULL, weights = NULL, strata = NULL,
-                         cluster = NULL, by = NULL, level = 0.95) {
+                         cluster = NULL, by = NULL, level = 0.95, den = NULL, y_code = NULL) {
   weights <- sme_null(weights); strata <- sme_null(strata); cluster <- sme_null(cluster); by <- sme_null(by)
-  df <- sme_prepare(sme_read_table(path), type, var, success, weights, strata, cluster)
+  df <- sme_prepare(sme_read_table(path), type, var, success, weights, strata, cluster, den)
   if (nrow(df) == 0) stop("Aucune observation utilisable pour ", var)
   res <- sme_estimate_one(df, type, weights, strata, cluster, level)
   groups <- list()
@@ -143,12 +172,14 @@ sme_estimate <- function(path, type, var, success = NULL, weights = NULL, strata
   res$by <- groups
   res$level <- level
   res$type <- type
-  res$method_key <- if (sme_has_design(weights, strata, cluster)) {
-    if (type == "proportion") "survey_logit" else "survey_mean"
-  } else {
-    if (type == "proportion") "wilson" else "t_mean"
-  }
-  res$script <- sme_script(type, var, success, weights, strata, cluster, by, level)
+  design <- sme_has_design(weights, strata, cluster)
+  res$method_key <- switch(type,
+    proportion = if (design) "survey_logit" else "wilson",
+    mean = if (design) "survey_mean" else "t_mean",
+    total = if (design) "survey_total" else "count",
+    ratio = if (design) "survey_ratio" else "ratio"
+  )
+  res$script <- sme_script(type, var, success, weights, strata, cluster, by, level, den, sme_null(y_code))
   res
 }
 
@@ -159,22 +190,29 @@ sme_estimate <- function(path, type, var, success = NULL, weights = NULL, strata
 # Without a design: two-sample test of proportions (chi-squared, Newcombe
 # interval via prop.test) or Welch t test for means.
 sme_compare <- function(path_a, path_b, type, var, success = NULL, weights = NULL, strata = NULL,
-                        cluster = NULL, level = 0.95) {
+                        cluster = NULL, level = 0.95, den = NULL, y_code = NULL) {
   weights <- sme_null(weights); strata <- sme_null(strata); cluster <- sme_null(cluster)
-  a <- sme_prepare(sme_read_table(path_a), type, var, success, weights, strata, cluster)
-  b <- sme_prepare(sme_read_table(path_b), type, var, success, weights, strata, cluster)
+  a <- sme_prepare(sme_read_table(path_a), type, var, success, weights, strata, cluster, den)
+  b <- sme_prepare(sme_read_table(path_b), type, var, success, weights, strata, cluster, den)
   if (nrow(a) < 2 || nrow(b) < 2) stop("Pas assez d'observations pour comparer")
   ra <- sme_estimate_one(a, type, weights, strata, cluster, level)
   rb <- sme_estimate_one(b, type, weights, strata, cluster, level)
   diff <- rb$estimate - ra$estimate
   z <- stats::qnorm(1 - (1 - level) / 2)
 
-  if (sme_has_design(weights, strata, cluster)) {
+  if (is.null(ra$se) || is.null(rb$se)) {
+    # Sample counts without a design: the difference is descriptive, no test.
+    return(list(a = ra, b = rb, difference = diff, ci_low = NULL, ci_high = NULL, se = NULL,
+                statistic = NULL, p_value = NULL, level = level, test_key = "descriptive",
+                effect_size = NULL, effect_key = "none"))
+  }
+  if (sme_has_design(weights, strata, cluster) || type %in% c("total", "ratio")) {
     se <- sqrt(ra$se^2 + rb$se^2)
     stat <- diff / se
     p <- 2 * stats::pnorm(-abs(stat))
     ci <- c(diff - z * se, diff + z * se)
-    test_key <- if (type == "proportion") "z_survey_prop" else "z_survey_mean"
+    test_key <- switch(type, proportion = "z_survey_prop", mean = "z_survey_mean",
+                       total = "z_survey_total", ratio = "z_ratio")
   } else if (type == "proportion") {
     t <- stats::prop.test(c(rb$successes, ra$successes), c(rb$n, ra$n), conf.level = level, correct = FALSE)
     stat <- unname(sqrt(t$statistic)) * sign(diff)
@@ -192,7 +230,9 @@ sme_compare <- function(path_a, path_b, type, var, success = NULL, weights = NUL
   }
 
   # Effect size: Cohen's h for proportions, Cohen's d (pooled SD, unweighted) for means.
-  effect <- if (type == "proportion") {
+  effect <- if (type %in% c("total", "ratio")) {
+    NA_real_
+  } else if (type == "proportion") {
     2 * asin(sqrt(rb$estimate)) - 2 * asin(sqrt(ra$estimate))
   } else {
     sp <- sqrt(((nrow(a) - 1) * stats::var(a$.y) + (nrow(b) - 1) * stats::var(b$.y)) / (nrow(a) + nrow(b) - 2))
@@ -202,7 +242,8 @@ sme_compare <- function(path_a, path_b, type, var, success = NULL, weights = NUL
   list(
     a = ra, b = rb, difference = diff, ci_low = ci[1], ci_high = ci[2], se = se,
     statistic = stat, p_value = p, level = level, test_key = test_key,
-    effect_size = effect, effect_key = if (type == "proportion") "cohen_h" else "cohen_d"
+    effect_size = if (is.na(effect)) NULL else effect,
+    effect_key = switch(type, proportion = "cohen_h", mean = "cohen_d", "none")
   )
 }
 

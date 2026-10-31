@@ -29,7 +29,11 @@ sme_dispatch <- list(
   proportion = function(args) do.call(sme_proportion, args),
   estimate = function(args) do.call(sme_estimate, args),
   compare = function(args) do.call(sme_compare, args),
-  chart = function(args) do.call(sme_chart, args)
+  chart = function(args) do.call(sme_chart, args),
+  test_groups = function(args) do.call(sme_test_groups, args),
+  test_target = function(args) do.call(sme_test_target, args),
+  test_paired = function(args) do.call(sme_test_paired, args),
+  sample_size = function(args) do.call(sme_sample_size, args)
 )
 
 sme_send(list(ready = TRUE, r_version = R.version$version.string))

@@ -1,34 +1,48 @@
 // Overview: where the project stands, and the indicator table with progress.
 
 import { useEffect, useState } from "react";
-import { OverviewRow } from "../api";
+import { OverviewRow, saveSummary } from "../api";
 import { useI18n } from "../i18n";
 import { useProject, View } from "../state";
-import { Empty, Icon, Notice, Progress, StatusTag } from "../ui";
+import { Empty, Icon, Notice, Progress, StatusTag, useValueFormat } from "../ui";
 
 export function Overview() {
-  const { t, tn, percent, number } = useI18n();
+  const { t, tn } = useI18n();
   const { snap, run, go, error } = useProject();
+  const fmt = useValueFormat();
   const [answer, setAnswer] = useState<{ stamp?: string; rows: OverviewRow[] } | null>(null);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const stamp = snap?.project.updated_at;
+  const path = snap?.project.path;
+  const datasetCount = snap?.datasets.length ?? 0;
 
   useEffect(() => {
     let alive = true;
-    run<{ rows: OverviewRow[] }>("analysis.overview", {}, "overview").then(
-      (r) => alive && setAnswer({ stamp, rows: r?.rows ?? [] }),
-    );
+    run<{ rows: OverviewRow[] }>("analysis.overview", {}, "overview").then((r) => {
+      if (!alive) return;
+      const list = r?.rows ?? [];
+      setAnswer({ stamp, rows: list });
+      if (r && path) {
+        const count = (s: string) => list.filter((x) => x.status === s).length;
+        void saveSummary(path, {
+          indicators: list.length,
+          achieved: count("achieved"),
+          on_track: count("on_track"),
+          late: count("late"),
+          unknown: count("unknown"),
+          datasets: datasetCount,
+        });
+      }
+    });
     return () => {
       alive = false;
     };
-  }, [stamp, run]);
+  }, [stamp, run, path, datasetCount]);
 
   const rows = answer && answer.stamp === stamp ? answer.rows : null;
   if (!snap) return null;
   const { project, framework, indicators, datasets } = snap;
-  const fmt = (v: number | null, unit: string) =>
-    v === null ? t("common.none") : unit === "percent" ? percent(v) : number(v, 2);
 
   const steps: { view: View; icon: string; label: string; detail: string; done: boolean }[] = [
     {

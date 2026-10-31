@@ -17,7 +17,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
-from . import __version__
+from . import __version__, stattests, xlsform
 
 INK = RGBColor(0x1F, 0x1E, 0x1C)
 ACTION = RGBColor(0x1D, 0x4F, 0x91)
@@ -55,6 +55,7 @@ T = {
         },
         "single": "{name} est de {value} {when} (IC à 95 % : {low} à {high} ; {n} observations).",
         "change": "{name} est passé de {a} {when_a} à {b} {when_b}, soit {direction} de {diff} (IC à 95 % : {low} à {high}).",
+        "change_plain": "{name} est passé de {a} {when_a} à {b} {when_b}, soit {direction} de {diff} (effectifs de l'échantillon, sans test statistique).",
         "change_name_share": "La part des {name}",
         "up": "une hausse",
         "down": "une baisse",
@@ -68,6 +69,12 @@ T = {
         "chart_target": "Cible",
         "chart_ylab_percent": "% des observations",
         "framework": "Cadre de résultats",
+        "tests_title": "Analyses complémentaires",
+        "test_untitled": "Test statistique",
+        "test_failed": "Ce test n'a pas pu être recalculé : {detail}",
+        "test_used": "Méthode : {test}, {n} observations. Tous les calculs sont faits par R.",
+        "col_value": "Valeur",
+        "col_ci": "IC à 95 %",
         "col_code": "Code",
         "col_level": "Niveau",
         "col_title": "Intitulé",
@@ -100,12 +107,19 @@ T = {
             "survey_logit": "Proportion pondérée selon le plan d'enquête, intervalle de confiance par la méthode logit (package R survey, linéarisation de Taylor).",
             "t_mean": "Moyenne avec intervalle de confiance de Student (échantillon aléatoire simple).",
             "survey_mean": "Moyenne pondérée selon le plan d'enquête, intervalle de confiance par linéarisation de Taylor (package R survey).",
+            "count": "Effectif observé dans l'échantillon (sans pondération, donc sans intervalle de confiance).",
+            "survey_total": "Effectif estimé dans la population à partir des poids de sondage, intervalle de confiance par linéarisation de Taylor (survey::svytotal).",
+            "ratio": "Ratio de deux sommes avec intervalle de confiance par la méthode delta (survey::svyratio, poids égaux).",
+            "survey_ratio": "Ratio de deux sommes pondérées selon le plan d'enquête, intervalle de confiance par la méthode delta (survey::svyratio).",
         },
         "tests": {
             "z_survey_prop": "Différence entre deux enquêtes indépendantes, chacune analysée avec son plan d'enquête ; erreur type combinée et test z.",
             "z_survey_mean": "Différence de moyennes entre deux enquêtes indépendantes, chacune analysée avec son plan d'enquête ; erreur type combinée et test z.",
             "chisq_prop": "Test du khi-deux de comparaison de deux proportions (sans correction de continuité).",
             "welch": "Test t de Welch de comparaison de deux moyennes.",
+            "z_survey_total": "Différence entre deux effectifs estimés sur deux enquêtes indépendantes ; erreur type combinée et test z.",
+            "z_ratio": "Différence entre deux ratios estimés sur deux enquêtes indépendantes ; erreur type combinée et test z.",
+            "descriptive": "Différence entre deux effectifs observés, sans test statistique (pas de plan de sondage).",
         },
         "methods_intro": "Tous les calculs sont faits par R. Les résultats sont accompagnés de leur intervalle de confiance à 95 % ; les comparaisons donnent la différence, son intervalle, la valeur p et une taille d'effet ({effect}).",
         "effect_names": "h de Cohen pour les proportions, d de Cohen pour les moyennes",
@@ -140,6 +154,7 @@ T = {
         },
         "single": "{name} is {value} {when} (95% CI: {low} to {high}; {n} observations).",
         "change": "{name} went from {a} {when_a} to {b} {when_b}, {direction} of {diff} (95% CI: {low} to {high}).",
+        "change_plain": "{name} went from {a} {when_a} to {b} {when_b}, {direction} of {diff} (sample counts, no statistical test).",
         "change_name_share": "The share of {name}",
         "up": "an increase",
         "down": "a decrease",
@@ -153,6 +168,12 @@ T = {
         "chart_target": "Target",
         "chart_ylab_percent": "% of observations",
         "framework": "Results framework",
+        "tests_title": "Additional analyses",
+        "test_untitled": "Statistical test",
+        "test_failed": "This test could not be recalculated: {detail}",
+        "test_used": "Method: {test}, {n} observations. All calculations are done in R.",
+        "col_value": "Value",
+        "col_ci": "95% CI",
         "col_code": "Code",
         "col_level": "Level",
         "col_title": "Title",
@@ -185,12 +206,19 @@ T = {
             "survey_logit": "Proportion weighted by the survey design, logit confidence interval (R survey package, Taylor linearisation).",
             "t_mean": "Mean with Student confidence interval (simple random sample).",
             "survey_mean": "Mean weighted by the survey design, confidence interval by Taylor linearisation (R survey package).",
+            "count": "Count observed in the sample (unweighted, so no confidence interval).",
+            "survey_total": "Population count estimated from the sampling weights, Taylor linearisation confidence interval (survey::svytotal).",
+            "ratio": "Ratio of two sums with a delta-method confidence interval (survey::svyratio, equal weights).",
+            "survey_ratio": "Ratio of two sums weighted by the survey design, delta-method confidence interval (survey::svyratio).",
         },
         "tests": {
             "z_survey_prop": "Difference between two independent surveys, each analysed with its own design; combined standard error and z test.",
             "z_survey_mean": "Difference of means between two independent surveys, each analysed with its own design; combined standard error and z test.",
             "chisq_prop": "Chi-squared test comparing two proportions (no continuity correction).",
             "welch": "Welch t test comparing two means.",
+            "z_survey_total": "Difference between two population counts estimated from two independent surveys; combined standard error and z test.",
+            "z_ratio": "Difference between two ratios estimated from two independent surveys; combined standard error and z test.",
+            "descriptive": "Difference between two observed counts, without a statistical test (no sampling design).",
         },
         "methods_intro": "All calculations are done in R. Results come with their 95% confidence interval; comparisons give the difference, its interval, the p-value and an effect size ({effect}).",
         "effect_names": "Cohen's h for proportions, Cohen's d for means",
@@ -221,10 +249,14 @@ class Fmt:
         return self.num(share * 100, digits) + (" %" if self.lang == "fr" else "%")
 
     def value(self, x: float | None, unit: str) -> str:
-        return self.pct(x) if unit == "percent" else self.num(x, 2)
+        if unit == "percent":
+            return self.pct(x)
+        return self.num(x, 0 if unit == "count" else 2)
 
     def points(self, diff: float, unit: str, t: dict[str, Any]) -> str:
-        return f"{self.num(abs(diff) * 100)} {t['points']}" if unit == "percent" else self.num(abs(diff), 2)
+        if unit == "percent":
+            return f"{self.num(abs(diff) * 100)} {t['points']}"
+        return self.num(abs(diff), 0 if unit == "count" else 2)
 
     def p(self, p: float, t: dict[str, Any]) -> str:
         return t["p_small"] if p < 0.001 else t["p_eq"].format(p=self.num(p, 3))
@@ -239,9 +271,69 @@ def _shade(cell: Any, hex_fill: str) -> None:
     tc_pr.append(shd)
 
 
+def _heading(doc: Any, text: str, level: int) -> None:
+    """A heading in the document's own style; plain bold text if the template has no heading styles."""
+    try:
+        doc.add_heading(text, level=level)
+    except KeyError:
+        run = doc.add_paragraph().add_run(text)
+        run.bold = True
+        run.font.size = Pt({0: 22, 1: 15, 2: 12.5, 3: 11}.get(level, 11))
+
+
+def _bullet(doc: Any, text: str) -> None:
+    try:
+        doc.add_paragraph(text, style="List Bullet")
+    except KeyError:
+        doc.add_paragraph(f"\u2022 {text}")
+
+
+PLACEHOLDERS_CONTENT = ("{{contenu}}", "{{content}}")
+
+
+def _fill_placeholders(doc: Any, values: dict[str, str]) -> None:
+    """Replace {{...}} fields in the body, tables, headers and footers of a template."""
+
+    def paragraphs(container: Any):
+        yield from container.paragraphs
+        for table in getattr(container, "tables", []):
+            for row in table.rows:
+                for cell in row.cells:
+                    yield from paragraphs(cell)
+
+    containers = [doc]
+    for section in doc.sections:
+        containers += [section.header, section.footer, section.first_page_header, section.first_page_footer]
+    for container in containers:
+        for par in paragraphs(container):
+            text = par.text
+            if "{{" not in text:
+                continue
+            new = text
+            for key, value in values.items():
+                new = new.replace(key, value)
+            if new != text and par.runs:
+                par.runs[0].text = new
+                for run in par.runs[1:]:
+                    run.text = ""
+
+
+def _move_after(anchor: Any, elements: list[Any]) -> None:
+    """Move generated body elements to the place of the content placeholder."""
+    ref = anchor._p
+    for el in elements:
+        ref.addnext(el)
+        ref = el
+    ref_parent = anchor._p.getparent()
+    ref_parent.remove(anchor._p)
+
+
 def _table(doc: Any, header: list[str], rows: list[list[str]], widths: list[float] | None = None) -> None:
     table = doc.add_table(rows=1, cols=len(header))
-    table.style = "Table Grid"
+    try:
+        table.style = "Table Grid"
+    except (KeyError, ValueError):
+        pass  # a template without this table style keeps its default table look
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
     for i, h in enumerate(header):
         cell = table.rows[0].cells[i]
@@ -339,7 +431,21 @@ def _narrative(ind: dict[str, Any], an: dict[str, Any], t: dict[str, Any], f: Fm
     name = t["change_name_share"].format(name=_lower_first(ind["name"])) if unit == "percent" else ind["name"]
     out = []
     comp = an.get("comparison")
-    if comp and "error_key" not in comp:
+    if comp and "error_key" not in comp and comp.get("p_value") is None:
+        a = next(r for r in usable if r["dataset_id"] == comp["a_id"])
+        b = next(r for r in usable if r["dataset_id"] == comp["b_id"])
+        out.append(
+            t["change_plain"].format(
+                name=name,
+                a=f.value(comp["a"]["estimate"], unit),
+                when_a=t["round_phrase"][a["round"]],
+                b=f.value(comp["b"]["estimate"], unit),
+                when_b=t["round_phrase"][b["round"]],
+                direction=t["up"] if comp["difference"] >= 0 else t["down"],
+                diff=f.points(comp["difference"], unit, t),
+            )
+        )
+    elif comp and "error_key" not in comp:
         a = next(r for r in usable if r["dataset_id"] == comp["a_id"])
         b = next(r for r in usable if r["dataset_id"] == comp["b_id"])
         out.append(
@@ -377,7 +483,7 @@ def _narrative(ind: dict[str, Any], an: dict[str, Any], t: dict[str, Any], f: Fm
     return out
 
 
-def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
+def generate(svc: Any, path: Path, lang: str, template: bytes | None = None) -> dict[str, Any]:
     t = T[lang]
     f = Fmt(lang)
     snap = svc.snapshot()
@@ -385,18 +491,53 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
     nodes = {n["id"]: n for n in snap["framework"]}
     analyses = {ind["id"]: svc.indicator_analysis(ind["id"]) for ind in snap["indicators"]}
 
-    doc = Document()
-    _setup(doc)
-    doc.add_paragraph(project["name"], style="Title")
-    sub = doc.add_paragraph(t["subtitle"])
-    sub.runs[0].font.size = Pt(13)
-    sub.runs[0].font.color.rgb = MUTED
+    def readable(column: str, code: str | None = None) -> str:
+        """Readable label of a column or of one of its codes, from the first dataset that has one."""
+        for ds in snap["datasets"]:
+            labels = ds.get("labels") or {}
+            found = (
+                xlsform.pick(labels.get("values", {}).get(column, {}).get(code), lang)
+                if code is not None
+                else xlsform.pick(labels.get("columns", {}).get(column), lang)
+            )
+            if found:
+                return found
+        return code if code is not None else column
+
+    anchor = None
+    if template:
+        # The organisation's own template: its styles, cover page, headers and footers are kept.
+        import io
+
+        doc = Document(io.BytesIO(template))
+        _fill_placeholders(
+            doc,
+            {
+                "{{projet}}": project["name"],
+                "{{project}}": project["name"],
+                "{{date}}": f_date(lang),
+                "{{titre_rapport}}": t["subtitle"],
+                "{{report_title}}": t["subtitle"],
+            },
+        )
+        anchor = next((p for p in doc.paragraphs if any(k in p.text for k in PLACEHOLDERS_CONTENT)), None)
+    else:
+        doc = Document()
+        _setup(doc)
+    doc_body = doc.element.body
+    # New content is inserted before the final sectPr (page setup): count without it.
+    start = len([el for el in doc_body if not el.tag.endswith("}sectPr")])
+    if not template:
+        doc.add_paragraph(project["name"], style="Title")
+        sub = doc.add_paragraph(t["subtitle"])
+        sub.runs[0].font.size = Pt(13)
+        sub.runs[0].font.color.rgb = MUTED
     gen = doc.add_paragraph(t["generated"].format(date=f_date(lang), version=__version__))
     gen.runs[0].font.size = Pt(9)
     gen.runs[0].font.color.rgb = MUTED
 
     # 1. Summary
-    doc.add_heading(f"1. {t['summary']}", level=1)
+    _heading(doc, f"1. {t['summary']}", level=1)
     counts = {"achieved": 0, "on_track": 0, "late": 0, "unknown": 0}
     rows = []
     for ind in snap["indicators"]:
@@ -422,14 +563,15 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
     )
 
     # 2. Results
-    doc.add_heading(f"2. {t['results']}", level=1)
+    _heading(doc, f"2. {t['results']}", level=1)
     workdir = Path(svc.bridge.workdir)
     for node in snap["framework"]:
         inds = [i for i in snap["indicators"] if i["node_id"] == node["id"]]
         if not inds:
             continue
         label = t["levels"][node["level"]]
-        doc.add_heading(
+        _heading(
+            doc,
             f"{label} {node['code']} : {node['title']}"
             if lang == "fr" and node["code"]
             else f"{label} {node['code']}: {node['title']}"
@@ -439,7 +581,7 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
         )
         for ind in inds:
             an = analyses[ind["id"]]
-            doc.add_heading(ind["name"], level=3)
+            _heading(doc, ind["name"], level=3)
             if ind.get("definition"):
                 p = doc.add_paragraph()
                 p.add_run(t["definition"]).bold = True
@@ -462,6 +604,7 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
                     "highs": [r["result"].get("ci_high") for r in usable],
                     "target": an.get("target"),
                     "percent": ind["unit"] == "percent",
+                    # Counts and ratios keep their own scale on the chart.
                     "title": "",
                     "ylab": t["chart_ylab_percent"] if ind["unit"] == "percent" else (ind.get("unit_label") or ""),
                     "target_label": t["chart_target"],
@@ -471,11 +614,12 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
             doc.add_picture(str(png), width=Cm(15))
             # Breakdown
             if ind.get("disaggregation") and any(r["result"].get("by") for r in usable):
-                doc.add_paragraph(t["by"].format(column=ind["disaggregation"])).runs[0].bold = True
+                by_col = ind["disaggregation"]
+                doc.add_paragraph(t["by"].format(column=readable(by_col))).runs[0].bold = True
                 groups = sorted({g["group"] for r in usable for g in r["result"].get("by", [])})
                 body = []
                 for g in groups:
-                    line = [str(g)]
+                    line = [readable(by_col, str(g))]
                     for r in usable:
                         hit = next((x for x in r["result"].get("by", []) if x["group"] == g), None)
                         line.append(
@@ -494,8 +638,44 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
                 r2.font.size = Pt(9)
                 r2.font.color.rgb = MUTED
 
-    # 3. Framework
-    doc.add_heading(f"3. {t['framework']}", level=1)
+    # 3. Additional analyses (saved tests)
+    section = 3
+    if snap.get("tests"):
+        _heading(doc, f"{section}. {t['tests_title']}", level=1)
+        label = svc.labeller(lang)
+        for spec in snap["tests"]:
+            try:
+                res = stattests.run(svc, spec)
+            except Exception as exc:  # noqa: BLE001 - a broken saved test must not stop the report
+                _heading(doc, spec.get("title") or t["test_untitled"], level=2)
+                doc.add_paragraph(t["test_failed"].format(detail=str(exc)))
+                continue
+            _heading(doc, spec.get("title") or t["test_untitled"], level=2)
+            doc.add_paragraph(" ".join(stattests.conclusion(spec, res, lang, f, label)))
+            if spec["question"] == "groups":
+                unit = "percent" if spec["kind"] == "proportion" else "mean"
+                _table(
+                    doc,
+                    [label(spec["group"]), t["col_value"], t["col_ci"], "n"],
+                    [
+                        [
+                            label(spec["group"], g["group"]),
+                            f.value(g.get("estimate"), unit),
+                            f"{f.value(g.get('ci_low'), unit)} ; {f.value(g.get('ci_high'), unit)}",
+                            f.num(g.get("n"), 0),
+                        ]
+                        for g in res.get("groups", [])
+                    ],
+                )
+            tname = stattests.TEXT[lang]["tests"].get(res.get("test_key"), res.get("test_key"))
+            p = doc.add_paragraph()
+            run_ = p.add_run(t["test_used"].format(test=tname, n=f.num(res.get("n"), 0)))
+            run_.font.size = Pt(9)
+            run_.font.color.rgb = MUTED
+        section += 1
+
+    # Framework
+    _heading(doc, f"{section}. {t['framework']}", level=1)
     fw_rows = []
     for node in snap["framework"]:
         names = "; ".join(i["name"] for i in snap["indicators"] if i["node_id"] == node["id"])
@@ -503,9 +683,9 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
     _table(doc, [t["col_code"], t["col_level"], t["col_title"], t["col_indicators"]], fw_rows, [1.4, 2, 7.8, 5.4])
 
     # Appendix A
-    doc.add_heading(t["annex_data"], level=1)
+    _heading(doc, t["annex_data"], level=1)
     for ds in snap["datasets"]:
-        doc.add_heading(f"{ds['name']} ({t['rounds'][ds['round']]})", level=2)
+        _heading(doc, f"{ds['name']} ({t['rounds'][ds['round']]})", level=2)
         doc.add_paragraph(
             t["ds_line"].format(
                 file=ds["source_name"],
@@ -529,7 +709,7 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
             )
 
     # Appendix B
-    doc.add_heading(t["annex_methods"], level=1)
+    _heading(doc, t["annex_methods"], level=1)
     doc.add_paragraph(t["methods_intro"].format(effect=t["effect_names"]))
     used_methods, used_tests = set(), set()
     for an in analyses.values():
@@ -539,17 +719,21 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
         if an.get("comparison") and "test_key" in an["comparison"]:
             used_tests.add(an["comparison"]["test_key"])
     for key in sorted(used_methods):
-        doc.add_paragraph(t["methods"][key], style="List Bullet")
+        _bullet(doc, t["methods"][key])
     for key in sorted(used_tests):
-        doc.add_paragraph(t["tests"][key], style="List Bullet")
+        _bullet(doc, t["tests"][key])
     doc.add_paragraph(t["achievement_def"])
 
     attributions = [ds["attribution"] for ds in snap["datasets"] if ds.get("attribution")]
     if attributions:
-        doc.add_heading(t["sources"], level=1)
+        _heading(doc, t["sources"], level=1)
         for a in dict.fromkeys(attributions):
-            doc.add_paragraph(a, style="List Bullet")
+            _bullet(doc, a)
 
+    if anchor is not None:
+        # The sectPr (page setup) stays last in the body; the content moves to the placeholder.
+        generated = [el for el in doc_body if not el.tag.endswith("}sectPr")][start:]
+        _move_after(anchor, generated)
     if path.suffix.lower() != ".docx":
         path = path.with_suffix(".docx")
     doc.save(path)

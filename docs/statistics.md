@@ -35,6 +35,15 @@ Summary of the statistical catalogue. Every method below is computed in R.
 
 **Achievement rate** = (achieved − baseline) / (target − baseline) × 100. Without baseline: achieved / target (increase) or target / achieved (decrease). Status: achieved ≥ 90 %, on track ≥ 60 %, behind < 60 %.
 
+### Implemented in version 0.3
+
+- Indicator types: proportion (one or several conditions joined by AND or OR), mean, count (estimated population total with a design, observed count without), ratio of two sums with an optional multiplier (`svyratio`, delta method). Breakdowns on one column or two crossed columns.
+- Comparisons of counts without a design are descriptive (no test). Ratios and totals with a design: difference with SE = sqrt(SE_A² + SE_B²) and a z test.
+- Test assistant (`engine/r/R/tests.R`): groups (chi-squared, Fisher when an expected count is below 5, Rao-Scott with a design; Welch t, `svyttest`; Welch ANOVA, `svyglm` with a Wald test), value against a target (exact binomial, one-sample t, z test on the design estimate), same people twice (paired t with a Wilcoxon fallback, McNemar or exact McNemar). Effect sizes: Cohen's h and d, Cramér's V, Hedges' g, omega squared, dz.
+- Read-only dashboard: breakdown groups under 5 observations are hidden.
+- Sample size (`engine/r/R/sample.R`): Cochran's formula for a share or a mean, `power.prop.test` and `power.t.test` for a change between two independent rounds; then design effect, finite population correction (estimates only), number of domains and response rate.
+- Quality diagnosis: outliers beyond 3 interquartile ranges, on a log scale for positive amounts whose maximum exceeds 20 times the median; not reported when they exceed 2 % of the values (then they are the shape of the distribution).
+
 ### Implemented in version 0.2 (`engine/r/R/estimate.R`)
 
 - `sme_estimate`: proportion or mean of an indicator, with its 95 % interval, overall and by breakdown group (each group estimated on the subset of the same design). Several stratification columns are combined with `interaction()`. Lonely PSUs: `survey.lonely.psu = "adjust"`.
@@ -50,8 +59,8 @@ Summary of the statistical catalogue. Every method below is computed in R.
 | Two categorical variables | Chi-squared | Fisher with simulated p | `svychisq` |
 | Two groups, mean | Welch t-test | Mann-Whitney | `svyttest` |
 | Three or more groups, mean | Welch ANOVA | Kruskal-Wallis | `svyglm` + `regTermTest` |
-| Same people before and after, numeric | Paired t-test | Wilcoxon signed-rank | later |
-| Same people before and after, yes/no | McNemar | exact binomial | later |
+| Same people before and after, numeric | Paired t-test (implemented) | Wilcoxon signed-rank (implemented) | later |
+| Same people before and after, yes/no | McNemar (implemented) | exact McNemar (implemented) | later |
 | Baseline versus endline surveys | As two groups, with survey round as group | idem | stacked designs |
 | Proportion versus target | Exact binomial | | z-test on `svyciprop` |
 | Mean versus target | One-sample t-test | One-sample Wilcoxon | `svymean` + z-test |

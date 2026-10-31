@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { appInfo, AppInfo, call, EngineCallError, Versions } from "./api";
 import { Lang, useI18n } from "./i18n";
+import logo from "./logo.svg";
 import { Analysis } from "./screens/Analysis";
 import { Data } from "./screens/Data";
 import { Engines, EngineStatus } from "./screens/Engines";
@@ -11,6 +12,7 @@ import { Home } from "./screens/Home";
 import { Indicators } from "./screens/Indicators";
 import { Overview } from "./screens/Overview";
 import { Report } from "./screens/Report";
+import { Tests } from "./screens/Tests";
 import { useProject, View } from "./state";
 import { Icon } from "./ui";
 
@@ -25,6 +27,7 @@ const NAV: { view: View; icon: string }[] = [
   { view: "indicators", icon: "target" },
   { view: "data", icon: "table" },
   { view: "analysis", icon: "chart" },
+  { view: "tests", icon: "scale" },
   { view: "report", icon: "doc" },
 ];
 
@@ -84,8 +87,11 @@ export function App() {
     <div className={`app${folded ? " folded" : ""}`}>
       <aside className="side" aria-label={t("nav.label")}>
         <div className="side-top">
-          <span className="mark fold-hide">
-            SuiviEval<span>Lab</span>
+          <span className="brand">
+            <img src={logo} alt="" width="26" height="26" />
+            <span className="mark fold-hide">
+              SuiviEval<span>Lab</span>
+            </span>
           </span>
           <button
             className="icon-btn"
@@ -208,7 +214,7 @@ export function App() {
             <span className="muted version">{t("side.version", { version: info?.version ?? "" })}</span>
           </span>
         </div>
-        <div className={view === "analysis" && snap ? "col col-split" : "col"}>
+        <div className={(view === "analysis" || view === "tests") && snap ? "col col-split" : "col"}>
           {showEngines ? (
             <Engines info={info} versions={versions} error={engineError} onRecheck={loadVersions} />
           ) : !snap ? (
@@ -221,6 +227,8 @@ export function App() {
             <Data />
           ) : view === "analysis" ? (
             <Analysis />
+          ) : view === "tests" ? (
+            <Tests />
           ) : view === "report" ? (
             <Report />
           ) : (

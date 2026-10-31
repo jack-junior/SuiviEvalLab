@@ -8,6 +8,9 @@ contextBridge.exposeInMainWorld("sme", {
   pick: (kind: string, defaultName?: string) => ipcRenderer.invoke("dialog:pick", kind, defaultName),
   recents: () => ipcRenderer.invoke("project:recents"),
   recentToken: (file: string) => ipcRenderer.invoke("project:recent-token", file),
+  forget: (file: string) => ipcRenderer.invoke("project:forget", file),
+  reveal: (file: string) => ipcRenderer.invoke("project:reveal", file),
+  saveSummary: (file: string, summary: Record<string, number>) => ipcRenderer.invoke("project:summary", file, summary),
   openFile: (token: string) => ipcRenderer.invoke("file:reveal", token),
   onEvent: (listener: (event: { method: string; params: unknown }) => void) => {
     const handler = (_e: unknown, event: { method: string; params: unknown }) => listener(event);

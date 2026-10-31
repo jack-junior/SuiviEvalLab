@@ -7,6 +7,7 @@ return the new snapshot, so the interface never has to merge state itself.
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 from pathlib import Path
@@ -14,7 +15,7 @@ from typing import Any
 
 import polars as pl
 
-from . import cleaning, datasets, indicators
+from . import cleaning, datasets, indicators, merge, quality, stattests, xlsform
 from .project import Project, Workspace, _err, _text
 from .r_bridge import RBridge
 from .rpc import INVALID_PARAMS, RpcError, Server
@@ -28,6 +29,7 @@ class Service:
         self.bridge = bridge
         self._raw: dict[str, pl.DataFrame] = {}
         self._clean: dict[str, tuple[str, pl.DataFrame, list[dict[str, Any]]]] = {}
+        self._merged: dict[str, tuple[str, pl.DataFrame, dict[str, int]]] = {}
         self._results: dict[str, Any] = {}
 
     # ----- state ------------------------------------------------------------------
@@ -38,6 +40,7 @@ class Service:
 
     def reset_caches(self) -> None:
         self._raw.clear()
+        self._merged.clear()
         self._clean.clear()
         self._results.clear()
 
@@ -46,16 +49,22 @@ class Service:
         ds_list = []
         for ds in p.records("dataset"):
             rules = p.records("cleaning_rule", ds["id"])
-            _, cleaned, effects = self.cleaned(ds["id"])
+            try:
+                _, cleaned, effects = self.cleaned(ds["id"])
+            except RpcError as exc:  # a merged file whose sources no longer join
+                ds_list.append({**ds, "rules": rules, "clean_rows": 0, "error": str(exc)})
+                continue
             by_id = {e["id"]: e for e in effects}
             for r in rules:
                 r["effect"] = by_id.get(r["id"])
-            ds_list.append({**ds, "rules": rules, "clean_rows": cleaned.height})
+            extra = {"merge": {**ds["merge"], "stats": self.merged(ds)[2]}} if ds.get("merge") else {}
+            ds_list.append({**ds, **extra, "rules": rules, "clean_rows": cleaned.height})
         return {
             "project": p.info(),
             "framework": p.framework(),
             "indicators": self.ordered_indicators(),
             "datasets": ds_list,
+            "tests": p.records("saved_test"),
         }
 
     def ordered_indicators(self) -> list[dict[str, Any]]:
@@ -69,16 +78,33 @@ class Service:
         return self.project.record("dataset", dataset_id)
 
     def raw(self, dataset_id: str) -> pl.DataFrame:
+        spec = self.dataset_spec(dataset_id)
+        if spec.get("merge"):
+            return self.merged(spec)[1]
         if dataset_id not in self._raw:
             self._raw[dataset_id] = datasets.from_parquet(self.project.blob("dataset", "raw", dataset_id))
         return self._raw[dataset_id]
+
+    def merged(self, spec: dict[str, Any]) -> tuple[str, pl.DataFrame, dict[str, int]]:
+        """Rows of a merged dataset, joined from the cleaned data of its sources. Cached."""
+        m = spec["merge"]
+        lsig, left, _ = self.cleaned(m["left"])
+        rsig, right, _ = self.cleaned(m["right"])
+        signature = hashlib.sha256(json.dumps([lsig, rsig, m], sort_keys=True).encode()).hexdigest()
+        cached = self._merged.get(spec["id"])
+        if cached and cached[0] == signature:
+            return cached
+        df, stats = merge.join(left, right, m)
+        self._merged[spec["id"]] = (signature, df, stats)
+        return self._merged[spec["id"]]
 
     def cleaned(self, dataset_id: str) -> tuple[str, pl.DataFrame, list[dict[str, Any]]]:
         """Raw data with missing codes as nulls, then the enabled rules in order. Cached."""
         spec = self.dataset_spec(dataset_id)
         rules = self.project.records("cleaning_rule", dataset_id)
+        source = self.merged(spec)[0] if spec.get("merge") else None
         signature = hashlib.sha256(
-            json.dumps([spec["na_values"], rules], sort_keys=True, ensure_ascii=False).encode()
+            json.dumps([spec["na_values"], rules, source], sort_keys=True, ensure_ascii=False).encode()
         ).hexdigest()
         cached = self._clean.get(dataset_id)
         if cached and cached[0] == signature:
@@ -95,6 +121,11 @@ class Service:
         sheet = params.get("sheet")
         df = datasets.load(path, sheet if isinstance(sheet, str) else None)
         spec = datasets.new_spec(name, round_, path, sheet if isinstance(sheet, str) else None, df, params)
+        form = params.get("form")
+        if isinstance(form, dict) and isinstance(form.get("survey"), str):
+            parsed = xlsform.parse(path, form["survey"], form.get("choices"), df.columns)
+            spec["labels"] = parsed["labels"]
+            spec["form_source"] = {"file": path.name, **form}
         new_id = self.project.insert_record("dataset", spec, raw=datasets.to_parquet(df))
         self._raw[new_id] = df
         return {**self.snapshot(), "created": new_id}
@@ -121,6 +152,53 @@ class Service:
         self._results.clear()
         return self.snapshot()
 
+    def attach_form(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Read labels from a questionnaire file (XLSForm) for an imported dataset."""
+        spec = self.dataset_spec(params.get("id"))
+        path = Path(_text(params, "path", max_len=4000))
+        sheets = datasets.sheet_names(path)
+        form = xlsform.find_form(path, sheets)
+        if not form:
+            raise _err("No XLSForm survey sheet found in this file", "form_not_found")
+        parsed = xlsform.parse(path, form["survey"], form.get("choices"), [c["name"] for c in spec["columns"]])
+        if parsed["matched_columns"] == 0:
+            raise _err("The questionnaire matches no column of this dataset", "form_no_match")
+        spec["labels"] = xlsform.merge(spec.get("labels"), parsed["labels"])
+        spec["form_source"] = {"file": path.name, **form}
+        self.project.update_record("dataset", spec["id"], spec)
+        return {
+            **self.snapshot(),
+            "matched_columns": parsed["matched_columns"],
+            "matched_value_lists": parsed["matched_value_lists"],
+        }
+
+    def set_labels(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Labels typed by the user for one column and its values, in one language."""
+        spec = self.dataset_spec(params.get("id"))
+        column = params.get("column")
+        if column not in [c["name"] for c in spec["columns"]]:
+            raise _err(f"Unknown column: {column}", "column_not_found")
+        lang = params.get("lang") if params.get("lang") in ("fr", "en") else "default"
+        labels = spec.setdefault("labels", {"columns": {}, "values": {}})
+        if "label" in params:
+            text = _text(params, "label", required=False, max_len=500)
+            col_labels = labels["columns"].setdefault(column, {})
+            if text:
+                col_labels[lang] = text
+            else:
+                col_labels.pop(lang, None)
+        values = params.get("values")
+        if isinstance(values, dict):
+            target = labels["values"].setdefault(column, {})
+            for code, text in values.items():
+                entry = target.setdefault(str(code), {})
+                if isinstance(text, str) and text.strip():
+                    entry[lang] = text.strip()[:300]
+                else:
+                    entry.pop(lang, None)
+        self.project.update_record("dataset", spec["id"], spec)
+        return self.snapshot()
+
     def export_dataset(self, params: dict[str, Any]) -> dict[str, Any]:
         """Write the cleaned data as CSV (UTF-8 with BOM, so Excel reads accents), for R or Excel."""
         _, df, _ = self.cleaned(params.get("id"))
@@ -130,8 +208,59 @@ class Service:
         df.write_csv(path, include_bom=True, null_value="")
         return {"path": str(path), "rows": df.height}
 
+    def merge_datasets(self, params: dict[str, Any]) -> dict[str, Any]:
+        """A new dataset joining two others by a key (individuals to their household)."""
+        left = self.dataset_spec(params.get("left"))
+        right = self.dataset_spec(params.get("right"))
+        m = merge.validate(params, left, right)
+        df, stats = merge.join(self.cleaned(left["id"])[1], self.cleaned(right["id"])[1], m)
+        names = merge.renamed(
+            [c["name"] for c in left["columns"]], [c["name"] for c in right["columns"]], m["right_key"]
+        )
+        if params.get("dry_run"):
+            clashes = [n for c, n in names.items() if n != c]
+            return {"stats": stats, "added": len(names), "renamed": clashes}
+        design = left.get("design") or {}
+        if not design.get("weights"):
+            # Individuals often carry no weight; the household weight comes with the household.
+            rd = right.get("design") or {}
+            design = {
+                "weights": names.get(rd.get("weights") or "", None),
+                "cluster": names.get(rd.get("cluster") or "", None),
+                "strata": [names[c] for c in rd.get("strata") or [] if c in names],
+            }
+            if not design["weights"]:
+                design = datasets.guess_design(df.columns)
+        spec = {
+            "name": _text(params, "name", max_len=200),
+            "round": params.get("round") or left["round"],
+            "source_name": f"{left['name']} + {right['name']}",
+            "sheet": None,
+            "imported_at": datasets.now(),
+            "rows": df.height,
+            "na_values": [],
+            "id_column": left.get("id_column"),
+            "design": datasets.validate_design(design, df.columns),
+            "attribution": "; ".join(a for a in {left.get("attribution") or "", right.get("attribution") or ""} if a),
+            "labels": merge.labels(left, right, names),
+            "columns": datasets.describe_columns(df, []),
+            "merge": {**m, "stats": stats},
+        }
+        if spec["round"] not in datasets.ROUNDS:
+            raise _err("Unknown round", "invalid_round")
+        new_id = self.project.insert_record("dataset", spec, raw=b"")
+        return {**self.snapshot(), "created": new_id}
+
     def delete_dataset(self, dataset_id: Any) -> dict[str, Any]:
+        users = [
+            d["name"]
+            for d in self.project.records("dataset")
+            if (d.get("merge") or {}).get("left") == dataset_id or (d.get("merge") or {}).get("right") == dataset_id
+        ]
+        if users:
+            raise _err(f"This file is used by the merged file {users[0]}: delete that one first", "dataset_in_use")
         self.project.delete_record("dataset", dataset_id)
+        self._merged.pop(dataset_id, None)
         self._raw.pop(dataset_id, None)
         self._clean.pop(dataset_id, None)
         self._results.clear()
@@ -212,24 +341,32 @@ class Service:
         ds = self.project.records("dataset")
         return sorted(ds, key=lambda d: (ROUND_ORDER.get(d["round"], 9), d.get("imported_at", "")))
 
-    def _r_args(self, ind: dict[str, Any], ds: dict[str, Any]) -> dict[str, Any]:
-        design = ds["design"]
-        return {
-            "type": "proportion" if ind["unit"] == "percent" else "mean",
-            "var": ind["column"],
-            "success": ind["success_values"],
-            "weights": design.get("weights"),
-            "strata": design.get("strata") or None,
-            "cluster": design.get("cluster"),
-            "level": 0.95,
-        }
+    @staticmethod
+    def _r_quote(values: list[str]) -> str:
+        return ", ".join('"' + v.replace("\\", "\\\\").replace('"', '\\"') + '"' for v in values)
 
-    def _table_for(self, ind: dict[str, Any], ds: dict[str, Any]) -> pl.DataFrame | None:
+    def _prepare(self, ind: dict[str, Any], ds: dict[str, Any], by: bool) -> tuple[pl.DataFrame, dict[str, Any]] | None:
+        """The table sent to R and the R arguments, or None if a needed column is missing.
+
+        Outcomes built from several columns (conditions) and crossed breakdowns are
+        computed here, so R receives one outcome column; `y_code` is the R
+        equivalent, printed in the reproducible script.
+        """
         _, df, _ = self.cleaned(ds["id"])
         design = ds["design"]
+        unit = ind["unit"]
+        conds = ind.get("conditions") or (
+            [{"column": ind["column"], "values": ind["success_values"]}]
+            if unit == "percent" and ind.get("column")
+            else []
+        )
+        groups = [c for c in (ind.get("disaggregation"), ind.get("disaggregation2")) if c] if by else []
         needed = [
-            ind["column"],
-            ind.get("disaggregation"),
+            *(c["column"] for c in conds),
+            *(groups),
+            ind.get("column") if unit in ("mean", "count") else None,
+            ind.get("numerator"),
+            ind.get("denominator"),
             design.get("weights"),
             design.get("cluster"),
             *(design.get("strata") or []),
@@ -237,47 +374,113 @@ class Service:
         needed = [c for c in dict.fromkeys(needed) if c]
         if any(c not in df.columns for c in needed):
             return None
-        return df.select(needed)
+        table = df.select(needed)
+        args: dict[str, Any] = {
+            "weights": design.get("weights"),
+            "strata": design.get("strata") or None,
+            "cluster": design.get("cluster"),
+            "level": 0.95,
+        }
+        y_code = None
+        uses_conditions = unit == "percent" or (unit == "count" and ind.get("count_mode") != "sum")
+        if uses_conditions:
+            hits = [pl.col(c["column"]).is_in(c["values"]) for c in conds]
+            missing = pl.any_horizontal([pl.col(c["column"]).is_null() for c in conds])
+            met = pl.all_horizontal(hits) if ind.get("combine", "all") == "all" else pl.any_horizontal(hits)
+            r_hits = [f"(donnees$`{c['column']}` %in% c({self._r_quote(c['values'])}))" for c in conds]
+            r_join = " & " if ind.get("combine", "all") == "all" else " | "
+            r_na = " | ".join(f"is.na(donnees$`{c['column']}`)" for c in conds)
+            if unit == "percent":
+                table = table.with_columns(
+                    pl.when(missing)
+                    .then(None)
+                    .otherwise(pl.when(met).then(pl.lit("1")).otherwise(pl.lit("0")))
+                    .alias(".y")
+                )
+                args.update({"type": "proportion", "var": ".y", "success": ["1"]})
+                y_code = f"donnees$y <- as.numeric({r_join.join(r_hits)})\ndonnees$y[{r_na}] <- NA"
+            else:
+                table = table.with_columns(pl.when(met.fill_null(False)).then(1.0).otherwise(0.0).alias(".y"))
+                args.update({"type": "total", "var": ".y"})
+                y_code = f"donnees$y <- as.numeric({r_join.join(r_hits)})\ndonnees$y[is.na(donnees$y)] <- 0"
+        elif unit == "count":
+            args.update({"type": "total", "var": ind["column"]})
+        elif unit == "ratio":
+            args.update({"type": "ratio", "var": ind["numerator"], "den": ind["denominator"]})
+        else:
+            args.update({"type": "mean", "var": ind["column"]})
+        if groups:
+            parts = [pl.col(g).cast(pl.Utf8) for g in groups]
+            table = table.with_columns(
+                pl.when(pl.any_horizontal([pl.col(g).is_null() for g in groups]))
+                .then(None)
+                .otherwise(pl.concat_str(parts, separator=" / "))
+                .alias(".group")
+            )
+            args["by"] = ".group"
+            r_group = (
+                f'donnees$`.group` <- paste(donnees$`{groups[0]}`, donnees$`{groups[1]}`, sep = " / ")'
+                if len(groups) == 2
+                else f"donnees$`.group` <- donnees$`{groups[0]}`"
+            )
+            y_code = (
+                f"{y_code}\n{r_group}"
+                if y_code
+                else (f"donnees$y <- as.numeric(donnees$`{args['var']}`)\n{r_group}" if unit != "percent" else None)
+            )
+        if y_code:
+            args["y_code"] = y_code
+        return table, args
+
+    @staticmethod
+    def _scale(res: dict[str, Any], k: float) -> dict[str, Any]:
+        """Multiply a result by k (ratio per 100 or per 1,000)."""
+        if k == 1:
+            return res
+        out = dict(res)
+        for f in ("estimate", "ci_low", "ci_high", "se", "difference"):
+            if isinstance(out.get(f), (int, float)):
+                out[f] = out[f] * k
+        for f in ("a", "b"):
+            if isinstance(out.get(f), dict):
+                out[f] = Service._scale(out[f], k)
+        if isinstance(out.get("by"), list):
+            out["by"] = [Service._scale(g, k) for g in out["by"]]
+        return out
 
     def _cache_key(self, *parts: Any) -> str:
         return hashlib.sha256(json.dumps(parts, sort_keys=True, default=str).encode()).hexdigest()
 
     def estimate(self, ind: dict[str, Any], ds: dict[str, Any], by: bool = True) -> dict[str, Any] | None:
-        if not ind.get("column"):
+        if not indicators.ready(ind):
             return None
-        table = self._table_for(ind, ds)
-        if table is None:
+        try:
+            prepared = self._prepare(ind, ds, by)
+        except RpcError as exc:  # a merged dataset whose sources no longer join
+            return {"error_key": "dataset_error", "detail": str(exc), "dataset_id": ds["id"]}
+        if prepared is None:
             return {"error_key": "column_missing", "dataset_id": ds["id"]}
+        table, args = prepared
         sig = self.cleaned(ds["id"])[0]
-        args = self._r_args(ind, ds)
-        if by and ind.get("disaggregation"):
-            args["by"] = ind["disaggregation"]
-        key = self._cache_key("estimate", sig, args, ds["design"])
+        key = self._cache_key("estimate", sig, args, ds["design"], table.columns)
         if key not in self._results:
             path = self.bridge.write_table(table, f"t_{key[:16]}")
             try:
                 self._results[key] = self.bridge.call("estimate", {"path": path, **args})
             except RpcError as exc:
                 return {"error_key": "r_error", "detail": str(exc), "dataset_id": ds["id"]}
-        return {**self._results[key], "dataset_id": ds["id"]}
+        return {**self._scale(self._results[key], ind.get("multiplier") or 1.0), "dataset_id": ds["id"]}
 
     def compare(self, ind: dict[str, Any], a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any] | None:
-        ta, tb = self._table_for(ind, a), self._table_for(ind, b)
-        if ta is None or tb is None:
+        pa_, pb_ = self._prepare(ind, a, False), self._prepare(ind, b, False)
+        if pa_ is None or pb_ is None:
             return None
-        args = self._r_args(ind, a)
+        (ta, args), (tb, _) = pa_, pb_
         if a["design"] != b["design"]:
             # Both rounds must be analysed with the same kind of design; keep the common part.
-            common = {
-                "weights": a["design"].get("weights")
-                if a["design"].get("weights") == b["design"].get("weights")
-                else None,
-                "cluster": a["design"].get("cluster")
-                if a["design"].get("cluster") == b["design"].get("cluster")
-                else None,
-                "strata": a["design"].get("strata") if a["design"].get("strata") == b["design"].get("strata") else None,
-            }
-            args.update({k: v or None for k, v in common.items()})
+            for f in ("weights", "cluster", "strata"):
+                if a["design"].get(f) != b["design"].get(f):
+                    args[f] = None
         key = self._cache_key("compare", self.cleaned(a["id"])[0], self.cleaned(b["id"])[0], args)
         if key not in self._results:
             pa = self.bridge.write_table(ta, f"a_{key[:16]}")
@@ -286,7 +489,7 @@ class Service:
                 self._results[key] = self.bridge.call("compare", {"path_a": pa, "path_b": pb, **args})
             except RpcError as exc:
                 return {"error_key": "r_error", "detail": str(exc)}
-        return {**self._results[key], "a_id": a["id"], "b_id": b["id"]}
+        return {**self._scale(self._results[key], ind.get("multiplier") or 1.0), "a_id": a["id"], "b_id": b["id"]}
 
     def indicator_analysis(self, indicator_id: Any) -> dict[str, Any]:
         ind = self.project.record("indicator", indicator_id)
@@ -320,6 +523,29 @@ class Service:
             "achievement": rate,
             "status": indicators.status(rate, current, ind.get("target"), ind.get("direction", "increase")),
         }
+
+    def labeller(self, lang: str) -> Any:
+        """label(column, code=None): readable label from the datasets, else the code."""
+        sets = self.project.records("dataset")
+
+        def label(column: str, code: str | None = None) -> str:
+            for ds in sets:
+                labels = ds.get("labels") or {}
+                found = (
+                    xlsform.pick(labels.get("values", {}).get(column, {}).get(code), lang)
+                    if code is not None
+                    else xlsform.pick(labels.get("columns", {}).get(column), lang)
+                )
+                if found:
+                    return found
+            return code if code is not None else column
+
+        return label
+
+    def test_conclusion(self, spec: dict[str, Any], res: dict[str, Any]) -> dict[str, list[str]]:
+        from .report import Fmt
+
+        return {lang: stattests.conclusion(spec, res, lang, Fmt(lang), self.labeller(lang)) for lang in ("fr", "en")}
 
     def overview(self) -> dict[str, Any]:
         rows = []
@@ -356,6 +582,75 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
     @server.method("project.open")
     def open_(params: dict[str, Any]) -> dict[str, Any]:
         return opened(Project.open(_text(params, "path", max_len=4000)))
+
+    @server.method("project.backups")
+    def backups_list(params: dict[str, Any]) -> dict[str, Any]:
+        from . import backups
+
+        return {"backups": backups.listing(Path(_text(params, "path", max_len=4000)))}
+
+    @server.method("project.restore")
+    def backups_restore(params: dict[str, Any]) -> dict[str, Any]:
+        from . import backups
+
+        path = Path(_text(params, "path", max_len=4000))
+        current = workspace.project
+        if current is not None and current.path.resolve() == path.resolve():
+            workspace.close()
+            svc.reset_caches()
+        backups.restore(path, params.get("backup"))
+        return opened(Project.open(path))
+
+    @server.method("tool.sample_size")
+    def sample_size(params: dict[str, Any]) -> dict[str, Any]:
+        """Survey sample size, computed by R. Needs no open project."""
+        goals = ("estimate_prop", "estimate_mean", "compare_prop", "compare_mean")
+        goal = params.get("goal")
+        if goal not in goals:
+            raise _err(f"goal must be one of {goals}", "invalid_params")
+
+        def num(name: str, low: float | None = None, high: float | None = None, default: Any = None) -> Any:
+            v = params.get(name, default)
+            if v is None or v == "":
+                return default
+            if isinstance(v, bool) or not isinstance(v, (int, float)) or v != v:
+                raise _err(f"{name} must be a number", "sample_invalid")
+            if (low is not None and v <= low) or (high is not None and v > high):
+                raise _err(f"{name} is out of range", "sample_invalid")
+            return float(v)
+
+        args: dict[str, Any] = {
+            "goal": goal,
+            "conf": num("conf", 0.5, 0.999, 0.95),
+            "power": num("power", 0.5, 0.999, 0.8),
+            "deff": max(1.0, num("deff", 0, 20, 1.0)),
+            "domains": int(num("domains", 0, 1000, 1)),
+            "response": num("response", 0, 1, 1.0),
+        }
+        if goal in ("estimate_prop", "compare_prop"):
+            args["p"] = num("p", 0, 0.999)
+            if args["p"] is None:
+                raise _err("p is required", "sample_invalid")
+        if goal == "compare_prop":
+            args["p2"] = num("p2", 0, 0.999)
+            if args["p2"] is None or args["p2"] == args["p"]:
+                raise _err("p2 is required and differs from p", "sample_invalid")
+        if goal in ("estimate_mean", "compare_mean"):
+            args["sd"] = num("sd", 0)
+            if args["sd"] is None:
+                raise _err("sd is required", "sample_invalid")
+        if goal.startswith("estimate"):
+            args["margin"] = num("margin", 0, None if goal == "estimate_mean" else 0.5)
+            if args["margin"] is None:
+                raise _err("margin is required", "sample_invalid")
+            population = num("population", 0)
+            if population is not None:
+                args["population"] = population
+        if goal == "compare_mean":
+            args["delta"] = num("delta", 0)
+            if args["delta"] is None:
+                raise _err("delta is required", "sample_invalid")
+        return bridge.call("sample_size", args)
 
     @server.method("project.close")
     def close(_: dict[str, Any]) -> dict[str, Any]:
@@ -426,9 +721,26 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
     def ds_update(params: dict[str, Any]) -> dict[str, Any]:
         return svc.update_dataset(params)
 
+    @server.method("dataset.attach_form")
+    def ds_attach_form(params: dict[str, Any]) -> dict[str, Any]:
+        return svc.attach_form(params)
+
+    @server.method("dataset.set_labels")
+    def ds_set_labels(params: dict[str, Any]) -> dict[str, Any]:
+        return svc.set_labels(params)
+
     @server.method("dataset.export")
     def ds_export(params: dict[str, Any]) -> dict[str, Any]:
         return svc.export_dataset(params)
+
+    @server.method("dataset.merge")
+    def ds_merge(params: dict[str, Any]) -> dict[str, Any]:
+        return svc.merge_datasets(params)
+
+    @server.method("dataset.quality")
+    def ds_quality(params: dict[str, Any]) -> dict[str, Any]:
+        spec = svc.dataset_spec(params.get("id"))
+        return quality.diagnose(svc.cleaned(spec["id"])[1], spec)
 
     @server.method("dataset.delete")
     def ds_delete(params: dict[str, Any]) -> dict[str, Any]:
@@ -468,6 +780,28 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
     def an_indicator(params: dict[str, Any]) -> dict[str, Any]:
         return svc.indicator_analysis(params.get("id"))
 
+    @server.method("test.run")
+    def test_run(params: dict[str, Any]) -> dict[str, Any]:
+        """Run a test without saving it; the conclusion comes in both languages."""
+        spec = stattests.validate(params.get("test") or {})
+        res = stattests.run(svc, spec)
+        return {"result": res, "conclusion": svc.test_conclusion(spec, res)}
+
+    @server.method("test.save")
+    def test_save(params: dict[str, Any]) -> dict[str, Any]:
+        spec = stattests.validate(params.get("test") or {})
+        if params.get("id"):
+            svc.project.update_record("saved_test", params["id"], spec)
+            saved = params["id"]
+        else:
+            saved = svc.project.insert_record("saved_test", spec)
+        return {**svc.snapshot(), "saved": saved}
+
+    @server.method("test.delete")
+    def test_delete(params: dict[str, Any]) -> dict[str, Any]:
+        svc.project.delete_record("saved_test", params.get("id"))
+        return svc.snapshot()
+
     @server.method("analysis.overview")
     def an_overview(_: dict[str, Any]) -> dict[str, Any]:
         return svc.overview()
@@ -480,6 +814,60 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
         lang = params.get("lang", "fr")
         if lang not in ("fr", "en"):
             raise RpcError("lang must be fr or en", INVALID_PARAMS, data={"key": "invalid_params"})
-        return generate(svc, Path(_text(params, "path", max_len=4000)), lang)
+        meta = svc.project.meta()
+        template = base64.b64decode(meta["report_template"]) if meta.get("report_template") else None
+        return generate(svc, Path(_text(params, "path", max_len=4000)), lang, template)
+
+    @server.method("report.plan")
+    def rep_plan(params: dict[str, Any]) -> dict[str, Any]:
+        from .plan import generate as plan
+
+        lang = params.get("lang", "fr")
+        if lang not in ("fr", "en"):
+            raise RpcError("lang must be fr or en", INVALID_PARAMS, data={"key": "invalid_params"})
+        return plan(svc, Path(_text(params, "path", max_len=4000)), lang)
+
+    @server.method("report.checks")
+    def rep_checks(_: dict[str, Any]) -> dict[str, Any]:
+        from .checks import run as checks
+
+        return checks(svc)
+
+    @server.method("report.share")
+    def rep_share(params: dict[str, Any]) -> dict[str, Any]:
+        from .share import generate as share
+
+        lang = params.get("lang", "fr")
+        if lang not in ("fr", "en"):
+            raise RpcError("lang must be fr or en", INVALID_PARAMS, data={"key": "invalid_params"})
+        return share(svc, Path(_text(params, "path", max_len=4000)), lang)
+
+    @server.method("report.set_template")
+    def rep_set_template(params: dict[str, Any]) -> dict[str, Any]:
+        """Keep the organisation's Word template inside the project, so the report is reproducible."""
+        path = Path(_text(params, "path", max_len=4000))
+        if path.suffix.lower() not in (".docx", ".dotx"):
+            raise _err("The template must be a Word .docx file", "template_type")
+        data = path.read_bytes()
+        if len(data) > 20 * 1024 * 1024:
+            raise _err("The template is larger than 20 MB", "template_too_large")
+        try:
+            import io
+
+            from docx import Document
+
+            doc = Document(io.BytesIO(data))
+        except Exception:  # noqa: BLE001
+            raise _err("This file cannot be opened as a Word document", "template_invalid") from None
+        has_anchor = any(k in p.text for p in doc.paragraphs for k in ("{{contenu}}", "{{content}}"))
+        svc.project.set_meta("report_template", base64.b64encode(data).decode("ascii"))
+        svc.project.set_meta("report_template_name", path.name)
+        return {**svc.snapshot(), "has_anchor": has_anchor}
+
+    @server.method("report.clear_template")
+    def rep_clear_template(_: dict[str, Any]) -> dict[str, Any]:
+        svc.project.set_meta("report_template", None)
+        svc.project.set_meta("report_template_name", None)
+        return svc.snapshot()
 
     return svc

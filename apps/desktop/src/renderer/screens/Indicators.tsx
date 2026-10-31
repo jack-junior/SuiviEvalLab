@@ -1,10 +1,12 @@
 // Indicators: definition, calculation rule from a data column, baseline and target.
 
-import { useEffect, useMemo, useState } from "react";
-import { call, Indicator } from "../api";
+import { useMemo, useState } from "react";
+import { Frequency, Indicator } from "../api";
 import { useI18n } from "../i18n";
+import { useLabels } from "../labels";
 import { useProject } from "../state";
-import { Confirm, Empty, Field, IconButton, Notice, Panel } from "../ui";
+import { Confirm, Empty, Field, IconButton, Notice, Panel, useValueFormat } from "../ui";
+import { IndicatorRule } from "./IndicatorRule";
 
 type Draft = Omit<Indicator, "id" | "node_id"> & { id?: string; node_id: string };
 
@@ -16,12 +18,25 @@ const blank = (node_id: string): Draft => ({
   direction: "increase",
   column: null,
   success_values: [],
+  conditions: [],
+  combine: "all",
+  count_mode: "rows",
+  numerator: null,
+  denominator: null,
+  multiplier: 1,
   disaggregation: null,
+  disaggregation2: null,
   baseline_manual: null,
   target: null,
   unit_label: "",
   source: "",
+  method: "",
+  frequency: "",
+  responsible: "",
+  target_date: "",
 });
+
+const FREQUENCIES: Frequency[] = ["", "monthly", "quarterly", "semiannual", "annual", "rounds", "other"];
 
 /** Number typed by the user: percentages in %, stored as shares. */
 const toInput = (v: number | null, unit: string) =>
@@ -33,12 +48,13 @@ const fromInput = (s: string, unit: string): number | null => {
 };
 
 export function Indicators() {
-  const { t, percent, number } = useI18n();
+  const { t } = useI18n();
   const { snap, run, error, focus } = useProject();
+  const { colText, valText } = useLabels();
+  const fmt = useValueFormat();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [targetText, setTargetText] = useState("");
   const [baseText, setBaseText] = useState("");
-  const [loaded, setLoaded] = useState<{ col: string; values: { value: string | null; n: number }[] } | null>(null);
   const [deleting, setDeleting] = useState<Indicator | null>(null);
 
   const columns = useMemo(() => {
@@ -52,22 +68,21 @@ export function Indicators() {
     return map;
   }, [snap?.datasets]);
 
-  // Values of the chosen column, from the first dataset that has it (cleaned data).
-  const col = draft?.column ?? null;
-  useEffect(() => {
-    if (!col || !columns.has(col)) return;
-    const dsId = columns.get(col)!.datasets[0];
-    call<{ values: { value: string | null; n: number }[] }>("dataset.column_values", { id: dsId, column: col })
-      .then((r) => setLoaded({ col, values: r.values }))
-      .catch(() => setLoaded({ col, values: [] }));
-  }, [col, columns]);
-  const values = loaded && loaded.col === col ? loaded.values : [];
-
   if (!snap) return null;
   const results = snap.framework.filter((n) => n.level !== "activity");
 
   const edit = (d: Draft) => {
-    setDraft(d);
+    // Indicators saved before version 0.3 keep their single condition in column + success_values.
+    if (!d.conditions?.length && d.column && d.unit === "percent")
+      d = { ...d, conditions: [{ column: d.column, values: d.success_values }] };
+    setDraft({
+      ...d,
+      combine: d.combine ?? "all",
+      count_mode: d.count_mode ?? "rows",
+      multiplier: d.multiplier ?? 1,
+      disaggregation2: d.disaggregation2 ?? null,
+      conditions: d.conditions ?? [],
+    });
     setTargetText(toInput(d.target, d.unit));
     setBaseText(toInput(d.baseline_manual, d.unit));
   };
@@ -83,8 +98,36 @@ export function Indicators() {
     if (ok) setDraft(null);
   };
 
-  const fmt = (v: number | null, unit: string) =>
-    v === null ? t("common.none") : unit === "percent" ? percent(v) : number(v, 2);
+  const ruleText = (ind: Indicator) => {
+    const conds = ind.conditions?.length
+      ? ind.conditions
+      : ind.column && ind.unit === "percent"
+        ? [{ column: ind.column, values: ind.success_values }]
+        : [];
+    const condText = conds
+      .map((c) =>
+        t("indicators.condText", {
+          column: colText(c.column),
+          values: c.values.map((v) => valText(c.column, v)).join(", "),
+        }),
+      )
+      .join(ind.combine === "any" ? t("indicators.or") : t("indicators.and"));
+    if (ind.unit === "percent")
+      return conds.length ? t("indicators.rulePercent2", { conditions: condText }) : t("indicators.noRule");
+    if (ind.unit === "count")
+      return ind.count_mode === "sum"
+        ? ind.column
+          ? t("indicators.ruleSum", { column: colText(ind.column) })
+          : t("indicators.noRule")
+        : conds.length
+          ? t("indicators.ruleCount", { conditions: condText })
+          : t("indicators.noRule");
+    if (ind.unit === "ratio")
+      return ind.numerator && ind.denominator
+        ? t("indicators.ruleRatio", { num: colText(ind.numerator), den: colText(ind.denominator) })
+        : t("indicators.noRule");
+    return ind.column ? t("indicators.ruleMean", { column: colText(ind.column) }) : t("indicators.noRule");
+  };
 
   if (results.length === 0)
     return (
@@ -93,8 +136,6 @@ export function Indicators() {
         <Empty icon="target" title={t("indicators.needFramework")} text={t("indicators.needFrameworkText")} />
       </div>
     );
-
-  const textColumns = [...columns.entries()].filter(([, c]) => c.type === "text" && c.distinct <= 40);
 
   return (
     <div className="inner wide">
@@ -135,11 +176,7 @@ export function Indicators() {
                     <div>
                       <div className="t">{ind.name}</div>
                       <div className="s">
-                        {ind.column
-                          ? ind.unit === "percent"
-                            ? t("indicators.rulePercent", { column: ind.column, values: ind.success_values.join(", ") })
-                            : t("indicators.ruleMean", { column: ind.column })
-                          : t("indicators.noRule")}
+                        {ruleText(ind)}
                         {"  "}
                         {t("indicators.targetShort", { value: fmt(ind.target, ind.unit) })}
                       </div>
@@ -224,7 +261,7 @@ export function Indicators() {
           <div className="field">
             <span className="label">{t("indicators.unit")}</span>
             <div className="chips">
-              {(["percent", "mean"] as const).map((u) => (
+              {(["percent", "mean", "count", "ratio"] as const).map((u) => (
                 <button
                   key={u}
                   className="chip"
@@ -256,73 +293,7 @@ export function Indicators() {
           {columns.size === 0 ? (
             <p className="muted small">{t("indicators.noDataYet")}</p>
           ) : (
-            <>
-              <Field label={t("indicators.column")} hint={t("indicators.columnHint")}>
-                {(id) => (
-                  <select
-                    id={id}
-                    className="input"
-                    value={draft.column ?? ""}
-                    onChange={(e) => setDraft({ ...draft, column: e.target.value || null, success_values: [] })}
-                    data-testid="indicator-column"
-                  >
-                    <option value="">{t("common.choose")}</option>
-                    {[...columns.entries()].map(([name, c]) => (
-                      <option key={name} value={name}>
-                        {name} {c.datasets.length < (snap.datasets.length || 1) ? t("indicators.notInAll") : ""}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </Field>
-              {draft.unit === "percent" && draft.column && (
-                <div className="field">
-                  <span className="label">{t("indicators.success")}</span>
-                  <div className="field-hint">{t("indicators.successHint")}</div>
-                  <div className="value-list" data-testid="success-values">
-                    {values
-                      .filter((v) => v.value !== null)
-                      .map((v) => (
-                        <label key={v.value} className="check">
-                          <input
-                            type="checkbox"
-                            data-testid={`value-${v.value}`}
-                            checked={draft.success_values.includes(v.value!)}
-                            onChange={(e) =>
-                              setDraft({
-                                ...draft,
-                                success_values: e.target.checked
-                                  ? [...draft.success_values, v.value!]
-                                  : draft.success_values.filter((x) => x !== v.value),
-                              })
-                            }
-                          />
-                          <span className="check-text">{v.value}</span>
-                          <span className="muted small">{number(v.n, 0)}</span>
-                        </label>
-                      ))}
-                  </div>
-                  <div className="field-hint">{t("indicators.missingExcluded")}</div>
-                </div>
-              )}
-              <Field label={t("indicators.disaggregation")}>
-                {(id) => (
-                  <select
-                    id={id}
-                    className="input"
-                    value={draft.disaggregation ?? ""}
-                    onChange={(e) => setDraft({ ...draft, disaggregation: e.target.value || null })}
-                  >
-                    <option value="">{t("indicators.noDisaggregation")}</option>
-                    {textColumns.map(([name]) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </Field>
-            </>
+            <IndicatorRule draft={draft} onChange={(d) => setDraft({ ...draft, ...d })} columns={columns} />
           )}
 
           <h3 className="panel-section">{t("indicators.values")}</h3>
@@ -354,13 +325,68 @@ export function Indicators() {
               )}
             </Field>
           </div>
-          <Field label={t("indicators.source")}>
+          <h3 className="panel-section">{t("indicators.plan")}</h3>
+          <p className="muted small">{t("indicators.planHint")}</p>
+          <div className="field-row">
+            <Field label={t("indicators.source")}>
+              {(id) => (
+                <input
+                  id={id}
+                  className="input"
+                  value={draft.source}
+                  onChange={(e) => setDraft({ ...draft, source: e.target.value })}
+                />
+              )}
+            </Field>
+            <Field label={t("indicators.method")}>
+              {(id) => (
+                <input
+                  id={id}
+                  className="input"
+                  value={draft.method ?? ""}
+                  onChange={(e) => setDraft({ ...draft, method: e.target.value })}
+                  data-testid="indicator-method"
+                />
+              )}
+            </Field>
+          </div>
+          <div className="field-row">
+            <Field label={t("indicators.frequency")}>
+              {(id) => (
+                <select
+                  id={id}
+                  className="input"
+                  value={draft.frequency ?? ""}
+                  onChange={(e) => setDraft({ ...draft, frequency: e.target.value as Frequency })}
+                  data-testid="indicator-frequency"
+                >
+                  {FREQUENCIES.map((f) => (
+                    <option key={f} value={f}>
+                      {f ? t(`indicators.freq_${f}`) : t("indicators.freq_none")}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </Field>
+            <Field label={t("indicators.responsible")}>
+              {(id) => (
+                <input
+                  id={id}
+                  className="input"
+                  value={draft.responsible ?? ""}
+                  onChange={(e) => setDraft({ ...draft, responsible: e.target.value })}
+                  data-testid="indicator-responsible"
+                />
+              )}
+            </Field>
+          </div>
+          <Field label={t("indicators.targetDate")} hint={t("indicators.targetDateHint")}>
             {(id) => (
               <input
                 id={id}
                 className="input"
-                value={draft.source}
-                onChange={(e) => setDraft({ ...draft, source: e.target.value })}
+                value={draft.target_date ?? ""}
+                onChange={(e) => setDraft({ ...draft, target_date: e.target.value })}
               />
             )}
           </Field>
