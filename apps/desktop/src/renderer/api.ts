@@ -298,6 +298,9 @@ export interface Comparison {
   effect_size: number | null;
   effect_key: string;
   error_key?: string;
+  /** "weights_scale": the two surveys' weights are not on the same scale (counts only). */
+  warning?: string;
+  mean_weights?: [number, number];
 }
 
 export type Status = "achieved" | "on_track" | "late" | "unknown";

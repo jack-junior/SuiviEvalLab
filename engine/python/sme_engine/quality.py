@@ -9,6 +9,7 @@ Issues
 - duplicate_id:     the identifier column repeats.
 - duplicate_rows:   identical rows (only checked without an identifier column).
 - weight_invalid:   the weight column has missing, zero or negative values.
+- weights_normalised: weights average about 1, so weighted counts are not population numbers.
 - unknown_codes:    values absent from the questionnaire's list of answers.
 - text_in_numbers:  a numeric column holding a few texts.
 - outliers:         numbers far from the others (beyond 3 interquartile ranges).
@@ -37,6 +38,7 @@ SEVERITY = {
     "duplicate_id": "warning",
     "duplicate_rows": "warning",
     "weight_invalid": "warning",
+    "weights_normalised": "info",
     "unknown_codes": "warning",
     "text_in_numbers": "warning",
     "outliers": "warning",
@@ -120,6 +122,11 @@ def diagnose(df: pl.DataFrame, spec: dict[str, Any]) -> dict[str, Any]:
 
     if weights and weights in df.columns:
         w = df[weights].cast(pl.Float64, strict=False)
+        total = w.drop_nulls().sum()
+        if total and 0.5 * n <= total <= 2 * n:
+            # Weights near 1 on average: they correct proportions, but a weighted count is not
+            # a number of households in the population.
+            add("weights_normalised", weights, int(round(total)))
         bad = w.is_null() | (w <= 0)
         count = int(bad.fill_null(True).sum())
         if count:
@@ -158,7 +165,7 @@ def diagnose(df: pl.DataFrame, spec: dict[str, Any]) -> dict[str, Any]:
                 add("unknown_codes", name, unknown.len(), values, fix)
             continue
 
-        if name in technical or name.startswith("_"):
+        if name in technical or name.startswith("_") or NOT_A_QUANTITY.search(name):
             continue
         num = present.cast(pl.Float64, strict=False)
         n_num = n_present - num.null_count()

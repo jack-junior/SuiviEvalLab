@@ -753,6 +753,12 @@ export const fr = {
   "updates.unsupported": "Les mises à jour automatiques fonctionnent dans l'application installée.",
   "updates.policy":
     "Si vous quittez sans redémarrer, la mise à jour s'installe à la fermeture. Une organisation peut désactiver les mises à jour sur ses postes par une stratégie de groupe (registre HKLM\\Software\\Policies\\SuiviEvalLab, valeur Updates = off).",
+  "analysis.weightsScale":
+    "Attention : les poids des deux enquêtes ne sont pas à la même échelle (poids moyen {a} contre {b}). Un effectif pondéré n'est comparable que si les deux enquêtes utilisent des poids d'extrapolation à la population ; avec des poids normalisés, comparez plutôt une part (pourcentage).",
+  "checks.count_weights_scale":
+    "« {name} » : les poids des deux enquêtes ne sont pas à la même échelle, la comparaison des effectifs n'a pas de sens.",
+  "quality.weights_normalised":
+    "{col} : la somme des poids ({n}) est proche du nombre de lignes. Ces poids corrigent les parts et les moyennes, mais un effectif pondéré n'est pas un nombre de ménages dans la population.",
 };
 
 export type MessageKey = keyof typeof fr;
@@ -1493,4 +1499,10 @@ export const en: Record<MessageKey, string> = {
   "updates.unsupported": "Automatic updates work in the installed app.",
   "updates.policy":
     "If you quit without restarting, the update is installed on closing. An organisation can turn updates off on its computers with a group policy (registry HKLM\\Software\\Policies\\SuiviEvalLab, value Updates = off).",
+  "analysis.weightsScale":
+    "Warning: the weights of the two surveys are not on the same scale (mean weight {a} against {b}). A weighted count can only be compared when both surveys use weights that expand to the population; with normalised weights, compare a share (percentage) instead.",
+  "checks.count_weights_scale":
+    '"{name}": the weights of the two surveys are not on the same scale, comparing the counts makes no sense.',
+  "quality.weights_normalised":
+    "{col}: the weights sum ({n}) is close to the number of rows. These weights correct shares and means, but a weighted count is not a number of households in the population.",
 };

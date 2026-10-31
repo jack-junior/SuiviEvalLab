@@ -224,6 +224,11 @@ function Results({ a }: { a: IndicatorAnalysis }) {
       {c ? (
         <section className="compare" data-testid="comparison">
           <h2>{t("analysis.compareTitle")}</h2>
+          {c.warning === "weights_scale" && c.mean_weights && (
+            <div className="notice notice-error" role="alert" data-testid="weights-scale">
+              {t("analysis.weightsScale", { a: number(c.mean_weights[0], 2), b: number(c.mean_weights[1], 2) })}
+            </div>
+          )}
           {c.p_value === null ? (
             <p>
               {t("analysis.compareDescriptive", {

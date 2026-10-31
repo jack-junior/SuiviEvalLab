@@ -55,6 +55,9 @@ def run(svc: Any) -> dict[str, Any]:
         for r in small:
             add("small_sample", "warning", "analysis", ind["id"], name, n=r["result"].get("n") or 0, round=r["round"])
         comp = an.get("comparison")
+        if comp and comp.get("warning") == "weights_scale":
+            a, b = comp["mean_weights"]
+            add("count_weights_scale", "warning", "analysis", ind["id"], name, a=a, b=b)
         if comp and "error_key" not in comp and comp.get("p_value") is None:
             add("comparison_descriptive", "info", "analysis", ind["id"], name)
         if not (ind.get("definition") or "").strip():
