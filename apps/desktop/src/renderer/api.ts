@@ -59,6 +59,7 @@ export type PickKind =
   | "csv-save"
   | "html-save"
   | "xlsx-save"
+  | "r-save"
   | "template-open";
 export interface Picked {
   token: string;
@@ -164,7 +165,26 @@ export interface Design {
   cluster: string | null;
 }
 
-export type RuleKind = "duplicates" | "recode" | "range" | "exclude";
+export type RuleKind =
+  "duplicates" | "recode" | "range" | "exclude" | "text" | "compute" | "classes" | "date" | "check" | "conditional";
+
+export type ComputeOp = "sum" | "mean" | "min" | "max" | "difference" | "ratio" | "count_values";
+export type CondOp = "eq" | "ne" | "in" | "not_in" | "lt" | "le" | "gt" | "ge" | "missing" | "present";
+export type TextOp = "trim" | "squeeze" | "lower" | "upper" | "title" | "accents";
+export type DateMode = "duration" | "age" | "year" | "month";
+
+export interface RuleCondition {
+  column: string;
+  op: CondOp;
+  value?: string | number | null;
+  values?: string[];
+}
+
+export interface RuleClass {
+  from: number | null;
+  to: number | null;
+  label: string;
+}
 export interface Rule {
   id: string;
   dataset_id: string;
@@ -178,6 +198,20 @@ export interface Rule {
   min?: number | null;
   max?: number | null;
   values?: (string | null)[];
+  op?: ComputeOp;
+  target?: string;
+  classes?: RuleClass[];
+  conditions?: RuleCondition[];
+  combine?: "all" | "any";
+  value?: string | null;
+  action?: "flag" | "exclude" | "missing";
+  ops?: TextOp[];
+  mode?: DateMode;
+  end?: string;
+  ref_date?: string;
+  ref_column?: string;
+  /** Plain-language description in both languages, for the advanced kinds. */
+  description?: { fr: string; en: string };
   effect?: { applied: boolean; rows_removed: number; cells_changed: number } | null;
 }
 
@@ -200,11 +234,33 @@ export interface Dataset {
   form_source?: { file: string; survey: string; choices: string | null };
   /** Set for a merged dataset: rows computed from two other datasets. */
   merge?: MergeSpec;
+  /** Set for a stacked dataset: rows of several files of the same structure. */
+  stack?: StackSpec;
   /** Set when a merged dataset can no longer be computed (its sources no longer join). */
   error?: string;
   columns: ColumnInfo[];
+  /** Columns created by the cleaning rules. */
+  derived_columns?: ColumnInfo[];
   rules: Rule[];
 }
+
+export interface StackStats {
+  files: number;
+  rows: number;
+  rows_by_file: Record<string, number>;
+  columns: number;
+  missing_columns: Record<string, string[]>;
+  names: string[];
+}
+
+export interface StackSpec {
+  sources: string[];
+  source_column: string;
+  stats: StackStats;
+}
+
+/** Columns of the file and those its cleaning rules create. */
+export const allColumns = (ds: Dataset): ColumnInfo[] => [...ds.columns, ...(ds.derived_columns ?? [])];
 
 export interface MergeStats {
   left_rows: number;

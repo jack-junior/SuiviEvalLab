@@ -1,7 +1,7 @@
 // Indicators: definition, calculation rule from a data column, baseline and target.
 
 import { useMemo, useState } from "react";
-import { Frequency, Indicator } from "../api";
+import { allColumns, Frequency, Indicator } from "../api";
 import { useI18n } from "../i18n";
 import { useLabels } from "../labels";
 import { useProject } from "../state";
@@ -63,7 +63,7 @@ export function Indicators() {
   const columns = useMemo(() => {
     const map = new Map<string, { type: string; distinct: number; datasets: string[] }>();
     for (const ds of snap?.datasets ?? [])
-      for (const c of ds.columns) {
+      for (const c of allColumns(ds)) {
         const cur = map.get(c.name);
         if (cur) cur.datasets.push(ds.id);
         else map.set(c.name, { type: c.type, distinct: c.distinct, datasets: [ds.id] });

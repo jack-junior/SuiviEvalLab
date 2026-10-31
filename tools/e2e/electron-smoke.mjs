@@ -59,6 +59,7 @@ const dialogs = [
   fileSav,
   fileMerge,
   fileMerge,
+  path.join(work, "nettoyage.R"),
   path.join(work, "tableau.html"),
   path.join(work, "plan.xlsx"),
   path.join(work, "exemple.sme"),
@@ -218,6 +219,62 @@ try {
   await shot("merge-panel");
   await id("merge-confirm").click();
   await id("merge-line").waitFor({ timeout: 60_000 });
+
+  // Advanced cleaning on the merged file: volume classes, then a consistency check
+  // on the created column, then the journal as an R script.
+  const volume = "water_collection/containers_group/volume";
+  await id("add-rule").click();
+  await id("kind-classes").click();
+  await id("rule-column").selectOption(volume);
+  await id("class-to-0").fill("10");
+  await id("class-label-0").fill("Petit");
+  await id("class-from-1").fill("10");
+  await id("class-label-1").fill("Grand");
+  await id("rule-target").fill("taille_contenant");
+  await shot("advanced-rule");
+  await id("rule-save").click();
+  await page.locator(".journal-row").first().waitFor();
+  await id("add-rule").click();
+  await id("kind-check").click();
+  await id("cond-column-0").selectOption(volume);
+  await id("cond-op-0").selectOption("gt");
+  await id("cond-value-0").fill("100");
+  await id("rule-target").fill("volume_suspect");
+  await id("rule-save").click();
+  await page.locator(".journal-row").nth(1).waitFor();
+  const journal = (await id("journal").innerText()).replace(/\s+/g, " ");
+  if (!journal.includes("Nouvelle variable « taille_contenant »"))
+    throw new Error(`Advanced rule not described: ${journal}`);
+  notice("E2E advanced cleaning", journal.slice(0, 240));
+  await id("tab-columns").click();
+  await page.getByText("taille_contenant").first().waitFor({ timeout: 30_000 });
+  await id("tab-cleaning").click();
+  await id("export-r").click();
+  await page
+    .locator(".notice")
+    .filter({ hasText: "Script R" })
+    .waitFor({ timeout: 60_000 });
+  const script = readFileSync(path.join(work, "nettoyage.R"), "utf-8");
+  if (
+    !script.includes("taille_contenant") ||
+    !existsSync(path.join(work, "nettoyage_brut.csv"))
+  )
+    throw new Error("R script incomplete");
+  notice("E2E R script", `${script.split("\n").length} lines`);
+
+  // Stacking two files.
+  await id("data-back").click();
+  await id("stack-data").click();
+  await id("stack-file-Menages").check();
+  await id("stack-file-Contenants").check();
+  await id("stack-check").waitFor({ timeout: 60_000 });
+  notice(
+    "E2E stack check",
+    (await id("stack-check").innerText()).replace(/\s+/g, " "),
+  );
+  await shot("stack-panel");
+  await id("stack-confirm").click();
+  await id("stack-line").waitFor({ timeout: 60_000 });
 
   // Read-only dashboard.
   await id("nav-report").click();
