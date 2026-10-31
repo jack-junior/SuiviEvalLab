@@ -19,8 +19,21 @@ from sme_engine import xlsform  # noqa: E402
 
 src = Path(sys.argv[1]) / "bgd_wash_followup_2018.xlsx"
 out = Path("engine/python/tests/fixtures")
-cols = ["_uuid", "camp_id", "enu_gen", "consent", "res_age", "res_gen", "head_gen", "num_mem", "drnk_wat",
-        "access_wat", "sat_wat", "trt_wat", "_index"]
+cols = [
+    "_uuid",
+    "camp_id",
+    "enu_gen",
+    "consent",
+    "res_age",
+    "res_gen",
+    "head_gen",
+    "num_mem",
+    "drnk_wat",
+    "access_wat",
+    "sat_wat",
+    "trt_wat",
+    "_index",
+]
 df = pl.read_excel(src, sheet_name="Household Dataset", infer_schema_length=0)
 cols = [c for c in cols if c in df.columns]
 df = df.select(cols).head(600)
