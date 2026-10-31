@@ -55,6 +55,7 @@ T = {
         },
         "single": "{name} est de {value} {when} (IC à 95 % : {low} à {high} ; {n} observations).",
         "change": "{name} est passé de {a} {when_a} à {b} {when_b}, soit {direction} de {diff} (IC à 95 % : {low} à {high}).",
+        "change_plain": "{name} est passé de {a} {when_a} à {b} {when_b}, soit {direction} de {diff} (effectifs de l'échantillon, sans test statistique).",
         "change_name_share": "La part des {name}",
         "up": "une hausse",
         "down": "une baisse",
@@ -100,12 +101,19 @@ T = {
             "survey_logit": "Proportion pondérée selon le plan d'enquête, intervalle de confiance par la méthode logit (package R survey, linéarisation de Taylor).",
             "t_mean": "Moyenne avec intervalle de confiance de Student (échantillon aléatoire simple).",
             "survey_mean": "Moyenne pondérée selon le plan d'enquête, intervalle de confiance par linéarisation de Taylor (package R survey).",
+            "count": "Effectif observé dans l'échantillon (sans pondération, donc sans intervalle de confiance).",
+            "survey_total": "Effectif estimé dans la population à partir des poids de sondage, intervalle de confiance par linéarisation de Taylor (survey::svytotal).",
+            "ratio": "Ratio de deux sommes avec intervalle de confiance par la méthode delta (survey::svyratio, poids égaux).",
+            "survey_ratio": "Ratio de deux sommes pondérées selon le plan d'enquête, intervalle de confiance par la méthode delta (survey::svyratio).",
         },
         "tests": {
             "z_survey_prop": "Différence entre deux enquêtes indépendantes, chacune analysée avec son plan d'enquête ; erreur type combinée et test z.",
             "z_survey_mean": "Différence de moyennes entre deux enquêtes indépendantes, chacune analysée avec son plan d'enquête ; erreur type combinée et test z.",
             "chisq_prop": "Test du khi-deux de comparaison de deux proportions (sans correction de continuité).",
             "welch": "Test t de Welch de comparaison de deux moyennes.",
+            "z_survey_total": "Différence entre deux effectifs estimés sur deux enquêtes indépendantes ; erreur type combinée et test z.",
+            "z_ratio": "Différence entre deux ratios estimés sur deux enquêtes indépendantes ; erreur type combinée et test z.",
+            "descriptive": "Différence entre deux effectifs observés, sans test statistique (pas de plan de sondage).",
         },
         "methods_intro": "Tous les calculs sont faits par R. Les résultats sont accompagnés de leur intervalle de confiance à 95 % ; les comparaisons donnent la différence, son intervalle, la valeur p et une taille d'effet ({effect}).",
         "effect_names": "h de Cohen pour les proportions, d de Cohen pour les moyennes",
@@ -140,6 +148,7 @@ T = {
         },
         "single": "{name} is {value} {when} (95% CI: {low} to {high}; {n} observations).",
         "change": "{name} went from {a} {when_a} to {b} {when_b}, {direction} of {diff} (95% CI: {low} to {high}).",
+        "change_plain": "{name} went from {a} {when_a} to {b} {when_b}, {direction} of {diff} (sample counts, no statistical test).",
         "change_name_share": "The share of {name}",
         "up": "an increase",
         "down": "a decrease",
@@ -185,12 +194,19 @@ T = {
             "survey_logit": "Proportion weighted by the survey design, logit confidence interval (R survey package, Taylor linearisation).",
             "t_mean": "Mean with Student confidence interval (simple random sample).",
             "survey_mean": "Mean weighted by the survey design, confidence interval by Taylor linearisation (R survey package).",
+            "count": "Count observed in the sample (unweighted, so no confidence interval).",
+            "survey_total": "Population count estimated from the sampling weights, Taylor linearisation confidence interval (survey::svytotal).",
+            "ratio": "Ratio of two sums with a delta-method confidence interval (survey::svyratio, equal weights).",
+            "survey_ratio": "Ratio of two sums weighted by the survey design, delta-method confidence interval (survey::svyratio).",
         },
         "tests": {
             "z_survey_prop": "Difference between two independent surveys, each analysed with its own design; combined standard error and z test.",
             "z_survey_mean": "Difference of means between two independent surveys, each analysed with its own design; combined standard error and z test.",
             "chisq_prop": "Chi-squared test comparing two proportions (no continuity correction).",
             "welch": "Welch t test comparing two means.",
+            "z_survey_total": "Difference between two population counts estimated from two independent surveys; combined standard error and z test.",
+            "z_ratio": "Difference between two ratios estimated from two independent surveys; combined standard error and z test.",
+            "descriptive": "Difference between two observed counts, without a statistical test (no sampling design).",
         },
         "methods_intro": "All calculations are done in R. Results come with their 95% confidence interval; comparisons give the difference, its interval, the p-value and an effect size ({effect}).",
         "effect_names": "Cohen's h for proportions, Cohen's d for means",
@@ -221,10 +237,14 @@ class Fmt:
         return self.num(share * 100, digits) + (" %" if self.lang == "fr" else "%")
 
     def value(self, x: float | None, unit: str) -> str:
-        return self.pct(x) if unit == "percent" else self.num(x, 2)
+        if unit == "percent":
+            return self.pct(x)
+        return self.num(x, 0 if unit == "count" else 2)
 
     def points(self, diff: float, unit: str, t: dict[str, Any]) -> str:
-        return f"{self.num(abs(diff) * 100)} {t['points']}" if unit == "percent" else self.num(abs(diff), 2)
+        if unit == "percent":
+            return f"{self.num(abs(diff) * 100)} {t['points']}"
+        return self.num(abs(diff), 0 if unit == "count" else 2)
 
     def p(self, p: float, t: dict[str, Any]) -> str:
         return t["p_small"] if p < 0.001 else t["p_eq"].format(p=self.num(p, 3))
@@ -339,7 +359,21 @@ def _narrative(ind: dict[str, Any], an: dict[str, Any], t: dict[str, Any], f: Fm
     name = t["change_name_share"].format(name=_lower_first(ind["name"])) if unit == "percent" else ind["name"]
     out = []
     comp = an.get("comparison")
-    if comp and "error_key" not in comp:
+    if comp and "error_key" not in comp and comp.get("p_value") is None:
+        a = next(r for r in usable if r["dataset_id"] == comp["a_id"])
+        b = next(r for r in usable if r["dataset_id"] == comp["b_id"])
+        out.append(
+            t["change_plain"].format(
+                name=name,
+                a=f.value(comp["a"]["estimate"], unit),
+                when_a=t["round_phrase"][a["round"]],
+                b=f.value(comp["b"]["estimate"], unit),
+                when_b=t["round_phrase"][b["round"]],
+                direction=t["up"] if comp["difference"] >= 0 else t["down"],
+                diff=f.points(comp["difference"], unit, t),
+            )
+        )
+    elif comp and "error_key" not in comp:
         a = next(r for r in usable if r["dataset_id"] == comp["a_id"])
         b = next(r for r in usable if r["dataset_id"] == comp["b_id"])
         out.append(
@@ -475,6 +509,7 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
                     "highs": [r["result"].get("ci_high") for r in usable],
                     "target": an.get("target"),
                     "percent": ind["unit"] == "percent",
+                    # Counts and ratios keep their own scale on the chart.
                     "title": "",
                     "ylab": t["chart_ylab_percent"] if ind["unit"] == "percent" else (ind.get("unit_label") or ""),
                     "target_label": t["chart_target"],

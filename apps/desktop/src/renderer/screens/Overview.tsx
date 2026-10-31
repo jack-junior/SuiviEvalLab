@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { OverviewRow, saveSummary } from "../api";
 import { useI18n } from "../i18n";
 import { useProject, View } from "../state";
-import { Empty, Icon, Notice, Progress, StatusTag } from "../ui";
+import { Empty, Icon, Notice, Progress, StatusTag, useValueFormat } from "../ui";
 
 export function Overview() {
-  const { t, tn, percent, number } = useI18n();
+  const { t, tn } = useI18n();
   const { snap, run, go, error } = useProject();
+  const fmt = useValueFormat();
   const [answer, setAnswer] = useState<{ stamp?: string; rows: OverviewRow[] } | null>(null);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
@@ -42,8 +43,6 @@ export function Overview() {
   const rows = answer && answer.stamp === stamp ? answer.rows : null;
   if (!snap) return null;
   const { project, framework, indicators, datasets } = snap;
-  const fmt = (v: number | null, unit: string) =>
-    v === null ? t("common.none") : unit === "percent" ? percent(v) : number(v, 2);
 
   const steps: { view: View; icon: string; label: string; detail: string; done: boolean }[] = [
     {

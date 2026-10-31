@@ -109,3 +109,74 @@ def test_import_full_hdx_files():
         df = datasets.load(name, info["sheet"])
         assert df.height > 100, name
         assert len(df.columns) > 50, name
+
+
+@needs_r
+def test_indicator_types_on_real_data(engine, tmp_path):
+    """Count, ratio, two conditions and a crossed breakdown, checked against polars."""
+    snap = engine("project.create", {"path": str(tmp_path / "t.sme"), "name": "x", "example": True})
+    node = snap["indicators"][0]["node_id"]
+    base = snap["datasets"][0]
+    raw = pl.read_excel(EXAMPLES / "mcna_irak_2019.xlsx", sheet_name="Donnees menages", infer_schema_length=0)
+    raw = raw.filter(~pl.col("population_group").is_in(["idp_in_camp", "host"]))
+    w = raw["weights"].cast(pl.Float64)
+
+    def save(spec):
+        out = engine("indicator.save", {"node_id": node, "indicator": spec})
+        return engine("analysis.indicator", {"id": out["saved"]})
+
+    # Two conditions: primary AND secondary school within 2 km (weighted share).
+    both = save(
+        {
+            "name": "Deux écoles proches",
+            "unit": "percent",
+            "conditions": [
+                {"column": "primary_school_place", "values": ["within_2km"]},
+                {"column": "secondary_school_place", "values": ["within_2km"]},
+            ],
+            "combine": "all",
+            "disaggregation": "population_group",
+            "disaggregation2": "governorate_mcna",
+        }
+    )
+    ok = raw.filter(
+        ~pl.col("primary_school_place").is_in(["do_not_know"])
+        & ~pl.col("secondary_school_place").is_in(["do_not_know"])
+    )
+    wk = ok["weights"].cast(pl.Float64)
+    hit = ((ok["primary_school_place"] == "within_2km") & (ok["secondary_school_place"] == "within_2km")).cast(
+        pl.Float64
+    )
+    assert both["rounds"][0]["result"]["estimate"] == pytest.approx(float((wk * hit).sum() / wk.sum()), abs=1e-9)
+    groups = {g["group"] for g in both["rounds"][0]["result"]["by"]}
+    assert "returnee / ninewa" in groups
+    assert "y <- as.numeric(" in both["rounds"][0]["result"]["script"]
+
+    # Count of households with a child withdrawn, weighted: estimated number of households.
+    count = save(
+        {
+            "name": "Ménages ayant retiré un enfant",
+            "unit": "count",
+            "conditions": [{"column": "child_dropout_school", "values": ["yes"]}],
+        }
+    )
+    expected = float((w * (raw["child_dropout_school"] == "yes").cast(pl.Float64)).sum())
+    assert count["rounds"][0]["result"]["estimate"] == pytest.approx(expected, rel=1e-9)
+    assert count["rounds"][0]["result"]["method_key"] == "survey_total"
+    assert count["comparison"]["test_key"] == "z_survey_total"
+
+    # Ratio: children per household, per 100 households (weighted).
+    ratio = save(
+        {
+            "name": "Enfants pour 100 ménages",
+            "unit": "ratio",
+            "numerator": "tot_child",
+            "denominator": "weights",
+            "multiplier": 100,
+        }
+    )
+    assert ratio["rounds"][0]["result"]["method_key"] == "survey_ratio"
+    tc = raw["tot_child"].cast(pl.Float64)
+    expected = float((w * tc).sum() / (w * w).sum()) * 100
+    assert ratio["rounds"][0]["result"]["estimate"] == pytest.approx(expected, rel=1e-9)
+    assert base["id"] == ratio["rounds"][0]["dataset_id"]

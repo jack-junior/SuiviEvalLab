@@ -56,16 +56,29 @@ export interface FrameworkNode {
   children: number;
 }
 
+export type Unit = "percent" | "mean" | "count" | "ratio";
+export interface Condition {
+  column: string;
+  values: string[];
+}
+
 export interface Indicator {
   id: string;
   node_id: string;
   name: string;
   definition: string;
-  unit: "percent" | "mean";
+  unit: Unit;
   direction: "increase" | "decrease";
   column: string | null;
   success_values: string[];
+  conditions: Condition[];
+  combine: "all" | "any";
+  count_mode: "rows" | "sum";
+  numerator: string | null;
+  denominator: string | null;
+  multiplier: number;
   disaggregation: string | null;
+  disaggregation2: string | null;
   baseline_manual: number | null;
   target: number | null;
   unit_label: string;
@@ -178,9 +191,9 @@ export interface Comparison {
   a_id: string;
   b_id: string;
   difference: number;
-  ci_low: number;
-  ci_high: number;
-  p_value: number;
+  ci_low: number | null;
+  ci_high: number | null;
+  p_value: number | null;
   test_key: string;
   effect_size: number | null;
   effect_key: string;

@@ -6,7 +6,7 @@ import { IndicatorAnalysis } from "../api";
 import { useI18n } from "../i18n";
 import { useLabels } from "../labels";
 import { useProject } from "../state";
-import { Empty, Notice, ResultChart, StatusTag } from "../ui";
+import { Empty, Notice, ResultChart, StatusTag, useValueFormat } from "../ui";
 
 type Tab = "results" | "breakdown" | "method";
 
@@ -116,9 +116,9 @@ export function Analysis() {
 }
 
 function useFmt(unit: string) {
-  const { percent, number } = useI18n();
-  return (v: number | null | undefined, digits = 1) =>
-    v === null || v === undefined ? "" : unit === "percent" ? percent(v, digits) : number(v, 2);
+  const format = useValueFormat();
+  return (v: number | null | undefined, digits?: number) =>
+    v === null || v === undefined ? "" : format(v, unit, unit === "percent" ? (digits ?? 1) : undefined);
 }
 
 function Results({ a }: { a: IndicatorAnalysis }) {
@@ -129,7 +129,10 @@ function Results({ a }: { a: IndicatorAnalysis }) {
   const usable = a.rounds.filter((r) => !r.result.error_key);
   const missing = a.rounds.filter((r) => r.result.error_key);
   const c = a.comparison && !a.comparison.error_key ? a.comparison : null;
-  const pts = (v: number) => (ind.unit === "percent" ? `${number(v * 100, 1)} ${t("analysis.points")}` : number(v, 2));
+  const pts = (v: number) =>
+    ind.unit === "percent" ? `${number(v * 100, 1)} ${t("analysis.points")}` : number(v, ind.unit === "count" ? 0 : 2);
+  const diffNum = (v: number | null) =>
+    v === null ? "" : ind.unit === "percent" ? number(v * 100, 1) : number(v, ind.unit === "count" ? 0 : 2);
 
   if (!ind.column)
     return (
@@ -182,7 +185,7 @@ function Results({ a }: { a: IndicatorAnalysis }) {
       <ResultChart
         bars={usable.map((r) => ({ label: t(`rounds.${r.round}`), value: r.result }))}
         target={a.target}
-        percentUnit={ind.unit === "percent"}
+        unit={ind.unit}
       />
 
       <div className="table-wrap">
@@ -221,19 +224,30 @@ function Results({ a }: { a: IndicatorAnalysis }) {
       {c ? (
         <section className="compare" data-testid="comparison">
           <h2>{t("analysis.compareTitle")}</h2>
-          <p>
-            {t("analysis.compareSentence", {
-              a: fmt(c.a.estimate),
-              b: fmt(c.b.estimate),
-              direction: c.difference >= 0 ? t("analysis.up") : t("analysis.down"),
-              diff: pts(Math.abs(c.difference)),
-              low: ind.unit === "percent" ? number(c.ci_low * 100, 1) : number(c.ci_low, 2),
-              high: ind.unit === "percent" ? number(c.ci_high * 100, 1) : number(c.ci_high, 2),
-            })}{" "}
-            {c.p_value < 0.05
-              ? t("analysis.significant", { p: pText(c.p_value, number, t) })
-              : t("analysis.notSignificant", { p: pText(c.p_value, number, t) })}
-          </p>
+          {c.p_value === null ? (
+            <p>
+              {t("analysis.compareDescriptive", {
+                a: fmt(c.a.estimate),
+                b: fmt(c.b.estimate),
+                direction: c.difference >= 0 ? t("analysis.up") : t("analysis.down"),
+                diff: pts(Math.abs(c.difference)),
+              })}
+            </p>
+          ) : (
+            <p>
+              {t("analysis.compareSentence", {
+                a: fmt(c.a.estimate),
+                b: fmt(c.b.estimate),
+                direction: c.difference >= 0 ? t("analysis.up") : t("analysis.down"),
+                diff: pts(Math.abs(c.difference)),
+                low: diffNum(c.ci_low),
+                high: diffNum(c.ci_high),
+              })}{" "}
+              {c.p_value < 0.05
+                ? t("analysis.significant", { p: pText(c.p_value, number, t) })
+                : t("analysis.notSignificant", { p: pText(c.p_value, number, t) })}
+            </p>
+          )}
           <dl className="facts">
             <div>
               <dt>{t("analysis.test")}</dt>
@@ -269,15 +283,31 @@ const effectSize = (v: number) => {
 
 function Breakdown({ a }: { a: IndicatorAnalysis }) {
   const { t, number } = useI18n();
-  const { colText, valText, val } = useLabels();
+  const { colText, valText } = useLabels();
   const fmt = useFmt(a.indicator.unit);
   const usable = a.rounds.filter((r) => !r.result.error_key);
   if (!a.indicator.disaggregation)
     return <Empty icon="table" title={t("analysis.noBreakdown")} text={t("analysis.noBreakdownText")} />;
   const groups = [...new Set(usable.flatMap((r) => (r.result.by ?? []).map((g) => g.group)))].sort();
+  const cols = [a.indicator.disaggregation, a.indicator.disaggregation2].filter((x): x is string => !!x);
+  // Crossed groups arrive as "code1 / code2": each part takes the label of its column.
+  const groupText = (g: string) =>
+    cols.length === 2
+      ? g
+          .split(" / ")
+          .map((part, i) => valText(cols[i] ?? cols[0], part))
+          .join(" / ")
+      : valText(cols[0], g);
   return (
     <div className="stack">
-      <p className="muted">{t("analysis.breakdownBy", { column: colText(a.indicator.disaggregation) })}</p>
+      <p className="muted">
+        {t("analysis.breakdownBy", {
+          column: [a.indicator.disaggregation, a.indicator.disaggregation2]
+            .filter((x): x is string => !!x)
+            .map((x) => colText(x))
+            .join(" × "),
+        })}
+      </p>
       <div className="table-wrap">
         <table className="table" data-testid="breakdown-table">
           <thead>
@@ -294,8 +324,8 @@ function Breakdown({ a }: { a: IndicatorAnalysis }) {
             {groups.map((g) => (
               <tr key={g}>
                 <td>
-                  {valText(a.indicator.disaggregation!, g)}
-                  {val(a.indicator.disaggregation!, g) && <span className="cell-sub mono">{g}</span>}
+                  {groupText(g)}
+                  {groupText(g) !== g && <span className="cell-sub mono">{g}</span>}
                 </td>
                 {usable.map((r) => {
                   const hit = r.result.by?.find((x) => x.group === g);

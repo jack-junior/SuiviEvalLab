@@ -264,24 +264,32 @@ class Service:
         ds = self.project.records("dataset")
         return sorted(ds, key=lambda d: (ROUND_ORDER.get(d["round"], 9), d.get("imported_at", "")))
 
-    def _r_args(self, ind: dict[str, Any], ds: dict[str, Any]) -> dict[str, Any]:
-        design = ds["design"]
-        return {
-            "type": "proportion" if ind["unit"] == "percent" else "mean",
-            "var": ind["column"],
-            "success": ind["success_values"],
-            "weights": design.get("weights"),
-            "strata": design.get("strata") or None,
-            "cluster": design.get("cluster"),
-            "level": 0.95,
-        }
+    @staticmethod
+    def _r_quote(values: list[str]) -> str:
+        return ", ".join('"' + v.replace("\\", "\\\\").replace('"', '\\"') + '"' for v in values)
 
-    def _table_for(self, ind: dict[str, Any], ds: dict[str, Any]) -> pl.DataFrame | None:
+    def _prepare(self, ind: dict[str, Any], ds: dict[str, Any], by: bool) -> tuple[pl.DataFrame, dict[str, Any]] | None:
+        """The table sent to R and the R arguments, or None if a needed column is missing.
+
+        Outcomes built from several columns (conditions) and crossed breakdowns are
+        computed here, so R receives one outcome column; `y_code` is the R
+        equivalent, printed in the reproducible script.
+        """
         _, df, _ = self.cleaned(ds["id"])
         design = ds["design"]
+        unit = ind["unit"]
+        conds = ind.get("conditions") or (
+            [{"column": ind["column"], "values": ind["success_values"]}]
+            if unit == "percent" and ind.get("column")
+            else []
+        )
+        groups = [c for c in (ind.get("disaggregation"), ind.get("disaggregation2")) if c] if by else []
         needed = [
-            ind["column"],
-            ind.get("disaggregation"),
+            *(c["column"] for c in conds),
+            *(groups),
+            ind.get("column") if unit in ("mean", "count") else None,
+            ind.get("numerator"),
+            ind.get("denominator"),
             design.get("weights"),
             design.get("cluster"),
             *(design.get("strata") or []),
@@ -289,47 +297,110 @@ class Service:
         needed = [c for c in dict.fromkeys(needed) if c]
         if any(c not in df.columns for c in needed):
             return None
-        return df.select(needed)
+        table = df.select(needed)
+        args: dict[str, Any] = {
+            "weights": design.get("weights"),
+            "strata": design.get("strata") or None,
+            "cluster": design.get("cluster"),
+            "level": 0.95,
+        }
+        y_code = None
+        uses_conditions = unit == "percent" or (unit == "count" and ind.get("count_mode") != "sum")
+        if uses_conditions:
+            hits = [pl.col(c["column"]).is_in(c["values"]) for c in conds]
+            missing = pl.any_horizontal([pl.col(c["column"]).is_null() for c in conds])
+            met = pl.all_horizontal(hits) if ind.get("combine", "all") == "all" else pl.any_horizontal(hits)
+            r_hits = [f"(donnees$`{c['column']}` %in% c({self._r_quote(c['values'])}))" for c in conds]
+            r_join = " & " if ind.get("combine", "all") == "all" else " | "
+            r_na = " | ".join(f"is.na(donnees$`{c['column']}`)" for c in conds)
+            if unit == "percent":
+                table = table.with_columns(
+                    pl.when(missing)
+                    .then(None)
+                    .otherwise(pl.when(met).then(pl.lit("1")).otherwise(pl.lit("0")))
+                    .alias(".y")
+                )
+                args.update({"type": "proportion", "var": ".y", "success": ["1"]})
+                y_code = f"donnees$y <- as.numeric({r_join.join(r_hits)})\ndonnees$y[{r_na}] <- NA"
+            else:
+                table = table.with_columns(pl.when(met.fill_null(False)).then(1.0).otherwise(0.0).alias(".y"))
+                args.update({"type": "total", "var": ".y"})
+                y_code = f"donnees$y <- as.numeric({r_join.join(r_hits)})\ndonnees$y[is.na(donnees$y)] <- 0"
+        elif unit == "count":
+            args.update({"type": "total", "var": ind["column"]})
+        elif unit == "ratio":
+            args.update({"type": "ratio", "var": ind["numerator"], "den": ind["denominator"]})
+        else:
+            args.update({"type": "mean", "var": ind["column"]})
+        if groups:
+            parts = [pl.col(g).cast(pl.Utf8) for g in groups]
+            table = table.with_columns(
+                pl.when(pl.any_horizontal([pl.col(g).is_null() for g in groups]))
+                .then(None)
+                .otherwise(pl.concat_str(parts, separator=" / "))
+                .alias(".group")
+            )
+            args["by"] = ".group"
+            r_group = (
+                f'donnees$`.group` <- paste(donnees$`{groups[0]}`, donnees$`{groups[1]}`, sep = " / ")'
+                if len(groups) == 2
+                else f"donnees$`.group` <- donnees$`{groups[0]}`"
+            )
+            y_code = (
+                f"{y_code}\n{r_group}"
+                if y_code
+                else (f"donnees$y <- as.numeric(donnees$`{args['var']}`)\n{r_group}" if unit != "percent" else None)
+            )
+        if y_code:
+            args["y_code"] = y_code
+        return table, args
+
+    @staticmethod
+    def _scale(res: dict[str, Any], k: float) -> dict[str, Any]:
+        """Multiply a result by k (ratio per 100 or per 1,000)."""
+        if k == 1:
+            return res
+        out = dict(res)
+        for f in ("estimate", "ci_low", "ci_high", "se", "difference"):
+            if isinstance(out.get(f), (int, float)):
+                out[f] = out[f] * k
+        for f in ("a", "b"):
+            if isinstance(out.get(f), dict):
+                out[f] = Service._scale(out[f], k)
+        if isinstance(out.get("by"), list):
+            out["by"] = [Service._scale(g, k) for g in out["by"]]
+        return out
 
     def _cache_key(self, *parts: Any) -> str:
         return hashlib.sha256(json.dumps(parts, sort_keys=True, default=str).encode()).hexdigest()
 
     def estimate(self, ind: dict[str, Any], ds: dict[str, Any], by: bool = True) -> dict[str, Any] | None:
-        if not ind.get("column"):
+        if not indicators.ready(ind):
             return None
-        table = self._table_for(ind, ds)
-        if table is None:
+        prepared = self._prepare(ind, ds, by)
+        if prepared is None:
             return {"error_key": "column_missing", "dataset_id": ds["id"]}
+        table, args = prepared
         sig = self.cleaned(ds["id"])[0]
-        args = self._r_args(ind, ds)
-        if by and ind.get("disaggregation"):
-            args["by"] = ind["disaggregation"]
-        key = self._cache_key("estimate", sig, args, ds["design"])
+        key = self._cache_key("estimate", sig, args, ds["design"], table.columns)
         if key not in self._results:
             path = self.bridge.write_table(table, f"t_{key[:16]}")
             try:
                 self._results[key] = self.bridge.call("estimate", {"path": path, **args})
             except RpcError as exc:
                 return {"error_key": "r_error", "detail": str(exc), "dataset_id": ds["id"]}
-        return {**self._results[key], "dataset_id": ds["id"]}
+        return {**self._scale(self._results[key], ind.get("multiplier") or 1.0), "dataset_id": ds["id"]}
 
     def compare(self, ind: dict[str, Any], a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any] | None:
-        ta, tb = self._table_for(ind, a), self._table_for(ind, b)
-        if ta is None or tb is None:
+        pa_, pb_ = self._prepare(ind, a, False), self._prepare(ind, b, False)
+        if pa_ is None or pb_ is None:
             return None
-        args = self._r_args(ind, a)
+        (ta, args), (tb, _) = pa_, pb_
         if a["design"] != b["design"]:
             # Both rounds must be analysed with the same kind of design; keep the common part.
-            common = {
-                "weights": a["design"].get("weights")
-                if a["design"].get("weights") == b["design"].get("weights")
-                else None,
-                "cluster": a["design"].get("cluster")
-                if a["design"].get("cluster") == b["design"].get("cluster")
-                else None,
-                "strata": a["design"].get("strata") if a["design"].get("strata") == b["design"].get("strata") else None,
-            }
-            args.update({k: v or None for k, v in common.items()})
+            for f in ("weights", "cluster", "strata"):
+                if a["design"].get(f) != b["design"].get(f):
+                    args[f] = None
         key = self._cache_key("compare", self.cleaned(a["id"])[0], self.cleaned(b["id"])[0], args)
         if key not in self._results:
             pa = self.bridge.write_table(ta, f"a_{key[:16]}")
@@ -338,7 +409,7 @@ class Service:
                 self._results[key] = self.bridge.call("compare", {"path_a": pa, "path_b": pb, **args})
             except RpcError as exc:
                 return {"error_key": "r_error", "detail": str(exc)}
-        return {**self._results[key], "a_id": a["id"], "b_id": b["id"]}
+        return {**self._scale(self._results[key], ind.get("multiplier") or 1.0), "a_id": a["id"], "b_id": b["id"]}
 
     def indicator_analysis(self, indicator_id: Any) -> dict[str, Any]:
         ind = self.project.record("indicator", indicator_id)

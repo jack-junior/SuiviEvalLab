@@ -212,12 +212,14 @@ export function Progress({ value }: { value: number | null }) {
 export function ResultChart({
   bars,
   target,
-  percentUnit,
+  unit,
 }: {
   bars: { label: string; value: Estimate }[];
   target: number | null;
-  percentUnit: boolean;
+  unit: string;
 }) {
+  const percentUnit = unit === "percent";
+  const digits = unit === "count" ? 0 : 2;
   const { t, number, percent } = useI18n();
   const usable = bars.filter((b) => b.value.estimate !== null);
   if (!usable.length) return null;
@@ -231,7 +233,7 @@ export function ResultChart({
   const slot = (W - pad.l - pad.r) / usable.length;
   const bw = Math.min(90, slot * 0.46);
   const ticks = Array.from({ length: 5 }, (_, i) => (max * i) / 4);
-  const fmt = (v: number) => (percentUnit ? percent(v, 0) : number(v, 1));
+  const fmt = (v: number) => (percentUnit ? percent(v, 0) : number(v, unit === "count" ? 0 : 1));
   return (
     <svg className="chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t("analysis.chartLabel")}>
       {ticks.map((v) => (
@@ -256,7 +258,7 @@ export function ResultChart({
               </g>
             )}
             <text x={cx} y={y(b.value.ci_high ?? v) - 8} textAnchor="middle" className="chart-value">
-              {percentUnit ? percent(v) : number(v, 2)}
+              {percentUnit ? percent(v) : number(v, digits)}
             </text>
             <text x={cx} y={H - 12} textAnchor="middle" className="chart-label">
               {b.label}
@@ -282,4 +284,15 @@ export function Notice({ kind = "info", children }: { kind?: "info" | "error" | 
       {children}
     </div>
   );
+}
+
+/** Format an indicator value by its unit: percentage, count (no decimals), mean or ratio. */
+export function useValueFormat() {
+  const { t, percent, number } = useI18n();
+  return (v: number | null | undefined, unit: string, digits?: number) =>
+    v === null || v === undefined
+      ? t("common.none")
+      : unit === "percent"
+        ? percent(v, digits ?? 1)
+        : number(v, digits ?? (unit === "count" ? 0 : 2));
 }
