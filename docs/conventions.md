@@ -46,7 +46,7 @@ The interface talks only to the Python engine. The Python engine is the only wri
 - Imported data is **never modified**. Every transformation is a recorded, replayable rule.
 - Data passes from Python to R as Arrow IPC streams (`write_ipc_stream` with `CompatLevel.oldest()`), never as JSON.
 - No expression supplied by a user is ever passed to `eval`, in Python or R. Rules are structured JSON trees interpreted by the engines.
-- No telemetry and no network calls, except an explicit, user-triggered connector.
+- No telemetry and no network calls, except an explicit, user-triggered connector and the update check (GitHub releases), which the user or the organisation can turn off.
 - Variables flagged as personal data are excluded from exports and reports by default.
 - Never commit real beneficiary data, even in tests.
 
