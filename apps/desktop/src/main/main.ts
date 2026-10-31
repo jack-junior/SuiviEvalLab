@@ -48,6 +48,8 @@ const ALLOWED = new Set([
   "report.generate",
   "report.share",
   "report.checks",
+  "project.backups",
+  "project.restore",
   "dataset.quality",
   "report.set_template",
   "report.clear_template",
@@ -177,6 +179,7 @@ function engineLaunch(): EngineLaunch {
         PYTHONIOENCODING: "utf-8",
         SME_R_DIR: path.join(res, "engine", "r"),
         SME_RSCRIPT: path.join(res, "R", "bin", "Rscript.exe"),
+        SME_BACKUP_DIR: path.join(app.getPath("userData"), "backups"),
       },
     };
   }
@@ -192,6 +195,7 @@ function engineLaunch(): EngineLaunch {
       PYTHONPATH: enginePy,
       PYTHONIOENCODING: "utf-8",
       SME_R_DIR: path.join(root, "engine", "r"),
+      SME_BACKUP_DIR: process.env.SME_BACKUP_DIR ?? path.join(app.getPath("userData"), "backups"),
     },
   };
 }

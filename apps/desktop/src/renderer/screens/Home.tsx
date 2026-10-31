@@ -2,10 +2,10 @@
 // projects known to this computer with their progress.
 
 import { useEffect, useState } from "react";
-import { forgetProject, pick, Recent, recents, recentToken, revealProject, Snapshot } from "../api";
+import { call, forgetProject, pick, Recent, recents, recentToken, revealProject, Snapshot } from "../api";
 import { useI18n } from "../i18n";
 import { useProject } from "../state";
-import { Field, Icon, IconButton, Notice } from "../ui";
+import { Confirm, Field, Icon, IconButton, Notice, Panel } from "../ui";
 
 const REOPEN_KEY = "sme.reopenLast";
 let reopenTried = false; // once per app session
@@ -26,6 +26,7 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
   const [creating, setCreating] = useState(false);
   const [query, setQuery] = useState("");
   const [reopen, setReopen] = useState(readReopen);
+  const [history, setHistory] = useState<Recent | null>(null);
 
   const opened = (s: Snapshot | null) => {
     if (s) go(s.indicators.length ? "overview" : "framework");
@@ -201,6 +202,14 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
                 </button>
                 <div className="row-tools">
                   {r.exists && (
+                    <IconButton
+                      icon="history"
+                      label={t("backups.open")}
+                      onClick={() => setHistory(r)}
+                      testId="project-backups"
+                    />
+                  )}
+                  {r.exists && (
                     <IconButton icon="folder" label={t("home.reveal")} onClick={() => void revealProject(r.path)} />
                   )}
                   <IconButton
@@ -221,6 +230,87 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
           </label>
         )}
       </section>
+      {history && <BackupsPanel project={history} onClose={() => setHistory(null)} onOpened={opened} />}
     </div>
+  );
+}
+
+interface Backup {
+  id: string;
+  taken_at: string;
+  updated_at: string | null;
+  indicators: number;
+  datasets: number;
+}
+
+function BackupsPanel({
+  project,
+  onClose,
+  onOpened,
+}: {
+  project: Recent;
+  onClose: () => void;
+  onOpened: (s: Snapshot | null) => void;
+}) {
+  const { t, tn, date } = useI18n();
+  const { run, describe } = useProject();
+  const [list, setList] = useState<Backup[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState<Backup | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    void recentToken(project.path).then((token) =>
+      call<{ backups: Backup[] }>("project.backups", { file_token: token })
+        .then((r) => live && setList(r.backups))
+        .catch((e) => live && setErr(describe(e))),
+    );
+    return () => {
+      live = false;
+    };
+  }, [project.path, describe]);
+
+  const restore = async (b: Backup) => {
+    const token = await recentToken(project.path);
+    if (!token) return;
+    const s = await run<Snapshot>("project.restore", { file_token: token, backup: b.id });
+    setRestoring(null);
+    if (s) {
+      onClose();
+      onOpened(s);
+    }
+  };
+
+  return (
+    <Panel title={t("backups.title", { name: project.name })} onClose={onClose} testId="backups-panel">
+      <p className="muted">{t("backups.lead")}</p>
+      {err && <Notice kind="error">{err}</Notice>}
+      {list && list.length === 0 && <p className="muted">{t("backups.none")}</p>}
+      {list && list.length > 0 && (
+        <ul className="backup-list">
+          {list.map((b) => (
+            <li key={b.id} className="backup-row">
+              <div>
+                <div>{t("backups.taken", { date: date(b.taken_at) })}</div>
+                <div className="muted small">
+                  {tn("backups.indicators", b.indicators)}, {tn("backups.datasets", b.datasets)}
+                </div>
+              </div>
+              <button className="btn" onClick={() => setRestoring(b)} data-testid="backup-restore">
+                {t("backups.restore")}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {restoring && (
+        <Confirm
+          text={t("backups.confirm", { date: date(restoring.taken_at) })}
+          confirmLabel={t("backups.restore")}
+          onCancel={() => setRestoring(null)}
+          onConfirm={() => restore(restoring)}
+        />
+      )}
+    </Panel>
   );
 }

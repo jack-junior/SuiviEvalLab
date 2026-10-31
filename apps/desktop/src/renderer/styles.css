@@ -1746,3 +1746,21 @@ button.cell-sub {
 .checks li + li {
   margin-top: 4px;
 }
+
+.backup-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--ligne);
+  border-radius: 8px;
+}
+.backup-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+}
+.backup-row + .backup-row {
+  border-top: 1px solid var(--ligne);
+}

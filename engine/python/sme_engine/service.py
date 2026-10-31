@@ -583,6 +583,24 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
     def open_(params: dict[str, Any]) -> dict[str, Any]:
         return opened(Project.open(_text(params, "path", max_len=4000)))
 
+    @server.method("project.backups")
+    def backups_list(params: dict[str, Any]) -> dict[str, Any]:
+        from . import backups
+
+        return {"backups": backups.listing(Path(_text(params, "path", max_len=4000)))}
+
+    @server.method("project.restore")
+    def backups_restore(params: dict[str, Any]) -> dict[str, Any]:
+        from . import backups
+
+        path = Path(_text(params, "path", max_len=4000))
+        current = workspace.project
+        if current is not None and current.path.resolve() == path.resolve():
+            workspace.close()
+            svc.reset_caches()
+        backups.restore(path, params.get("backup"))
+        return opened(Project.open(path))
+
     @server.method("project.close")
     def close(_: dict[str, Any]) -> dict[str, Any]:
         workspace.close()

@@ -658,6 +658,19 @@ export const fr = {
   "checks.comparison_descriptive":
     "« {name} » : l'évolution est décrite sans test statistique (effectifs sans pondération).",
   "checks.indicator_no_definition": "« {name} » : pas de définition.",
+  "backups.open": "Copies automatiques",
+  "backups.title": "Copies de « {name} »",
+  "backups.lead":
+    "Une copie du projet est faite à chaque ouverture, si quelque chose a changé depuis la précédente. Les 10 dernières sont gardées sur cet ordinateur. Restaurer une copie remplace le projet ; l'état actuel est lui-même copié avant, donc rien n'est perdu.",
+  "backups.none": "Pas encore de copie : elle sera faite à la prochaine ouverture du projet.",
+  "backups.taken": "Copie du {date}",
+  "backups.indicators_one": "{n} indicateur",
+  "backups.indicators_other": "{n} indicateurs",
+  "backups.datasets_one": "{n} fichier de données",
+  "backups.datasets_other": "{n} fichiers de données",
+  "backups.restore": "Restaurer",
+  "backups.confirm": "Remplacer le projet par la copie du {date} ? L'état actuel sera copié avant.",
+  "errors.backup_not_found": "Copie introuvable : {detail}",
 };
 
 export type MessageKey = keyof typeof fr;
@@ -1305,4 +1318,17 @@ export const en: Record<MessageKey, string> = {
   "checks.small_sample": '"{name}": only {n} observations ({round}), the estimate will be very imprecise.',
   "checks.comparison_descriptive": '"{name}": the change is described without a statistical test (unweighted counts).',
   "checks.indicator_no_definition": '"{name}": no definition.',
+  "backups.open": "Automatic copies",
+  "backups.title": 'Copies of "{name}"',
+  "backups.lead":
+    "A copy of the project is made each time it opens, if something changed since the previous one. The last 10 are kept on this computer. Restoring a copy replaces the project; the current state is copied first, so nothing is lost.",
+  "backups.none": "No copy yet: one will be made the next time the project opens.",
+  "backups.taken": "Copy of {date}",
+  "backups.indicators_one": "{n} indicator",
+  "backups.indicators_other": "{n} indicators",
+  "backups.datasets_one": "{n} data file",
+  "backups.datasets_other": "{n} data files",
+  "backups.restore": "Restore",
+  "backups.confirm": "Replace the project with the copy of {date}? The current state will be copied first.",
+  "errors.backup_not_found": "Copy not found: {detail}",
 };

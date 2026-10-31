@@ -137,6 +137,12 @@ class Project:
         if version > SCHEMA_VERSION:
             conn.close()
             raise _err(f"Project made with a newer version (schema {version})", "project_too_new")
+        try:
+            from . import backups
+
+            backups.snapshot(conn, path)  # before any migration, so the old version is kept too
+        except (OSError, sqlite3.Error):
+            pass  # a copy that cannot be written must not stop the user from working
         cls._migrate(conn, version)
         return cls(path, conn)
 
