@@ -126,6 +126,35 @@ const productVersion = () =>
     .trim();
 notice("Update test", `installed ${productVersion()} in ${folder}`);
 
+// An organisation's policy (registry, current user) turns updates off.
+const key = "HKCU\\Software\\Policies\\SuiviEvalLab";
+spawnSync("reg", [
+  "add",
+  key,
+  "/v",
+  "Updates",
+  "/t",
+  "REG_SZ",
+  "/d",
+  "off",
+  "/f",
+]);
+{
+  const locked = await electron.launch({
+    executablePath: installed,
+    env: { ...process.env, SME_UPDATE_FEED: url, SME_E2E_DIALOGS: "" },
+    timeout: 60_000,
+  });
+  const p = await locked.firstWindow();
+  await p.locator('[data-testid="engines-link"]').click();
+  await p
+    .locator('[data-testid="update-status"][data-status="locked"]')
+    .waitFor({ timeout: 60_000 });
+  await locked.close();
+}
+spawnSync("reg", ["delete", key, "/f"]);
+notice("Update test", "Registry policy Updates=off respected");
+
 // 2-3. Start A, check, download.
 const app = await electron.launch({
   executablePath: installed,

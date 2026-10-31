@@ -6,14 +6,18 @@
 //   are fetched when the previous release published its block map.
 // - The user restarts to install when it suits them. If they simply quit, the
 //   update is installed silently on the way out.
-// - The user can turn checks off. An organisation can turn them off for
-//   everyone: environment variable SME_UPDATES=off, or a file
-//   update-policy.json containing {"updates": "off"} next to SuiviEvalLab.exe.
+// - The user can turn checks off. An organisation can turn them off for every
+//   user of a computer, in places an update never touches:
+//     registry  HKLM\Software\Policies\SuiviEvalLab, value Updates = "off"
+//               (or HKCU for one user), the usual place for group policies;
+//     file      %ProgramData%\SuiviEvalLab\update-policy.json  {"updates": "off"};
+//     variable  SME_UPDATES=off.
 // - SME_UPDATE_FEED=<url> points to another feed (a folder with latest.yml);
 //   the update test of the CI uses it with a local server.
 
 import { app, BrowserWindow } from "electron";
 import { autoUpdater, ProgressInfo, UpdateInfo } from "electron-updater";
+import { execFileSync } from "node:child_process";
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
@@ -161,12 +165,30 @@ export class Updates {
   }
 
   private lockedByPolicy(): boolean {
-    if ((process.env.SME_UPDATES ?? "").toLowerCase() === "off") return true;
+    const off = (v: unknown) =>
+      String(v ?? "")
+        .trim()
+        .toLowerCase() === "off";
+    if (off(process.env.SME_UPDATES)) return true;
+    if (process.platform === "win32") {
+      for (const hive of ["HKLM", "HKCU"]) {
+        try {
+          const out = execFileSync("reg", ["query", `${hive}\\Software\\Policies\\SuiviEvalLab`, "/v", "Updates"], {
+            encoding: "utf8",
+            windowsHide: true,
+            stdio: ["ignore", "pipe", "ignore"],
+          });
+          const m = out.match(/Updates\s+REG_\w+\s+(\S+)/i);
+          if (m && off(m[1])) return true;
+        } catch {
+          /* no policy in this hive */
+        }
+      }
+    }
     try {
-      const policy = JSON.parse(
-        readFileSync(path.join(path.dirname(app.getPath("exe")), "update-policy.json"), "utf8"),
-      );
-      return String(policy?.updates).toLowerCase() === "off";
+      const base = process.env.ProgramData ?? (process.platform === "win32" ? "C:\\ProgramData" : "/etc");
+      const policy = JSON.parse(readFileSync(path.join(base, "SuiviEvalLab", "update-policy.json"), "utf8"));
+      return off(policy?.updates);
     } catch {
       return false;
     }

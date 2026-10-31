@@ -752,7 +752,7 @@ export const fr = {
   "updates.locked": "Les mises à jour automatiques sont désactivées par votre organisation.",
   "updates.unsupported": "Les mises à jour automatiques fonctionnent dans l'application installée.",
   "updates.policy":
-    "Si vous quittez sans redémarrer, la mise à jour s'installe à la fermeture. Une organisation peut désactiver les mises à jour pour tous ses postes avec un fichier update-policy.json à côté de SuiviEvalLab.exe.",
+    "Si vous quittez sans redémarrer, la mise à jour s'installe à la fermeture. Une organisation peut désactiver les mises à jour sur ses postes par une stratégie de groupe (registre HKLM\\Software\\Policies\\SuiviEvalLab, valeur Updates = off).",
 };
 
 export type MessageKey = keyof typeof fr;
@@ -1492,5 +1492,5 @@ export const en: Record<MessageKey, string> = {
   "updates.locked": "Automatic updates are turned off by your organisation.",
   "updates.unsupported": "Automatic updates work in the installed app.",
   "updates.policy":
-    "If you quit without restarting, the update is installed on closing. An organisation can turn updates off on all its computers with an update-policy.json file next to SuiviEvalLab.exe.",
+    "If you quit without restarting, the update is installed on closing. An organisation can turn updates off on its computers with a group policy (registry HKLM\\Software\\Policies\\SuiviEvalLab, value Updates = off).",
 };
