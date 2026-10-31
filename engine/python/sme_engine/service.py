@@ -14,7 +14,7 @@ from typing import Any
 
 import polars as pl
 
-from . import cleaning, datasets, indicators, xlsform
+from . import cleaning, datasets, indicators, stattests, xlsform
 from .project import Project, Workspace, _err, _text
 from .r_bridge import RBridge
 from .rpc import INVALID_PARAMS, RpcError, Server
@@ -56,6 +56,7 @@ class Service:
             "framework": p.framework(),
             "indicators": self.ordered_indicators(),
             "datasets": ds_list,
+            "tests": p.records("saved_test"),
         }
 
     def ordered_indicators(self) -> list[dict[str, Any]]:
@@ -444,6 +445,29 @@ class Service:
             "status": indicators.status(rate, current, ind.get("target"), ind.get("direction", "increase")),
         }
 
+    def labeller(self, lang: str) -> Any:
+        """label(column, code=None): readable label from the datasets, else the code."""
+        sets = self.project.records("dataset")
+
+        def label(column: str, code: str | None = None) -> str:
+            for ds in sets:
+                labels = ds.get("labels") or {}
+                found = (
+                    xlsform.pick(labels.get("values", {}).get(column, {}).get(code), lang)
+                    if code is not None
+                    else xlsform.pick(labels.get("columns", {}).get(column), lang)
+                )
+                if found:
+                    return found
+            return code if code is not None else column
+
+        return label
+
+    def test_conclusion(self, spec: dict[str, Any], res: dict[str, Any]) -> dict[str, list[str]]:
+        from .report import Fmt
+
+        return {lang: stattests.conclusion(spec, res, lang, Fmt(lang), self.labeller(lang)) for lang in ("fr", "en")}
+
     def overview(self) -> dict[str, Any]:
         rows = []
         ordered = self._ordered_datasets()
@@ -598,6 +622,28 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
     @server.method("analysis.indicator")
     def an_indicator(params: dict[str, Any]) -> dict[str, Any]:
         return svc.indicator_analysis(params.get("id"))
+
+    @server.method("test.run")
+    def test_run(params: dict[str, Any]) -> dict[str, Any]:
+        """Run a test without saving it; the conclusion comes in both languages."""
+        spec = stattests.validate(params.get("test") or {})
+        res = stattests.run(svc, spec)
+        return {"result": res, "conclusion": svc.test_conclusion(spec, res)}
+
+    @server.method("test.save")
+    def test_save(params: dict[str, Any]) -> dict[str, Any]:
+        spec = stattests.validate(params.get("test") or {})
+        if params.get("id"):
+            svc.project.update_record("saved_test", params["id"], spec)
+            saved = params["id"]
+        else:
+            saved = svc.project.insert_record("saved_test", spec)
+        return {**svc.snapshot(), "saved": saved}
+
+    @server.method("test.delete")
+    def test_delete(params: dict[str, Any]) -> dict[str, Any]:
+        svc.project.delete_record("saved_test", params.get("id"))
+        return svc.snapshot()
 
     @server.method("analysis.overview")
     def an_overview(_: dict[str, Any]) -> dict[str, Any]:

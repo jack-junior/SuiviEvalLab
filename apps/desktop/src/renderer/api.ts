@@ -157,6 +157,44 @@ export interface Snapshot {
   framework: FrameworkNode[];
   indicators: Indicator[];
   datasets: Dataset[];
+  tests: TestSpec[];
+}
+
+export type TestQuestion = "groups" | "target" | "paired";
+export interface TestSpec {
+  id?: string;
+  question: TestQuestion;
+  kind: "proportion" | "mean";
+  dataset_id: string;
+  outcome: { column: string; values: string[] };
+  title: string;
+  group?: string;
+  target?: number;
+  mode?: "columns" | "datasets";
+  column_b?: string;
+  dataset_b_id?: string;
+}
+
+export interface TestResult {
+  question: TestQuestion;
+  kind: "proportion" | "mean";
+  test_key: string;
+  statistic: number | null;
+  df: number | null;
+  df2?: number | null;
+  p_value: number | null;
+  effect_size: number | null;
+  effect_key: string;
+  n: number;
+  groups?: (Estimate & { group: string })[];
+  estimate?: Estimate;
+  before?: number;
+  after?: number;
+  difference?: number;
+  notes: string[];
+  alternative: { test_key: string; statistic: number | null; p_value: number } | null;
+  design: boolean;
+  script: string;
 }
 
 export interface Inspection {

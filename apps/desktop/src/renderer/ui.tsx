@@ -24,6 +24,7 @@ const PATHS: Record<string, ReactNode> = {
   target: <path d="M9 15A6 6 0 1 0 9 3a6 6 0 0 0 0 12zM9 11.6a2.6 2.6 0 1 0 0-5.2 2.6 2.6 0 0 0 0 5.2z" />,
   home: <path d="M3 8.2L9 3.5l6 4.7V15H3zM7.3 15v-4h3.4v4" />,
   gauge: <path d="M2.8 12.5a6.2 6.2 0 1 1 12.4 0M9 12.5l3-4" />,
+  scale: <path d="M9 3v12M5 15h8M3.5 6.5h11M3.5 6.5L2 10.5h3zM14.5 6.5L13 10.5h3" />,
 };
 
 export function Icon({ name, size = 18 }: { name: keyof typeof PATHS | string; size?: number }) {

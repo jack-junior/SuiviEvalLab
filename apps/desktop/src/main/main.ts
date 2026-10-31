@@ -39,6 +39,11 @@ const ALLOWED = new Set([
   "cleaning.move",
   "analysis.indicator",
   "analysis.overview",
+  "test.run",
+  "test.save",
+  "test.delete",
+  "dataset.attach_form",
+  "dataset.set_labels",
   "report.generate",
 ]);
 

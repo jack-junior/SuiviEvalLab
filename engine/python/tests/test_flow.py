@@ -180,3 +180,67 @@ def test_indicator_types_on_real_data(engine, tmp_path):
     expected = float((w * tc).sum() / (w * w).sum()) * 100
     assert ratio["rounds"][0]["result"]["estimate"] == pytest.approx(expected, rel=1e-9)
     assert base["id"] == ratio["rounds"][0]["dataset_id"]
+
+
+@needs_r
+def test_test_assistant_on_real_data(engine, tmp_path):
+    snap = engine("project.create", {"path": str(tmp_path / "t.sme"), "name": "x", "example": True})
+    base, end = snap["datasets"]
+    groups = {
+        "question": "groups",
+        "kind": "proportion",
+        "dataset_id": base["id"],
+        "outcome": {"column": "primary_school_place", "values": ["within_2km"]},
+        "group": "population_group",
+        "title": "Accès selon le groupe",
+    }
+    out = engine("test.run", {"test": groups})
+    assert out["result"]["test_key"] == "rao_scott"
+    assert 0 <= out["result"]["p_value"] <= 1
+    assert "Déplacés hors camp" in " ".join(out["conclusion"]["fr"])
+    assert "IDPs out of camp" in " ".join(out["conclusion"]["en"])
+
+    target = {
+        "question": "target",
+        "kind": "proportion",
+        "dataset_id": end["id"],
+        "outcome": {"column": "child_dropout_school", "values": ["yes"]},
+        "target": 0.02,
+    }
+    out = engine("test.run", {"test": target})
+    assert out["result"]["test_key"] == "z_target_prop"
+
+    paired = {
+        "question": "paired",
+        "kind": "proportion",
+        "dataset_id": base["id"],
+        "mode": "columns",
+        "outcome": {"column": "primary_school_place", "values": ["within_2km"]},
+        "column_b": "secondary_school_place",
+    }
+    out = engine("test.run", {"test": paired})
+    assert out["result"]["test_key"] in ("mcnemar", "mcnemar_exact")
+
+    # Two different survey rounds share no household: pairing fails clearly.
+    with pytest.raises(AssertionError):
+        engine("test.run", {"test": {**paired, "mode": "datasets", "dataset_b_id": end["id"]}})
+
+    saved = engine("test.save", {"test": groups})
+    assert len(saved["tests"]) == 1
+    report = engine("report.generate", {"path": str(tmp_path / "r.docx"), "lang": "fr"})
+    text = "\n".join(p.text for p in Document(report["path"]).paragraphs)
+    assert "Analyses complémentaires" in text
+    assert "Accès selon le groupe" in text
+
+    # A project saved by version 0.2 (schema 1) opens and gains the new table.
+    import sqlite3
+
+    old = tmp_path / "ancien.sme"
+    engine("project.create", {"path": str(old), "name": "ancien"})
+    engine("project.close")
+    con = sqlite3.connect(old)
+    con.execute("DROP TABLE saved_test")
+    con.execute("PRAGMA user_version = 1")
+    con.commit()
+    con.close()
+    assert engine("project.open", {"path": str(old)})["tests"] == []

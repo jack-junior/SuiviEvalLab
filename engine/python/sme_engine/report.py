@@ -17,7 +17,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
-from . import __version__, xlsform
+from . import __version__, stattests, xlsform
 
 INK = RGBColor(0x1F, 0x1E, 0x1C)
 ACTION = RGBColor(0x1D, 0x4F, 0x91)
@@ -69,6 +69,12 @@ T = {
         "chart_target": "Cible",
         "chart_ylab_percent": "% des observations",
         "framework": "Cadre de résultats",
+        "tests_title": "Analyses complémentaires",
+        "test_untitled": "Test statistique",
+        "test_failed": "Ce test n'a pas pu être recalculé : {detail}",
+        "test_used": "Méthode : {test}, {n} observations. Tous les calculs sont faits par R.",
+        "col_value": "Valeur",
+        "col_ci": "IC à 95 %",
         "col_code": "Code",
         "col_level": "Niveau",
         "col_title": "Intitulé",
@@ -162,6 +168,12 @@ T = {
         "chart_target": "Target",
         "chart_ylab_percent": "% of observations",
         "framework": "Results framework",
+        "tests_title": "Additional analyses",
+        "test_untitled": "Statistical test",
+        "test_failed": "This test could not be recalculated: {detail}",
+        "test_used": "Method: {test}, {n} observations. All calculations are done in R.",
+        "col_value": "Value",
+        "col_ci": "95% CI",
         "col_code": "Code",
         "col_level": "Level",
         "col_title": "Title",
@@ -543,8 +555,44 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
                 r2.font.size = Pt(9)
                 r2.font.color.rgb = MUTED
 
-    # 3. Framework
-    doc.add_heading(f"3. {t['framework']}", level=1)
+    # 3. Additional analyses (saved tests)
+    section = 3
+    if snap.get("tests"):
+        doc.add_heading(f"{section}. {t['tests_title']}", level=1)
+        label = svc.labeller(lang)
+        for spec in snap["tests"]:
+            try:
+                res = stattests.run(svc, spec)
+            except Exception as exc:  # noqa: BLE001 - a broken saved test must not stop the report
+                doc.add_heading(spec.get("title") or t["test_untitled"], level=2)
+                doc.add_paragraph(t["test_failed"].format(detail=str(exc)))
+                continue
+            doc.add_heading(spec.get("title") or t["test_untitled"], level=2)
+            doc.add_paragraph(" ".join(stattests.conclusion(spec, res, lang, f, label)))
+            if spec["question"] == "groups":
+                unit = "percent" if spec["kind"] == "proportion" else "mean"
+                _table(
+                    doc,
+                    [label(spec["group"]), t["col_value"], t["col_ci"], "n"],
+                    [
+                        [
+                            label(spec["group"], g["group"]),
+                            f.value(g.get("estimate"), unit),
+                            f"{f.value(g.get('ci_low'), unit)} ; {f.value(g.get('ci_high'), unit)}",
+                            f.num(g.get("n"), 0),
+                        ]
+                        for g in res.get("groups", [])
+                    ],
+                )
+            tname = stattests.TEXT[lang]["tests"].get(res.get("test_key"), res.get("test_key"))
+            p = doc.add_paragraph()
+            run_ = p.add_run(t["test_used"].format(test=tname, n=f.num(res.get("n"), 0)))
+            run_.font.size = Pt(9)
+            run_.font.color.rgb = MUTED
+        section += 1
+
+    # Framework
+    doc.add_heading(f"{section}. {t['framework']}", level=1)
     fw_rows = []
     for node in snap["framework"]:
         names = "; ".join(i["name"] for i in snap["indicators"] if i["node_id"] == node["id"])

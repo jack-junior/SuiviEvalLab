@@ -20,7 +20,7 @@ from typing import Any
 from .rpc import INVALID_PARAMS, RpcError
 
 APPLICATION_ID = 0x534D4531  # "SME1": marks a file as a SuiviEvalLab project
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 EXTENSION = ".sme"
 
 # Framework levels, from the top. The interface translates them; projects store keys.
@@ -53,6 +53,12 @@ CREATE TABLE dataset (
     position    INTEGER NOT NULL,
     spec        TEXT NOT NULL,           -- JSON: name, round, source file, sheet, survey design
     raw         BLOB NOT NULL            -- Parquet, never modified after import
+);
+
+CREATE TABLE saved_test (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL            -- JSON, see stattests.py
 );
 
 CREATE TABLE cleaning_rule (
@@ -131,7 +137,20 @@ class Project:
         if version > SCHEMA_VERSION:
             conn.close()
             raise _err(f"Project made with a newer version (schema {version})", "project_too_new")
+        cls._migrate(conn, version)
         return cls(path, conn)
+
+    @staticmethod
+    def _migrate(conn: sqlite3.Connection, version: int) -> None:
+        """Bring a project made with an older version up to the current schema."""
+        with conn:
+            if version < 2:
+                # 0.3: tests saved from the test assistant.
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS saved_test "
+                    "(id TEXT PRIMARY KEY, position INTEGER NOT NULL, spec TEXT NOT NULL)"
+                )
+            conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
     @staticmethod
     def _connect(path: Path) -> sqlite3.Connection:
@@ -283,7 +302,7 @@ class Project:
 
     # ----- positioned JSON records (indicators, datasets, cleaning rules) --------
 
-    _SCOPES = {"indicator": "node_id", "dataset": None, "cleaning_rule": "dataset_id"}
+    _SCOPES = {"indicator": "node_id", "dataset": None, "cleaning_rule": "dataset_id", "saved_test": None}
 
     def records(self, table: str, scope: str | None = None) -> list[dict[str, Any]]:
         col = self._SCOPES[table]

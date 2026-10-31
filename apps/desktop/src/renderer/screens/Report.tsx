@@ -22,7 +22,7 @@ export function Report() {
     if (r) setDone(file);
   };
 
-  const sections = ["summary", "results", "framework", "data", "methods", "sources"];
+  const sections = ["summary", "results", "tests", "framework", "data", "methods", "sources"];
   return (
     <div className="inner">
       <div>
