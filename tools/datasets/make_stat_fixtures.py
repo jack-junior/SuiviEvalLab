@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Build SPSS and Stata test files from real survey data (REACH Bangladesh WASH
 follow-up 2018, HDX, CC BY 4.0), with variable and value labels from its XLSForm.
 

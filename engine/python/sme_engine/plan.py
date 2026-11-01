@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Monitoring plan as an Excel workbook (indicator reference sheet).
 
 One row per indicator, in framework order: result, definition, calculation in

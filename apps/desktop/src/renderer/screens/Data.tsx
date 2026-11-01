@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Data: import Excel, Kobo or CSV files, survey design, cleaning journal, data table.
 
 import { useEffect, useMemo, useState } from "react";

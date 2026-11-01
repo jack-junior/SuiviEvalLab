@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Routine monitoring indicators: values entered period by period.
 
 Many output and activity indicators do not come from a survey but from registers,

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Shown when a project contains R code that was not written or accepted on this
 // computer (a project received from someone else). The code is shown in full;
 // until the user accepts it, those steps stay paused and the rest of the project

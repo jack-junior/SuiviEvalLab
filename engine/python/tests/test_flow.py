@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """End-to-end engine flow on real data: example project, analysis in R, Word report.
 
 The reference values are recomputed here independently (weighted shares with

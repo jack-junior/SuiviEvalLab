@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Indicators: definition, calculation rule from a data column, baseline and target.
 
 import { useMemo, useState } from "react";

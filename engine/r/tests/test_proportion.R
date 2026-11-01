@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 # R engine tests, no testthat dependency: Rscript engine/r/tests/test_proportion.R
 # Each SuiviEvalLab function is compared with the equivalent direct R call.
 

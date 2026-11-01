@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Routine monitoring indicator: value to date, chart, and the grid of values per
 // period (typed, or pasted from Excel). Saved as a whole.
 

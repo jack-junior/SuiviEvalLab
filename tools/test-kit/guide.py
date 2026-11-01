@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 # ruff: noqa: E501  (the guide text is prose; long lines keep each sentence searchable)
 """Builds GUIDE-DE-TEST.docx from expected.json (results checked against R survey)."""
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Checks that every interface text key used in the code exists in the catalogues.
 //   node tools/check-i18n.mjs
 // Literal keys t("a.b") must exist; keys built at run time t(`a.${x}`) must match

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Data quality diagnosis of a dataset, after its cleaning journal. Each issue can
 // become a cleaning rule in one click; the rule then shows in the journal and the report.
 

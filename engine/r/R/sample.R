@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 # Sample size for a survey: estimate a proportion or a mean with a given margin
 # of error, or detect a change between two independent rounds (baseline and
 # endline) with a given power.

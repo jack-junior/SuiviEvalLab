@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Forms of the advanced cleaning rules: new variables, classes, dates, text,
 // consistency checks and conditional replacement. Each form reports the rule it
 // describes (without the note), or null while it is incomplete.

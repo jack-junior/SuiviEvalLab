@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Test assistant: the question, the data it needs, the R test, and a conclusion in words.
 
 A test spec (validated by `validate`) is one of:

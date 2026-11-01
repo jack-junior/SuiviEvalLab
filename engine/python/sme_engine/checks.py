@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Checks before the report: what would weaken it, with where to fix it.
 
 Warnings would leave a gap or a wrong figure in the report (an indicator without

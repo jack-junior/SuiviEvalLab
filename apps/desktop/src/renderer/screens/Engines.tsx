@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Diagnostic of the calculation engines, with the demo calculation of version 0.1.
 
 import { useState } from "react";
@@ -114,6 +117,19 @@ export function Engines({
       </section>
 
       <UpdatesSection />
+
+      <section className="stack" data-testid="about">
+        <h2>{t("about.title")}</h2>
+        <p style={{ margin: 0 }}>
+          SuiviEvalLab {info?.version ?? ""}. {t("about.copyright")}
+        </p>
+        <p className="muted small" style={{ margin: 0 }}>
+          {t("about.licence")}
+        </p>
+        <p className="muted small" style={{ margin: 0 }}>
+          {t("about.source")} <span className="mono">https://github.com/jack-junior/SuiviEvalLab</span>
+        </p>
+      </section>
 
       <section className="stack">
         <h2>{t("demo.title")}</h2>

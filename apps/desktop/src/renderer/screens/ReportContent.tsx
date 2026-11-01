@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Report content: which sections, in which order, which indicators and what is
 // shown for each, which analyses and saved tests, and the cleaning journal in the
 // annex. Saved in the project; new indicators and analyses are included by default.

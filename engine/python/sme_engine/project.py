@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Project file (.sme): a SQLite database owned by the Python engine.
 
 One project is open at a time. Every change is written immediately, so there is

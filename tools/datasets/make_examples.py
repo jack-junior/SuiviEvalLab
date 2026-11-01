@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Build the example datasets bundled with the app from the REACH Iraq MCNA files.
 
 Input: the original HDX files (see datasets/README.md for sources and licence).

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Cleaning journal: rules applied in order to a copy of the raw data.
 
 The raw table is never modified. Each rule is a small JSON object, so the journal

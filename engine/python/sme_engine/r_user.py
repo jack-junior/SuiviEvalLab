@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """R code written by the user, run in its own R process.
 
 Each run starts a fresh Rscript in a temporary folder, so the code cannot

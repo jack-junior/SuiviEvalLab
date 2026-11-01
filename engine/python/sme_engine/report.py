@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Word report generated from the project: summary, results by outcome, appendices.
 
 The text follows the writing conventions: magnitude first, then significance,

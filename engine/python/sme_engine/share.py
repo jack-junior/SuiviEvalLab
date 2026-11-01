@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Read-only dashboard: one self-contained HTML file to send to a partner or a donor.
 
 It holds results only (estimates, intervals, sample sizes, statuses, conclusions),

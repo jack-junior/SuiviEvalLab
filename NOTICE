@@ -1,0 +1,28 @@
+SuiviEvalLab
+Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
+Original authors: GAYI Komi Selassi and SANOUSSI Moudjibou.
+Official source: https://github.com/jack-junior/SuiviEvalLab
+Documentation: https://jack-junior.github.io/SuiviEvalLab/
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details. A copy
+is in the file LICENSE.
+
+As required by the licence, a copy or a modified version of this program must
+keep this notice and the copyright notices of the source files, state that it
+was modified and when, and be distributed under the same licence with its
+complete source code.
+
+The name "SuiviEvalLab" and its logo identify the official version published
+from the source above. A modified version should use another name.
+
+Third-party data shipped with the example project and the test kit keep their
+own licences (REACH Initiative, Humanitarian Data Exchange, CC BY 4.0); see the
+release notes and tools/test-kit/SOURCES.txt.

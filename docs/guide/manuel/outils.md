@@ -67,4 +67,6 @@ Sur la capture ci-dessus, prise dans une version de développement, les mises à
 
 ### Calcul de démonstration
 
+La section **À propos** donne la version, les auteurs (GAYI Komi Selassi et SANOUSSI Moudjibou), la licence et l'adresse de la version officielle. SuiviEvalLab est un logiciel libre sous licence GPL version 3 : on peut l'utiliser, l'étudier, le modifier et le redistribuer, à condition de garder les mentions d'auteur, d'indiquer ses modifications et de laisser la version modifiée sous la même licence, avec son code source.
+
 En bas de l'écran Moteurs, un calcul de démonstration permet de vérifier que R répond correctement : une proportion avec son intervalle de confiance, avec ou sans plan d'enquête, et le script R correspondant.

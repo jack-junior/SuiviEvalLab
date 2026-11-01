@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 # Proportion with confidence interval.
 #
 # Simple random sample: Wilson interval, via prop.test(correct = FALSE).

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // The results framework model of the open project: level names in the interface
 // language, how deep the chain goes, which levels carry indicators.
 

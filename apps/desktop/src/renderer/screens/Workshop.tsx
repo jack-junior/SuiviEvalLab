@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Analyses: a results document, as in JASP. The user picks an analysis, fills its
 // options, and the results (tables, charts, a reading in words, the R code)
 // update as the options change. Everything follows the survey design of the

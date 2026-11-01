@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Labels from a Kobo or ODK questionnaire (XLSForm), and label storage.
 
 A dataset exported from Kobo holds codes (`within_2km`, `idp_out_camp`); the

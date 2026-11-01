@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Interface text catalogues. Every key exists in both languages: the English
 // catalogue is typed against the French one, so a missing key fails the build,
 // and tools/check-i18n.mjs checks that every key used in the code exists.
@@ -1220,6 +1223,11 @@ export const fr = {
   "cleaning.columnsRemoved": "colonnes retirées : {names}",
   "cleaning.rowsAdded_one": "{n} ligne ajoutée",
   "cleaning.rowsAdded_other": "{n} lignes ajoutées",
+  "about.title": "À propos",
+  "about.copyright": "Copyright (C) 2026 GAYI Komi Selassi et SANOUSSI Moudjibou.",
+  "about.licence":
+    "Logiciel libre sous licence GNU GPL version 3 ou ultérieure : vous pouvez l'utiliser, l'étudier, le modifier et le redistribuer. Toute copie ou version modifiée doit garder les mentions d'auteur, indiquer ses modifications et rester sous la même licence, avec son code source. Fourni sans aucune garantie.",
+  "about.source": "Version officielle et code source :",
 };
 
 export type MessageKey = keyof typeof fr;
@@ -2417,4 +2425,9 @@ export const en: Record<MessageKey, string> = {
   "cleaning.columnsRemoved": "columns removed: {names}",
   "cleaning.rowsAdded_one": "{n} row added",
   "cleaning.rowsAdded_other": "{n} rows added",
+  "about.title": "About",
+  "about.copyright": "Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou.",
+  "about.licence":
+    "Free software under the GNU GPL, version 3 or later: you may use, study, modify and redistribute it. Any copy or modified version must keep the author notices, state its changes and remain under the same licence, with its source code. Provided without any warranty.",
+  "about.source": "Official version and source code:",
 };

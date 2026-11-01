@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Advanced cleaning: new variables, classes, conditions, checks, text, dates, stacking,
 and the journal written as an R script that gives the same table."""
 

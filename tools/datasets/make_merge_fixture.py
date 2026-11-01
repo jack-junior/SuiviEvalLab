@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Build a small two-sheet workbook for the merge tests from real data: households
 and their water containers (a Kobo repeat), REACH-UNICEF Bangladesh WASH baseline
 2018 (HDX, CC BY 4.0).

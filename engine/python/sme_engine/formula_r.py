@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """A formula (formula.py) written as R code, for the journal exported as an R script.
 
 The same syntax tree is translated with the same types and the same handling of

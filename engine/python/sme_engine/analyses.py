@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Free analyses: the Analyses screen, a results document saved in the project.
 
 Each analysis is a JSON spec stored in the `analysis` table; its result is

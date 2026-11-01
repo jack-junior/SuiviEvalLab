@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Test assistant: pick a question, the data, run the test in R, read the
 // conclusion in words, and keep it for the report.
 

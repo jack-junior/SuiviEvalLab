@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Free analyses: descriptives, crosstabs, means, correlations, regressions,
 difference in differences and R scripts, with and without a survey design.
 Figures are checked against direct calculations."""

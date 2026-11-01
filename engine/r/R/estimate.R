@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 # Indicator estimation and round comparison. See docs/statistics.md.
 #
 # Every function takes a table written by the Python engine (Arrow IPC), already

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 # Tests of the test assistant against direct calls to stats and survey.
 #   Rscript engine/r/tests/test_tests.R
 
