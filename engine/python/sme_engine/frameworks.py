@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Results framework models: the levels of the chain and their names, by donor.
 
 Projects keep four internal level keys (impact, outcome, output, activity), from

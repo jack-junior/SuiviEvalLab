@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Engine methods for projects, framework, indicators, data, cleaning, analysis and report.
 
 The interface sees a project as one "snapshot" (project info, framework,

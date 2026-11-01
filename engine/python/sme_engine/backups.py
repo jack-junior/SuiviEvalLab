@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Automatic copies of a project file, made each time it is opened.
 
 The project file is written at every change, with no save button, so a wrong

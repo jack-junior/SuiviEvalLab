@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Demo data: fictional education project.
 
 Generated deterministically so results are identical on every machine.

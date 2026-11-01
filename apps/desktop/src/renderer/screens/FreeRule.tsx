@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Free cleaning steps: a column computed by a formula, a filter written as a
 // formula, and an R script. The formula editor checks the formula as it is typed
 // (the engine reads it with its own parser) and shows what it gives on the data.

@@ -38,6 +38,10 @@ tools/            Build scripts, smoke and end-to-end tests
 docs/             Developer documentation and decision records
 ```
 
-## Licence
+## Authors and licence
 
-GPL-3.0-or-later. See [LICENSE](LICENSE).
+Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou.
+
+SuiviEvalLab is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. It is distributed in the hope that it will be useful, but without any warranty; see [LICENSE](LICENSE) for details.
+
+Any copy or modified version must keep these copyright notices, state its changes, and remain under the same licence with its source code. See [NOTICE](NOTICE).

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Free cleaning: formula language, filters, cells corrected in the data table,
 R scripts (trusted on this computer only), and the journal as an R script."""
 

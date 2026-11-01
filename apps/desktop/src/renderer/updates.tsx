@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Automatic updates: the banner shown when a new version is ready, and the
 // settings section of the engines screen.
 

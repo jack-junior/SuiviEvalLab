@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 # Tests of sme_estimate and sme_compare against direct calls to R and survey.
 #   Rscript engine/r/tests/test_estimate.R
 

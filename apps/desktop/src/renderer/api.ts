@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Engine access from the interface.
 // In the app, window.sme is provided by the preload script. Opened in a plain browser
 // (development preview), the interface falls back to simulated responses.

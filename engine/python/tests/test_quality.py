@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Data quality diagnosis: each issue found, and each proposed fix accepted by the cleaning journal."""
 
 from __future__ import annotations

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 # SuiviEvalLab statistical engine.
 #
 # Persistent R process driven by the Python engine. Reads one JSON command per

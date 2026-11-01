@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // The cleaned data as an editable table: sort by a column, filter with a formula,
 // correct a cell by double-clicking it. Each correction becomes a step of the
 // cleaning journal (identified by the row number in the file), so nothing is

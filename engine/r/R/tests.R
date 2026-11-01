@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 # Test assistant. Each function answers one question with the default test of
 # docs/statistics.md, checks its conditions, reports the fallback when they
 # fail, and returns estimates by group, the test, an effect size and the R script.

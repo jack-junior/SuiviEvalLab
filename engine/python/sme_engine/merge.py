@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Merged datasets: one file joined to another by a key, such as individuals to households.
 
 A merged dataset stores no data of its own. Its rows are computed from the cleaned

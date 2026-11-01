@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Smoke test: starts the engine like the installed app and checks the full chain.
 
     python tools/smoke_test.py --python build/runtime/python/python.exe --rscript build/runtime/R/bin/Rscript.exe

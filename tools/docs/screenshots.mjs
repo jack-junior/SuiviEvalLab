@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Screenshots of the documentation, taken in the real application.
 //
 //   xvfb-run -a node tools/docs/screenshots.mjs apps/desktop <data folder>

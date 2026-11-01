@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Automatic updates from the GitHub releases of the project (electron-updater).
 //
 // - At start (after a short delay) and every six hours, when internet is

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 # Free analyses (Analyses screen). Every analysis follows the dataset's sampling
 # design when it has one (survey package, Taylor linearisation), and the usual
 # tests otherwise. The Python engine sends the cleaned table (all columns as

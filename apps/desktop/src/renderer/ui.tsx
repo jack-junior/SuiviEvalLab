@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Shared interface pieces: icons, buttons, fields, side panel, confirm dialog,
 // empty states, status labels, progress bar and the results chart.
 

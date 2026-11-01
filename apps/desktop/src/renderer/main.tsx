@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "@fontsource/source-sans-3/400.css";

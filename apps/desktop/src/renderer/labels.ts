@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Readable labels of columns and codes, from the questionnaire (XLSForm) or typed
 // by the user. Codes stay the reference everywhere; labels are only displayed.
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Application shell: sidebar navigation, top bar, and the screen for the current view.
 
 import { useCallback, useEffect, useState } from "react";

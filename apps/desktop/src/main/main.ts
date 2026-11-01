@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Electron main process: window, engines, secure exchanges with the interface.
 
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";

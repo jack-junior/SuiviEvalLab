@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Line-delimited JSON-RPC 2.0 server over stdin and stdout.
 
 Error messages are in English and meant for logs. Errors the interface shows

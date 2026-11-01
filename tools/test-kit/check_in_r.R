@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 suppressMessages(library(survey)); options(survey.lonely.psu="adjust")
 a <- read.csv("/tmp/i19.csv", stringsAsFactors=FALSE); b <- read.csv("/tmp/i20.csv", stringsAsFactors=FALSE)
 prep <- function(d){ d$p <- ifelse(d$primary_school_place %in% c("do_not_know","") | is.na(d$primary_school_place), NA, as.numeric(d$primary_school_place=="within_2km")); d$y <- as.numeric(d$child_dropout_school=="yes"); d }

@@ -98,7 +98,16 @@ Never attach real personal data of programme beneficiaries to an issue.
 
 ## 6. Licence
 
-By contributing, you agree that your contribution is licensed under the GPL-3.0-or-later licence of the project.
+SuiviEvalLab is Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou, under the GPL-3.0-or-later licence (see [LICENSE](LICENSE) and [NOTICE](NOTICE)). By contributing, you agree that your contribution is licensed under the same licence.
+
+Every source file starts with the licence and copyright notice (`tools/check-headers.mjs` checks it in CI):
+
+```
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+```
+
+Use `//` instead of `#` in TypeScript and JavaScript files.
 
 ## Releasing
 

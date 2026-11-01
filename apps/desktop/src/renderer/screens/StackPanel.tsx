@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Stack files of the same structure (one per region, per month or per team) into
 // one. Like a merged file, the stacked file keeps no data of its own: it follows
 // the cleaning of its sources.

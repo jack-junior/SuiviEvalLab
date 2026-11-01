@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Automatic update test, on Windows: the real installer, the real updater.
 //
 //   node tools/e2e/update-test.mjs <folder of version A> <folder of version B>

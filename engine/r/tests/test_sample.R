@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 # Sample size: against textbook values and direct R calls.
 for (f in list.files("engine/r/R", full.names = TRUE)) source(f)
 ok <- function(cond, msg) if (!isTRUE(cond)) stop("FAILED: ", msg) else cat("ok:", msg, "\n")

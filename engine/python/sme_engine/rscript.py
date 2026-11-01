@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """The cleaning journal written as an R script.
 
 The script reads the raw data (exported next to it as CSV, every column as text),

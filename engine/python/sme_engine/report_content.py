@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """What the Word report contains: sections and their order, indicators and what is shown
 for each, analyses and saved tests, and the annexes. Saved in the project (meta
 `report_content`); anything not mentioned keeps its default, so new indicators and

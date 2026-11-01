@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Example project built on real data: access to education in Iraq, 2019 and 2020.
 
 The two datasets are extracts of the REACH Iraq Multi-Cluster Needs Assessment

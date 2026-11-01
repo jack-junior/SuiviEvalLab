@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Data quality diagnosis of a dataset, after its cleaning journal.
 
 Each issue names a column (or the whole file), counts the rows concerned, shows a

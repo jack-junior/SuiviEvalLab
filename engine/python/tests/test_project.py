@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Project file, framework, indicators, import and cleaning (no R needed)."""
 
 from __future__ import annotations

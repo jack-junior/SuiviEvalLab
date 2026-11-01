@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Free cleaning steps: formulas, filters, cells corrected by hand, R scripts.
 
 - formula:  a column (new or existing) computed by a formula (formula.py).

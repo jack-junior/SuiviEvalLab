@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Analysis by indicator: results per round with intervals, comparison test,
 // breakdown, and the method with its R script. Every figure shows its source.
 

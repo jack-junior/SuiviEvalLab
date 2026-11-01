@@ -2,6 +2,10 @@
 
 SuiviEvalLab couvre le parcours complet du suivi-évaluation, sur votre ordinateur et sans connexion internet : cadre de résultats, indicateurs, import et nettoyage des données, calcul par R avec intervalles de confiance et plan d'enquête, rapport Word. Un projet d'exemple fonctionne sur des données d'enquête réelles et publiques (REACH, Irak, 2019 et 2020).
 
+### Nouveautés de la 0.5.1
+
+- Mentions d'auteur : le projet, l'installeur et l'écran Moteurs (section « À propos ») indiquent les auteurs, GAYI Komi Selassi et SANOUSSI Moudjibou, et la licence GPL. Chaque fichier source porte la mention de droits d'auteur.
+
 ### Nouveautés de la 0.5
 
 - Analyses libres, sur le modèle de JASP : statistiques descriptives, tableaux croisés avec le test du khi-deux adapté aux enquêtes, comparaison de moyennes, corrélations, régressions linéaire et logistique, différence de différences. Les résultats se mettent à jour à chaque changement d'option, avec une lecture en mots, les tableaux, les graphiques et le code R qui les reproduit. Tout suit le plan d'enquête du fichier (pondération, strates, grappes).
@@ -22,6 +26,10 @@ Si une version précédente est installée, elle propose celle-ci d'elle-même :
 **Preview release, to be tested before any real use.**
 
 SuiviEvalLab covers the whole monitoring and evaluation path, on your computer and offline: results framework, indicators, data import and cleaning, calculations in R with confidence intervals and survey design, Word report. An example project runs on real public survey data (REACH, Iraq, 2019 and 2020).
+
+### New in 0.5.1
+
+- Author notices: the project, the installer and the Engines screen ("About" section) name the authors, GAYI Komi Selassi and SANOUSSI Moudjibou, and the GPL licence. Every source file carries the copyright notice.
 
 ### New in 0.5
 

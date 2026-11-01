@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Python engine client: child process, line-delimited JSON-RPC 2.0.
 // Error messages are user-facing (French for now, moved to i18n later).
 

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Build tests/fixtures/modele_organisation.docx: an organisation template with its own fonts,
 colours, header, footer and cover fields, used by the report tests.
 

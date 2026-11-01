@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Advanced cleaning rules: new variables, classes, conditions, consistency checks,
 text and dates. Like the basic rules (cleaning.py), each is a small JSON object
 interpreted here; nothing typed by the user is evaluated as code.

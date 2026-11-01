@@ -1,6 +1,6 @@
 appId: org.suivievallab.app
 productName: SuiviEvalLab
-copyright: Licence GPL-3.0-or-later
+copyright: Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou. Licence GPL-3.0-or-later
 directories:
   output: release
   buildResources: build-resources

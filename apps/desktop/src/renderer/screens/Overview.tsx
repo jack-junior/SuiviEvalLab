@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Overview: where the project stands, and the indicator table with progress.
 
 import { useEffect, useState } from "react";

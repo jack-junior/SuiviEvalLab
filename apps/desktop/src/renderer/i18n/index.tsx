@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { en, fr, MessageKey } from "./messages";
 

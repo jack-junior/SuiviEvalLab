@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Project state shared by the screens: the snapshot returned by the engine, and a
 // `run` helper that calls the engine, replaces the snapshot when the answer
 // contains one, and reports errors in the user's language.

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Download the original HDX survey files used by the robustness tests.
 
     python tools/datasets/fetch.py <folder>

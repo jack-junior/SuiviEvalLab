@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 """Bridge to the R statistical engine.
 
 A persistent R process (worker.R) receives JSON commands, one per line, and

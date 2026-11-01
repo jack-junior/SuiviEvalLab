@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
 // Merge two datasets by a key: individuals (or another Kobo repeat) with their household.
 // The merged dataset keeps no data of its own; it follows the cleaning of its sources.
 
