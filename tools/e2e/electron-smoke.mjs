@@ -316,13 +316,14 @@ try {
   await id("overview-table").waitFor({ timeout: 180_000 });
   await page
     .locator('[data-testid^="status-"]')
-    .nth(2)
+    .nth(3)
     .waitFor({ timeout: 180_000 });
+  // Three survey indicators and one routine indicator.
   const statuses = await page
     .locator('[data-testid="overview-table"] [data-testid^="status-"]')
     .evaluateAll((els) => els.map((e) => e.getAttribute("data-testid")));
   notice("E2E example", statuses.join(", "));
-  if (statuses.length !== 3 || statuses.includes("status-unknown"))
+  if (statuses.length !== 4 || statuses.includes("status-unknown"))
     throw new Error(`Unexpected statuses: ${statuses}`);
   await shot("example-overview-fr");
 
