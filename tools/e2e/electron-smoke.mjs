@@ -136,6 +136,32 @@ try {
   notice("E2E cleaning", effect);
   await shot("manual-journal");
 
+  // Free cleaning: a formula, then a cell corrected in the data table.
+  await id("add-rule").click();
+  await id("kind-formula").click();
+  await id("rule-target").fill("ecole_proche");
+  await id("formula-text").fill(
+    'si(primary_school_place = "within_2km"; 1; 0)',
+  );
+  await id("formula-preview").waitFor({ timeout: 60_000 });
+  await id("rule-save").click();
+  await page.locator(".journal-row").nth(1).waitFor();
+  await id("tab-preview").click();
+  await id("data-grid").waitFor({ timeout: 60_000 });
+  const cell = page
+    .locator('[data-testid^="cell-"][data-testid$="-ecole_proche"]')
+    .first();
+  const cellId = await cell.getAttribute("data-testid");
+  await cell.dblclick();
+  await id("cell-input").fill("0");
+  await id("cell-input").press("Enter");
+  await page
+    .locator(`[data-testid="${cellId}"].edited`)
+    .waitFor({ timeout: 60_000 });
+  notice("E2E data table", `${cellId} corrected and added to the journal`);
+  await id("tab-cleaning").click();
+  await page.locator(".journal-row").nth(2).waitFor();
+
   await id("nav-indicators").click();
   await id("add-indicator").click();
   await id("indicator-name").fill(
@@ -160,7 +186,22 @@ try {
     throw new Error(`Unexpected current value: ${current}`);
   await shot("manual-analysis");
 
+  // Custom analyses: a crosstab with its test and reading.
+  await id("nav-workshop").click();
+  await id("atype-crosstab").click();
+  await id("analysis-dataset").selectOption({ index: 1 }); // the endline file, where ecole_proche was created
+  await id("a-row").selectOption("population_group");
+  await id("a-column").selectOption("ecole_proche");
+  await id("analysis-reading").waitFor({ timeout: 180_000 });
+  await id("analysis-chart").waitFor({ timeout: 60_000 });
+  const reading = await id("analysis-reading").innerText();
+  notice("E2E custom analysis", reading.replace(/\s+/g, " ").slice(0, 300));
+  if (!/khi-deux|chi-square/.test(reading))
+    throw new Error(`Unexpected reading: ${reading}`);
+  await shot("manual-workshop");
+
   await id("nav-report").click();
+  await id("report-content").waitFor();
   await id("generate-report").click();
   await id("report-done").waitFor({ timeout: 180_000 });
   const report = path.join(work, "rapport-manuel.docx");

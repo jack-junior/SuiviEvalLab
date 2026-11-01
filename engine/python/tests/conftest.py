@@ -7,3 +7,11 @@ def backup_dir(tmp_path, monkeypatch):
     folder = tmp_path / "backups"
     monkeypatch.setenv("SME_BACKUP_DIR", str(folder))
     return folder
+
+
+@pytest.fixture(autouse=True)
+def trust_dir(tmp_path, monkeypatch):
+    """R code accepted during a test is remembered in a temporary folder."""
+    folder = tmp_path / "trust"
+    monkeypatch.setenv("SME_TRUST_DIR", str(folder))
+    return folder

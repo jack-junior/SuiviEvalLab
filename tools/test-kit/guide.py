@@ -112,7 +112,7 @@ def scenario(title, goal, files, steps, expected, note=None):
     )
 
 
-doc.add_heading("SuiviEvalLab 0.3 : kit de test", level=0)
+doc.add_heading("SuiviEvalLab 0.5 : kit de test", level=0)
 muted("Guide pas à pas pour les testeurs, avec les résultats attendus.")
 doc.add_paragraph(
     "Ce kit permet de vérifier l'application comme un utilisateur réel, sur des enquêtes publiques "
@@ -421,6 +421,49 @@ scenario(
         "Le projet revient avec son effet et ses indicateurs. Une nouvelle copie de l'état d'avant la restauration apparaît dans la liste."
     ],
 )
+fr_ = E["free"]
+fe = E["formula_error"] or {}
+scenario(
+    "Nettoyage libre : formule, tableau des données",
+    "créer une variable par une formule, la retrouver dans le tableau et corriger une cellule à la main.",
+    "le fichier 2019 nettoyé (scénario 6).",
+    [
+        "Écran Données, fichier 2019, onglet Nettoyage, « Ajouter une règle ». Groupe « Libre », type « Formule ».",
+        "Colonne à créer : grande_famille. Formule, avec une faute volontaire : si(tot_chld >= 4; 1; 0)",
+        "Lisez le message sous la formule, puis corrigez en tot_child. Regardez les valeurs montrées sous la formule, puis « Ajouter la règle ».",
+        "Onglet Tableau. Dans le filtre, écrivez grande_famille = 1, puis « Filtrer ».",
+        "Retirez le filtre. Double-cliquez sur une cellule de tot_child, tapez une autre valeur, Entrée. Revenez à l'onglet Nettoyage.",
+        "Supprimez l'étape « Cellules corrigées à la main » (corbeille), pour garder les chiffres des scénarios suivants.",
+    ],
+    [
+        f"Message : « La colonne « {fe.get('name', 'tot_chld')} » n'existe pas. Vouliez-vous dire « {fe.get('suggestion', 'tot_child')} » ? », la règle ne peut pas être ajoutée.",
+        "Après correction : un tableau montre tot_child et le résultat (1 à partir de 4 enfants, sinon 0) ; le journal indique les valeurs calculées.",
+        f"Filtre : {num(fr_['big'], 0)} lignes sur {num(fr_['clean'], 0)}.",
+        "La cellule corrigée est surlignée ; le journal contient une étape « 1 cellule(s) corrigée(s) à la main » avec la ligne, l'ancienne et la nouvelle valeur.",
+    ],
+)
+ct = E["crosstab"]
+rg = E["regression"]
+tc = rg["tot_child"]
+rt = rg["population_group = returnee"]
+scenario(
+    "Analyses libres",
+    "faire un tableau croisé et une régression logistique sur une enquête pondérée, puis un script R.",
+    "le fichier 2019 nettoyé, avec la colonne grande_famille (scénario 19).",
+    [
+        "Écran Analyses libres, « Nouvelle analyse », « Tableau croisé ». Jeu de données : 2019. En ligne : population_group. En colonne : grande_famille. Pourcentages en ligne.",
+        "Lisez la lecture en mots, le tableau, le test et le graphique. Dépliez « Code R ».",
+        "« Nouvelle analyse », « Régression ». Type : Logistique. Variable à expliquer : child_dropout_school, valeur yes. Variables explicatives : population_group et tot_child.",
+        "« Nouvelle analyse », « Script R ». Code : print(svymean(~tot_child, plan, na.rm = TRUE)), puis « Exécuter ».",
+        "Écran Rapport, section Contenu : décochez « Synthèse », générez le rapport et ouvrez-le.",
+    ],
+    [
+        f"Tableau croisé, part des grandes familles : idp_out_camp {pct(ct['shares']['idp_out_camp'])}, returnee {pct(ct['shares']['returnee'])}. Test du khi-deux corrigé de Rao-Scott, {'p < 0,001' if ct['p_value'] < 0.001 else 'p = ' + num(ct['p_value'], 3)} : lien statistiquement significatif.",
+        f"Régression sur {num(rg['n'], 0)} lignes : rapport de cotes de tot_child {num(tc['odds_ratio'], 2)} (IC {num(tc['or_low'], 2)} à {num(tc['or_high'], 2)}) ; returnee par rapport à idp_out_camp {num(rt['odds_ratio'], 2)} (IC {num(rt['or_low'], 2)} à {num(rt['or_high'], 2)}).",
+        "Script R : la moyenne pondérée de tot_child et son erreur type s'affichent sous le code ; elle est égale à la valeur 2019 du scénario 10.",
+        "Le rapport commence par « 1. Résultats par résultat attendu » et contient une section « Analyses statistiques » avec les trois analyses.",
+    ],
+)
 scenario(
     "Langue et mises à jour",
     "dernières vérifications.",
@@ -438,9 +481,10 @@ scenario(
 doc.add_heading("Comment les résultats attendus ont été obtenus", level=1)
 doc.add_paragraph(
     "Chaque scénario a d'abord été joué automatiquement avec le moteur de l'application, exactement comme décrit. "
-    "Les chiffres des scénarios 8 à 11 ont ensuite été recalculés indépendamment, dans R, à partir des fichiers "
+    "Les chiffres des scénarios 8 à 11 et 20 ont ensuite été recalculés indépendamment, dans R, à partir des fichiers "
     "bruts : svydesign avec les poids (et les strates en 2020), svyciprop méthode logit pour les parts, svytotal, "
-    "svymean, différence avec erreur type combinée et test z, svychisq (Rao-Scott) pour le test entre groupes. "
+    "svymean, différence avec erreur type combinée et test z, svychisq (Rao-Scott) pour le test entre groupes "
+    "et le tableau croisé, svyglm quasi-binomiale pour la régression logistique. "
     "Les deux calculs concordent jusqu'à la dernière décimale affichée."
 )
 doc.add_heading("Signaler un problème", level=1)

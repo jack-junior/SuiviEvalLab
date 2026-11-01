@@ -5,6 +5,7 @@ import { call, openFile, pick } from "../api";
 import { Lang, useI18n } from "../i18n";
 import { useProject } from "../state";
 import { Icon, Notice } from "../ui";
+import { ReportContent } from "./ReportContent";
 
 interface CheckItem {
   key: string;
@@ -119,7 +120,6 @@ export function Report() {
     if (r) setPlanned(file);
   };
 
-  const sections = ["summary", "results", "tests", "framework", "data", "methods", "sources"];
   return (
     <div className="inner">
       <div>
@@ -130,14 +130,10 @@ export function Report() {
 
       <section className="stack">
         <h2>{t("report.contents")}</h2>
-        <ol className="outline">
-          {sections.map((s) => (
-            <li key={s}>
-              <span className="outline-title">{t(`report.s_${s}`)}</span>
-              <span className="muted small">{t(`report.d_${s}`)}</span>
-            </li>
-          ))}
-        </ol>
+        <p className="muted" style={{ margin: 0 }}>
+          {t("content.lead")}
+        </p>
+        <ReportContent />
       </section>
 
       <section className="stack" data-testid="template-section">

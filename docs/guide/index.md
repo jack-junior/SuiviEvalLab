@@ -52,9 +52,10 @@ Ce fichier peut être copié, sauvegardé ou envoyé à un collègue qui a l'app
 | 0.1 | Fondations : application Windows, moteurs Python et R intégrés, calcul de démonstration | Publiée |
 | 0.2 | Premier parcours complet : cadre, indicateurs, import, nettoyage, calcul par R, comparaison, rapport Word | Publiée |
 | 0.3 | Libellés Kobo, nouveaux types d'indicateurs, assistant de tests, modèle Word de l'organisation, SPSS et Stata, fusion de fichiers, tableau de bord partageable, diagnostic qualité, vérifications avant le rapport, copies automatiques, taille d'échantillon, plan de suivi Excel, mises à jour automatiques | Publiée |
-| 0.4 | Modèles de cadre par bailleur et hypothèses, indicateurs de suivi de routine, nettoyage avancé (variables calculées, classes, dates et durées, contrôles de cohérence, texte), empilement de fichiers, journal exporté en script R | En cours de publication |
+| 0.4 | Modèles de cadre par bailleur et hypothèses, indicateurs de suivi de routine, nettoyage avancé (variables calculées, classes, dates et durées, contrôles de cohérence, texte), empilement de fichiers, journal exporté en script R | Publiée |
+| 0.5 | Analyses libres selon le plan d'enquête, tableau des données avec corrections à la main, éditeur de formules, scripts R acceptés par ordinateur, contenu du rapport au choix | En cours de publication |
 
-Prochaines étapes envisagées : récupération directe des données depuis KoboToolbox, passage des données du format large au format long, autres questions statistiques (corrélation, variables ordinales), puis une phase bêta avec des utilisateurs de terrain. Le travail à plusieurs sur un même projet avec des droits par indicateur est prévu après la version 1.0.
+Prochaines étapes envisagées : récupération directe des données depuis KoboToolbox, passage des données du format large au format long, autres méthodes d'évaluation d'impact (appariement), puis une phase bêta avec des utilisateurs de terrain. Le travail à plusieurs sur un même projet avec des droits par indicateur est prévu après la version 1.0.
 
 ## Organisation de ce document
 

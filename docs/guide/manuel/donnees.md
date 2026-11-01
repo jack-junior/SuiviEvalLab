@@ -94,6 +94,14 @@ Les types de règle sont rangés en trois groupes.
 | **Contrôle de cohérence** | Repère les lignes qui remplissent des conditions incohérentes, puis les signale dans une nouvelle colonne (1 ou 0), les exclut, ou vide une colonne pour ces lignes | Plus d'enfants que de membres du ménage ; entretien de moins de 15 minutes |
 | **Remplacer sous condition** | Donne une valeur (ou « manquant ») à une colonne existante ou nouvelle, là où des conditions sont remplies | Mettre « 0 » au nombre de repas manqués quand la question filtre a reçu « non » |
 
+**Libre**
+
+| Type de règle | Effet | Exemple d'usage |
+|---|---|---|
+| **Formule** | Crée une colonne, ou remplace une colonne existante, à partir d'une formule | `si(age >= 18 et sexe = "F"; 1; 0)` |
+| **Filtrer les lignes** | Garde, ou retire, les lignes où une condition écrite en formule est vraie | Garder `non_manquant(consentement) et consentement = "yes"` |
+| **Script R** | Pour les utilisateurs avancés : du code R reçoit la table et la modifie | Une imputation ou un recodage complexe déjà écrit en R |
+
 Pour chaque règle, on choisit la colonne, on coche les valeurs concernées (avec leur nombre d'occurrences) ou on remplit le formulaire du type choisi, et on écrit une **justification**, reprise dans le rapport.
 
 #### Variables créées
@@ -122,15 +130,83 @@ Les conditions se combinent : **« Toutes les conditions »** (et) ou **« A
 
 Le journal montre l'effet de chaque règle : le nombre de valeurs calculées, de lignes concernées par un contrôle, de valeurs modifiées ou de lignes retirées. Signaler plutôt qu'exclure laisse la décision à l'équipe : la colonne `entretien_court` peut servir de désagrégation pour voir si les entretiens courts donnent des résultats différents, avant de décider de les exclure.
 
+#### Écrire une formule
+
+Les règles des groupes précédents couvrent les cas courants sans rien écrire. Quand il faut aller plus loin, la règle **Formule** crée ou remplace une colonne à partir d'une expression, comme dans Excel ou dans JASP, et la règle **Filtrer les lignes** garde ou retire les lignes selon une condition.
+
+![Éditeur de formules](../img/45-formule.png)
+
+*Figure 20. Une formule : le résultat est montré sur les premières lignes au fur et à mesure de la saisie.*
+
+L'éditeur aide à écrire sans connaître la syntaxe par cœur :
+
+- les **opérateurs** et les mots `et`, `ou`, `non`, `manquant` s'insèrent d'un clic ;
+- la liste **Colonnes** insère un nom de colonne, entre crochets quand il contient des espaces ou des `/` (`[groupe/age]`, fréquent dans les exports Kobo) ;
+- la liste **Fonctions** insère une fonction, avec une phrase qui dit ce qu'elle fait ;
+- sous la formule, l'application montre aussitôt ce qu'elle donne sur les premières lignes : les valeurs lues et le résultat, le type du résultat, le nombre de manquants et de valeurs différentes. Pour un filtre, elle donne le nombre de lignes qui remplissent la condition.
+
+Les formules s'écrivent en français ou en anglais (`si` ou `if`, `et` ou `and`). Les arguments sont séparés par `;` (ou `,`), les textes s'écrivent entre guillemets.
+
+| Pour | Écrire | Exemple |
+|---|---|---|
+| Calculer | `+ - * / ^` | `depenses / taille_menage` |
+| Comparer | `= <> < <= > >=` | `age >= 18` |
+| Combiner des conditions | `et`, `ou`, `non` | `age >= 18 et sexe = "F"` |
+| Choisir une valeur | `si(condition; si vrai; si faux)` | `si(revenu < 1000; "pauvre"; "non pauvre")` |
+| Tester un manquant | `est_manquant(x)`, `x = manquant` | `si(est_manquant(revenu); 0; revenu)` |
+| Tester une liste de valeurs | `dans(x; "a"; "b")` | `dans(statut; "refugie"; "deplace")` |
+| Calculer sur une ligne | `somme`, `moyenne`, `min`, `max`, `compter` | `compter("yes"; savon; eau; latrine)` |
+| Calculer sur une colonne | `moyenne_colonne`, `ecart_type_colonne` | `(age - moyenne_colonne(age)) / ecart_type_colonne(age)` |
+| Travailler le texte | `minuscule`, `majuscule`, `nettoyer`, `contient`, `extraire`, `remplacer`, `&` | `nettoyer(village) & " - " & district` |
+| Travailler les dates | `date`, `annee`, `mois`, `jours_entre`, `minutes_entre`, `age` | `minutes_entre(date(start); date(end))` |
+
+Deux règles évitent les surprises. Un calcul avec une valeur manquante donne une valeur manquante, comme dans R. Une condition sur une valeur manquante n'est pas vraie : la ligne n'est ni gardée par un filtre « garder », ni retirée par un filtre « retirer ». Une condition enregistrée comme colonne vaut 1, 0, ou manquant.
+
+![Erreur dans une formule](../img/46-formule-erreur.png)
+
+*Figure 21. Une colonne mal orthographiée : l'erreur est signalée à sa place, avec la bonne colonne proposée.*
+
+Une erreur est signalée en clair, à l'endroit où elle se trouve : parenthèse ou guillemet manquant, colonne ou fonction inconnue (avec le nom le plus proche), texte utilisé dans un calcul. La règle ne peut pas être enregistrée tant que la formule n'est pas correcte.
+
+La formule n'est jamais exécutée comme un programme : l'application la lit avec son propre analyseur, qui ne connaît que les opérateurs et les fonctions ci-dessus. Une formule ouverte dans le projet d'un collègue ne peut donc rien faire d'autre que calculer une colonne. Les règles Formule et Filtre se modifient depuis le journal (icône crayon).
+
+#### Script R
+
+Pour les utilisateurs qui connaissent R, la règle **Script R** reçoit la table nettoyée jusqu'à cette étape dans `data`, avec les nombres déjà convertis, et doit y laisser le résultat :
+
+```r
+data$imc <- data$poids / (data$taille / 100)^2
+data <- subset(data, !is.na(imc))
+```
+
+Le script peut ajouter, modifier ou retirer des colonnes et des lignes. Le journal indique ce qu'il a changé (colonnes ajoutées, lignes retirées) et garde sa sortie (ce que `print` affiche), visible sous « Voir le code ». Une erreur de R est affichée dans le journal ; la table reste alors celle de l'étape précédente. Les valeurs que le script n'a pas changées gardent leur écriture d'origine (un code `01` reste `01`).
+
+Chaque ligne garde son numéro dans le fichier, dans la colonne `.sme_row`. Il faut la conserver si le script trie ou retire des lignes : les cellules corrigées à la main dans l'onglet Tableau retrouvent ainsi leur ligne.
+
+Le script tourne dans un processus R séparé, sur l'ordinateur, avec les packages de R intégré (`survey`, `jsonlite`, `nanoarrow`) et ceux de la bibliothèque R personnelle s'il y en a une.
+
+#### Code R reçu d'une autre personne
+
+Un script R peut agir sur l'ordinateur comme n'importe quel programme. Un script ne tourne donc que si son texte exact a été écrit ou accepté **sur cet ordinateur**. Quand un projet reçu d'un collègue contient du code R qui n'a pas encore été accepté, l'application l'affiche en entier à l'ouverture et demande :
+
+![Faire confiance au code R](../img/47-confiance.png)
+
+*Figure 22. Le code R d'un projet reçu, montré avant toute exécution.*
+
+- **« Faire confiance et exécuter »** : les scripts tournent, maintenant et aux prochaines ouvertures.
+- **« Laisser en pause »** : les étapes Script R ne s'appliquent pas (le journal indique « En pause ») ; le reste du nettoyage et du projet fonctionne. Les règles qui utilisent une colonne créée par le script attendent.
+
+La liste des scripts acceptés est gardée dans le dossier de l'utilisateur, jamais dans le fichier projet : un projet ne peut pas se déclarer lui-même digne de confiance. Si le script est modifié, il faut l'accepter à nouveau.
+
 #### Exporter le journal en script R
 
-**« Exporter en R »** enregistre deux fichiers côte à côte : le script (`Nettoyage-<nom>.R`) et les données brutes (`Nettoyage-<nom>_brut.csv`, toutes les colonnes en texte). Le script n'utilise que R de base, sans package à installer. Il lit les données brutes, applique les codes de valeur manquante puis chaque règle active dans l'ordre, avec la justification en commentaire. Il produit la même table que l'application : un statisticien, un auditeur ou un bailleur peut refaire tout le nettoyage sans SuiviEvalLab, ou le poursuivre dans R.
+**« Exporter en R »** enregistre deux fichiers côte à côte : le script (`Nettoyage-<nom>.R`) et les données brutes (`Nettoyage-<nom>_brut.csv`, toutes les colonnes en texte). Le script n'utilise que R de base, sans package à installer. Il lit les données brutes, applique les codes de valeur manquante puis chaque règle active dans l'ordre, avec la justification en commentaire. Les formules y sont traduites en R, les cellules corrigées à la main et les scripts R y figurent tels quels. Il produit la même table que l'application : un statisticien, un auditeur ou un bailleur peut refaire tout le nettoyage sans SuiviEvalLab, ou le poursuivre dans R.
 
 ### Onglet Qualité : le diagnostic
 
 ![Diagnostic qualité](../img/36-qualite-kobo.png)
 
-*Figure 20. Diagnostic de l'enquête WASH du Bangladesh : doublons, réponse hors questionnaire, valeurs extrêmes.*
+*Figure 23. Diagnostic de l'enquête WASH du Bangladesh : doublons, réponse hors questionnaire, valeurs extrêmes.*
 
 L'application examine les données **après nettoyage** et liste les problèmes. Rien n'est modifié sans l'accord de l'utilisateur : chaque problème qui a une correction évidente propose un bouton qui crée la règle correspondante dans le journal.
 
@@ -147,19 +223,24 @@ Les **valeurs extrêmes** sont repérées au-delà de trois écarts interquartil
 
 En bas, une ligne repliée regroupe les **remarques**, souvent normales : colonnes vides, colonnes à valeur unique, questions filtrées avec beaucoup de manquants, poids normalisés.
 
-### Onglet Aperçu
+### Onglet Tableau
 
-![Aperçu avec libellés](../img/37-apercu-libelles.png)
+![Tableau des données](../img/37-tableau.png)
 
-*Figure 21. Aperçu des données, avec les libellés du questionnaire.*
+*Figure 24. Le tableau des données nettoyées : une cellule corrigée à la main, un filtre et un tri.*
 
-Affiche les données par pages de 50 lignes. **Données nettoyées** ou **Données brutes** permet de comparer avant et après le journal. **Afficher les libellés** remplace les codes par leurs libellés.
+L'onglet affiche les données par pages de 100 lignes. La colonne **#** donne le numéro de chaque ligne dans le fichier importé ; il ne change pas quand des lignes sont retirées ou triées.
+
+- **Corriger une cellule** : double-cliquez dessus, tapez la valeur, puis Entrée (Échap annule). Une cellule vidée devient manquante. La correction n'est pas faite dans les données importées : elle est ajoutée au **journal de nettoyage**, dans une étape « Cellules corrigées à la main » qui garde, pour chaque cellule, la ligne, la colonne, l'ancienne et la nouvelle valeur. Les corrections faites à la suite s'ajoutent à la même étape. Les cellules corrigées sont surlignées.
+- **Trier** : un clic sur le titre d'une colonne trie par ordre croissant, un deuxième par ordre décroissant, un troisième revient à l'ordre du fichier. Les colonnes de nombres sont triées comme des nombres.
+- **Filtrer** : écrivez une condition, par exemple `age > 60 et sexe = "F"`, puis « Filtrer ». Le filtre ne sert qu'à l'affichage et ne retire rien ; pour retirer des lignes, ajoutez une règle « Filtrer les lignes » au journal.
+- **Données brutes** affiche le fichier tel qu'il a été importé, en lecture seule. **Afficher les libellés** remplace les codes par leurs libellés.
 
 ### Onglet Colonnes et libellés
 
 ![Colonnes](../img/38-colonnes.png)
 
-*Figure 22. La liste des colonnes, avec type, manquants et libellés.*
+*Figure 25. La liste des colonnes, avec type, manquants et libellés.*
 
 Pour chaque colonne : son libellé, son type (nombre ou texte), la part de manquants, le nombre de valeurs distinctes et, pour les nombres, le minimum et le maximum. Les colonnes créées par le journal suivent les colonnes importées, avec la mention « créée ». Un champ de recherche filtre les colonnes.
 
@@ -167,7 +248,7 @@ Un clic sur **« Ajouter »** ou sur un libellé ouvre la saisie des libellés
 
 ![Saisie des libellés](../img/39-libelles.png)
 
-*Figure 23. Libellés d'une colonne et de ses valeurs.*
+*Figure 26. Libellés d'une colonne et de ses valeurs.*
 
 On y saisit le libellé de la colonne et ceux de chaque valeur (jusqu'à 40 valeurs). Les libellés sont enregistrés dans la langue de l'interface. Ils servent à l'affichage, dans l'analyse et dans le rapport ; **les calculs utilisent toujours les codes**.
 
@@ -177,7 +258,7 @@ Les exports Kobo séparent souvent les données en plusieurs feuilles : une lig
 
 ![Fusion de deux fichiers](../img/40-fusion.png)
 
-*Figure 24. Chaque contenant d'eau rattaché à son ménage.*
+*Figure 27. Chaque contenant d'eau rattaché à son ménage.*
 
 1. **Fichier principal** : celui qui donne une ligne par ligne du résultat (les individus, les contenants).
 2. **Fichier à rattacher** : celui où chaque ligne du fichier principal trouve au plus une ligne (le ménage).
@@ -196,7 +277,7 @@ Quand une même enquête arrive en plusieurs fichiers de même structure (un par
 
 ![Empilement de fichiers](../img/44-empiler.png)
 
-*Figure 25. Empiler deux fichiers : le contrôle indique les colonnes absentes de l'un ou de l'autre.*
+*Figure 28. Empiler deux fichiers : le contrôle indique les colonnes absentes de l'un ou de l'autre.*
 
 1. Cochez au moins deux **fichiers à empiler**. Le nombre de lignes après nettoyage de chacun est rappelé.
 2. Le **contrôle** s'affiche aussitôt : nombre total de lignes et de colonnes et, pour chaque fichier, les colonnes qu'il n'a pas. Les colonnes sont associées **par leur nom** ; une colonne absente d'un fichier reste vide pour ses lignes. Une liste de colonnes manquantes inattendue signale souvent une question renommée entre deux versions du questionnaire.

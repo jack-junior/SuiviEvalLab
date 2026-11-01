@@ -10,11 +10,11 @@ Primary users, in order: M&E officers in local NGOs, MEAL managers in internatio
 | 1. Demonstrator | The full path in a simple version on the education example: logframe, indicators with baseline and target, Excel or Kobo import, four cleaning rules, indicators with confidence intervals from R, one baseline versus endline test, Word report from a bundled template | Done (v0.2.0) |
 | 1b. First field requests | Logo, My projects, Kobo labels from the XLSForm, count, ratio and multi-condition indicators with crossed breakdowns, test assistant, report on the organisation's Word template, SPSS and Stata import, merge of households and individuals, read-only HTML dashboard, data quality diagnosis, checks before the report, automatic copies, sample size, monitoring plan in Excel | Done (v0.3.0) |
 | 2. Framework and indicators | Donor framework models and custom levels, assumptions, routine monitoring indicators with planned values and breakdowns, monitoring plan export | Done (v0.4.0) |
-| 3. Data and cleaning | Excel, CSV, SPSS, Stata, Kobo/ODK with XLSForm, quality diagnosis, merges and stacking, computed variables, classes, dates, consistency checks, journal exported as R | Mostly done (v0.4.0); next: Kobo API connector, reshaping wide and long |
-| 4. Statistics | Test assistant (11 question types), survey designs, effect sizes, sample size, validation suite | Planned |
-| 5. Word report | Client Word templates with placeholders, generated narrative, appendices, pre-generation checks | Planned |
+| 3. Data and cleaning | Excel, CSV, SPSS, Stata, Kobo/ODK with XLSForm, quality diagnosis, merges and stacking, computed variables, classes, dates, consistency checks, journal exported as R, data table with corrections by hand, formula language, R scripts trusted per computer | Mostly done (v0.5.0); next: Kobo API connector, reshaping wide and long |
+| 4. Statistics | Test assistant, custom analyses following the survey design (descriptives, crosstabs with Rao-Scott, means, correlations, linear and logistic regressions, difference in differences), effect sizes, sample size, R scripts | Mostly done (v0.5.0); next: validation suite against reference results, more impact evaluation methods |
+| 5. Word report | Client Word templates with placeholders, generated narrative, appendices, pre-generation checks, content chosen section by section | Mostly done (v0.5.0) |
 | 6. Beta and stabilisation | Field testing, fixes, user guide | Planned |
 
-After 1.0: shared projects with access by indicator, Kobo API connector, project file encryption, PDF export, macOS, regressions and impact evaluation methods.
+After 1.0: shared projects with access by indicator, Kobo API connector, project file encryption, PDF export, macOS, matching and other impact evaluation methods.
 
 Nothing is shown to external users before the step 1 demonstrator.

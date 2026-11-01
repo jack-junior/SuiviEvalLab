@@ -4,7 +4,7 @@ L'écran Rapport produit les trois documents qui sortent de l'application : le 
 
 ![Écran Rapport](../img/70-rapport.png)
 
-*Figure 31. Le contenu du rapport et le choix du modèle Word.*
+*Figure 37. L'écran Rapport.*
 
 ## Le rapport Word
 
@@ -12,19 +12,35 @@ L'écran Rapport produit les trois documents qui sortent de l'application : le 
 
 | Partie | Contenu |
 |---|---|
-| 1. Synthèse | Tableau des indicateurs : référence, valeur actuelle, cible, réalisation, statut |
-| 2. Résultats par résultat attendu | Pour chaque indicateur : définition, texte d'interprétation, graphique avec intervalles et cible, tableau de désagrégation, source |
-| 3. Analyses complémentaires | Les tests enregistrés, avec leur conclusion (si des tests sont enregistrés) |
-| 4. Cadre de résultats | La chaîne de résultats avec ses indicateurs |
-| Annexe A. Données et nettoyage | Pour chaque collecte : fichier, date d'import, lignes, plan d'enquête, journal de nettoyage complet avec justifications et effets |
+| Synthèse | Tableau des indicateurs : référence, valeur actuelle, cible, réalisation, statut |
+| Résultats par résultat attendu | Pour chaque indicateur : définition, texte d'interprétation, graphique avec intervalles et cible, tableau de désagrégation, source |
+| Analyses statistiques | Les analyses de l'écran [Analyses libres](analyses-libres.md), avec leur lecture, leurs tableaux et graphiques |
+| Analyses complémentaires | Les tests enregistrés depuis l'assistant, avec leur conclusion |
+| Cadre de résultats | La chaîne de résultats avec ses indicateurs |
+| Annexe A. Données et nettoyage | Pour chaque collecte : fichier, date d'import, lignes, plan d'enquête, journal de nettoyage complet avec justifications et effets |
 | Annexe B. Méthodes statistiques | Les méthodes d'estimation et les tests effectivement utilisés, la définition du taux de réalisation |
 | Sources des données | Les attributions et licences des jeux de données |
+
+### Choisir le contenu
+
+Le rapport n'a pas toujours besoin de tout. La section **Contenu** de l'écran Rapport permet de choisir ce qu'il contient :
+
+![Contenu du rapport](../img/75-contenu-rapport.png)
+
+*Figure 38. Le contenu du rapport : sections, indicateurs et analyses à inclure.*
+
+- **Sections** : décochez une section pour la retirer, les flèches changent leur ordre. Les sections gardées sont numérotées dans l'ordre choisi.
+- **Indicateurs** : sous « Résultats par résultat attendu », chaque indicateur peut être retiré du rapport (il disparaît aussi de la synthèse), ou garder seulement certaines parties : texte d'interprétation, graphique, ventilation, définition.
+- **Analyses** : sous « Analyses statistiques », chaque analyse peut être retirée, ou garder seulement sa lecture, ses tableaux, ses graphiques ; le code R peut y être ajouté pour un lecteur technique.
+- **Tests** enregistrés et **journal de nettoyage** de l'annexe A : à inclure ou non.
+
+Le choix est enregistré dans le fichier projet. Un indicateur ou une analyse ajouté plus tard est inclus par défaut.
 
 Le texte d'interprétation suit toujours le même ordre : l'ampleur du changement d'abord, puis sa significativité, puis la position par rapport à la cible. Les nombres sont écrits dans la langue du rapport (76,5 % en français, 76.5% en anglais).
 
 ![Pages du rapport Word](../img/73-rapport-word.png)
 
-*Figure 32. Les premières pages du rapport généré pour le projet d'exemple.*
+*Figure 39. Les premières pages du rapport généré pour le projet d'exemple.*
 
 ### Modèle Word de l'organisation
 
@@ -65,13 +81,13 @@ Chaque point a un lien **« Corriger »** qui ouvre le bon écran. Les **remar
 
 ![Plan de suivi et partage](../img/71-rapport-partage.png)
 
-*Figure 33. Plan de suivi Excel et tableau de bord, en bas de l'écran Rapport.*
+*Figure 40. Plan de suivi Excel et tableau de bord, en bas de l'écran Rapport.*
 
 **« Exporter le plan de suivi »** produit la fiche de référence des indicateurs demandée par la plupart des bailleurs : une ligne par indicateur, dans l'ordre du cadre.
 
 ![Plan de suivi Excel](../img/74-plan-excel.png)
 
-*Figure 34. Le plan de suivi ouvert dans un tableur.*
+*Figure 41. Le plan de suivi ouvert dans un tableur.*
 
 Colonnes : code, niveau, résultat, indicateur, définition, **mode de calcul rédigé en phrase** (avec les libellés du questionnaire), unité, désagrégation, source, méthode de collecte, fréquence, responsable, référence, cible, échéance, valeur actuelle, réalisation, statut (coloré). Une seconde feuille reprend le cadre de résultats. Le classeur reste modifiable et s'imprime en paysage sur une page de large.
 
@@ -81,7 +97,7 @@ Colonnes : code, niveau, résultat, indicateur, définition, **mode de calcul r
 
 ![Tableau de bord partagé](../img/72-tableau-de-bord.png)
 
-*Figure 35. Le tableau de bord tel que le voit son destinataire.*
+*Figure 42. Le tableau de bord tel que le voit son destinataire.*
 
 - Chiffres clés par statut, filtres par statut et recherche d'un indicateur.
 - Pour chaque indicateur : valeurs, barre de réalisation, texte d'interprétation, graphique, désagrégation dépliable, définition et source.

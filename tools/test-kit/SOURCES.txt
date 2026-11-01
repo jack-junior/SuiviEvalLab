@@ -1,4 +1,4 @@
-SuiviEvalLab, kit de test 0.3 : sources des données
+SuiviEvalLab, kit de test 0.5 : sources des données
 ====================================================
 
 Les fichiers 01 à 04 sont les fichiers originaux, non modifiés, téléchargés depuis

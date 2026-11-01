@@ -13,6 +13,8 @@ import { Indicators } from "./screens/Indicators";
 import { Overview } from "./screens/Overview";
 import { Report } from "./screens/Report";
 import { Tests } from "./screens/Tests";
+import { Workshop } from "./screens/Workshop";
+import { TrustDialog } from "./TrustDialog";
 import { useProject, View } from "./state";
 import { Icon } from "./ui";
 import { UpdateBanner } from "./updates";
@@ -29,6 +31,7 @@ const NAV: { view: View; icon: string }[] = [
   { view: "data", icon: "table" },
   { view: "analysis", icon: "chart" },
   { view: "tests", icon: "scale" },
+  { view: "workshop", icon: "calc" },
   { view: "report", icon: "doc" },
 ];
 
@@ -79,7 +82,12 @@ export function App() {
   };
 
   const counts: Partial<Record<View, number>> = snap
-    ? { framework: snap.framework.length, indicators: snap.indicators.length, data: snap.datasets.length }
+    ? {
+        framework: snap.framework.length,
+        indicators: snap.indicators.length,
+        data: snap.datasets.length,
+        workshop: snap.analyses.length,
+      }
     : {};
   const showEngines = view === "engines";
   const title = showEngines ? t("engines.title") : snap ? t(`nav.${view}`) : t("nav.home");
@@ -216,7 +224,10 @@ export function App() {
           </span>
         </div>
         <UpdateBanner />
-        <div className={(view === "analysis" || view === "tests") && snap ? "col col-split" : "col"}>
+        <TrustDialog />
+        <div
+          className={(view === "analysis" || view === "tests" || view === "workshop") && snap ? "col col-split" : "col"}
+        >
           {showEngines ? (
             <Engines info={info} versions={versions} error={engineError} onRecheck={loadVersions} />
           ) : !snap ? (
@@ -231,6 +242,8 @@ export function App() {
             <Analysis />
           ) : view === "tests" ? (
             <Tests />
+          ) : view === "workshop" ? (
+            <Workshop />
           ) : view === "report" ? (
             <Report />
           ) : (

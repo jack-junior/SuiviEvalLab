@@ -1,7 +1,7 @@
-SuiviEvalLab 0.3 : kit de test
+SuiviEvalLab 0.5 : kit de test
 ==============================
 
-1. Installez SuiviEvalLab 0.3.0 (page Releases du dépôt GitHub).
+1. Installez SuiviEvalLab 0.5.0 (page Releases du dépôt GitHub).
 2. Ouvrez GUIDE-DE-TEST.docx et suivez les scénarios dans l'ordre.
 3. Notez vos résultats et remarques directement dans le guide, sous chaque scénario.
 

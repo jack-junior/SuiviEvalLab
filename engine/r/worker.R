@@ -33,7 +33,8 @@ sme_dispatch <- list(
   test_groups = function(args) do.call(sme_test_groups, args),
   test_target = function(args) do.call(sme_test_target, args),
   test_paired = function(args) do.call(sme_test_paired, args),
-  sample_size = function(args) do.call(sme_sample_size, args)
+  sample_size = function(args) do.call(sme_sample_size, args),
+  analysis = function(args) do.call(sme_analysis, args)
 )
 
 sme_send(list(ready = TRUE, r_version = R.version$version.string))

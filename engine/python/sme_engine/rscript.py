@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from . import formula_r
+
 TEXT = {
     "fr": {
         "head": "Nettoyage du fichier {name}, tel que défini dans SuiviEvalLab {version}.",
@@ -18,6 +20,8 @@ TEXT = {
         "rule": "Règle {n}",
         "off": "Règle {n} désactivée, non appliquée",
         "done": "Table nettoyée",
+        "rows": "Numéro de chaque ligne dans le fichier (pour les cellules corrigées à la main)",
+        "script": "Script R écrit dans l'application : il reçoit la table dans `data`",
         "derived": (
             "Ce fichier est construit à partir d'autres fichiers (fusion ou empilement) : "
             "les données brutes exportées sont déjà la table construite."
@@ -30,6 +34,8 @@ TEXT = {
         "rule": "Rule {n}",
         "off": "Rule {n} disabled, not applied",
         "done": "Cleaned table",
+        "rows": "Row number of each row in the file (for the cells corrected by hand)",
+        "script": "R script written in the application: it receives the table in `data`",
         "derived": (
             "This file is built from other files (merge or stacking): the exported raw data "
             "are already the built table."
@@ -57,6 +63,32 @@ sme_dt <- function(x) {
   i <- is.na(out) & !is.na(s) & s > 20000 & s < 80000
   out[i] <- as.POSIXct("1899-12-30", tz = "UTC") + floor(s[i]) * 86400
   out
+}
+sme_from_r <- function(new, old) {
+  # Table returned by an R script, back to text; unchanged values keep their original text (01 stays 01).
+  new <- as.data.frame(new, stringsAsFactors = FALSE, check.names = FALSE)
+  for (cl in names(new)) {
+    x <- new[[cl]]
+    if (is.factor(x)) x <- as.character(x)
+    if (inherits(x, "Date")) x <- format(x, "%Y-%m-%d")
+    if (inherits(x, "POSIXt")) x <- format(x, "%Y-%m-%d %H:%M:%S")
+    if (is.logical(x)) x <- ifelse(x, "1", "0")
+    if (is.numeric(x) && cl != ".sme_row") x <- ifelse(is.na(x), NA, trimws(formatC(x, digits = 15, format = "fg")))
+    new[[cl]] <- if (cl == ".sme_row") as.integer(x) else as.character(x)
+  }
+  if (!".sme_row" %in% names(new)) {
+    new$.sme_row <- seq_len(nrow(new))
+    return(new)
+  }
+  i <- match(new$.sme_row, old$.sme_row)
+  for (cl in setdiff(intersect(names(new), names(old)), ".sme_row")) {
+    o <- old[[cl]][i]
+    n <- new[[cl]]
+    keep <- !is.na(o) & !is.na(n) & (o == n | (!is.na(sme_num(o)) & sme_num(o) == sme_num(n)))
+    n[keep] <- o[keep]
+    new[[cl]] <- n
+  }
+  new
 }
 sme_rows <- function(f) {
   m <- sapply(f, identity)
@@ -107,8 +139,36 @@ def _mask(rule: dict[str, Any]) -> str:
     return joiner.join(_condition(c) for c in rule["conditions"])
 
 
-def _rule(rule: dict[str, Any]) -> list[str]:
+def _rule(rule: dict[str, Any], columns: list[str] | None = None, lang: str = "fr") -> list[str]:
     kind = rule["kind"]
+    cols = columns or []
+    if kind == "formula":
+        return [f"{col(rule['target'])} <- {formula_r.value(rule['expression'], cols)}"]
+    if kind == "filter":
+        cond = formula_r.condition(rule["expression"], cols)
+        keep = cond if rule["action"] == "keep" else f"!{cond}"
+        return [f"d <- d[{keep}, , drop = FALSE]"]
+    if kind == "edit":
+        out = []
+        by_col: dict[str, list[dict[str, Any]]] = {}
+        for c in rule["cells"]:
+            by_col.setdefault(c["column"], []).append(c)
+        for name, cells in by_col.items():
+            rows = "c(" + ", ".join(str(c["row"]) for c in cells) + ")"
+            out += [
+                f"i <- match({rows}, d$.sme_row)",
+                f"v <- {vec([c['value'] for c in cells])}",
+                f"{col(name)}[i[!is.na(i)]] <- v[!is.na(i)]",
+            ]
+        return out
+    if kind == "r_script":
+        return [
+            f"# {TEXT[lang]['script']}",
+            "data <- d",
+            "data[] <- lapply(data, function(x) if (is.character(x)) utils::type.convert(x, as.is = TRUE) else x)",
+            *rule["code"].rstrip().splitlines(),
+            "d <- sme_from_r(data, d)",
+        ]
     if kind == "duplicates":
         return [f"d <- d[!duplicated(d[{vec(rule['columns'])}]), , drop = FALSE]"]
     if kind == "recode":
@@ -215,19 +275,33 @@ def _rule(rule: dict[str, Any]) -> list[str]:
 
 
 def journal(
-    name: str, raw_file: str, na_values: list[str], rules: list[dict[str, Any]], lang: str, version: str, derived: bool
+    name: str,
+    raw_file: str,
+    na_values: list[str],
+    rules: list[dict[str, Any]],
+    lang: str,
+    version: str,
+    derived: bool,
+    columns: list[str] | None = None,
 ) -> str:
     t = TEXT[lang]
     out = [f"# {t['head'].format(name=name, version=version)}"]
     if derived:
         out.append(f"# {t['derived']}")
-    out += ["", HELPERS.strip(), "", f"# {t['read']}"]
+    active = [r for r in rules if r.get("enabled", True)]
+    helpers = HELPERS.strip()
+    if any(r["kind"] in ("formula", "filter") for r in active):
+        helpers += "\n" + formula_r.HELPERS.strip()
+    out += ["", helpers, "", f"# {t['read']}"]
     out.append(
         f'd <- read.csv({q(raw_file)}, colClasses = "character", na.strings = "", '
         'check.names = FALSE, encoding = "UTF-8", fileEncoding = "UTF-8-BOM")'
     )
     if na_values:
         out += ["", f"# {t['na']}", f"d[] <- lapply(d, function(x) {{ x[x %in% {vec(na_values)}] <- NA; x }})"]
+    rows = any(r["kind"] in ("edit", "r_script") for r in active)
+    if rows:
+        out += ["", f"# {t['rows']}", "d$.sme_row <- seq_len(nrow(d))"]
     for i, rule in enumerate(rules, start=1):
         out.append("")
         if not rule.get("enabled", True):
@@ -241,6 +315,9 @@ def journal(
             else ""
         )
         out.append(f"# {t['rule'].format(n=i)}{note}".replace("\n", " "))
-        out += _rule(rule)
-    out += ["", f"# {t['done']}", "rownames(d) <- NULL", "clean <- d", ""]
+        out += _rule(rule, columns, lang)
+    end = ["", f"# {t['done']}"]
+    if rows:
+        end.append("d$.sme_row <- NULL")
+    out += [*end, "rownames(d) <- NULL", "clean <- d", ""]
     return "\n".join(out)

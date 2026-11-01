@@ -23,7 +23,7 @@ from . import frameworks
 from .rpc import INVALID_PARAMS, RpcError
 
 APPLICATION_ID = 0x534D4531  # "SME1": marks a file as a SuiviEvalLab project
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 EXTENSION = ".sme"
 
 # Framework levels, from the top. The interface translates them; projects store keys.
@@ -70,6 +70,12 @@ CREATE TABLE routine_value (
     indicator_id TEXT NOT NULL REFERENCES indicator(id) ON DELETE CASCADE,
     position     INTEGER NOT NULL,
     spec         TEXT NOT NULL           -- JSON, see routine.py
+);
+
+CREATE TABLE analysis (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL            -- JSON, see analyses.py
 );
 
 CREATE TABLE cleaning_rule (
@@ -177,6 +183,12 @@ class Project:
                 conn.execute(
                     "CREATE TABLE IF NOT EXISTS routine_value (id TEXT PRIMARY KEY, indicator_id TEXT NOT NULL "
                     "REFERENCES indicator(id) ON DELETE CASCADE, position INTEGER NOT NULL, spec TEXT NOT NULL)"
+                )
+            if version < 4:
+                # 0.5: free analyses (results document).
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS analysis "
+                    "(id TEXT PRIMARY KEY, position INTEGER NOT NULL, spec TEXT NOT NULL)"
                 )
             conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
@@ -358,6 +370,7 @@ class Project:
         "cleaning_rule": "dataset_id",
         "saved_test": None,
         "routine_value": "indicator_id",
+        "analysis": None,
     }
 
     def records(self, table: str, scope: str | None = None) -> list[dict[str, Any]]:
