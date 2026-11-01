@@ -17,6 +17,7 @@ import polars as pl
 
 from . import (
     __version__,
+    analyses,
     cleaning,
     cleaning_free,
     cleaning_more,
@@ -27,6 +28,7 @@ from . import (
     merge,
     quality,
     r_user,
+    report_content,
     routine,
     rscript,
     stattests,
@@ -105,7 +107,12 @@ class Service:
             "indicators": self.ordered_indicators(),
             "datasets": ds_list,
             "tests": p.records("saved_test"),
+            "analyses": [
+                {**a, "trusted": trust.is_trusted(a["code"])} if a["type"] == "r_script" else a
+                for a in p.records("analysis")
+            ],
             "untrusted_scripts": self.untrusted_scripts(ds_list),
+            "report_content": report_content.load(p),
         }
 
     def untrusted_scripts(self, ds_list: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
@@ -436,6 +443,9 @@ class Service:
         ]
         if users:
             raise _err(f"This file is used by the merged file {users[0]}: delete that one first", "dataset_in_use")
+        for a in self.project.records("analysis"):
+            if a.get("dataset_id") == dataset_id:
+                self.project.delete_record("analysis", a["id"])
         self.project.delete_record("dataset", dataset_id)
         self._merged.pop(dataset_id, None)
         self._raw.pop(dataset_id, None)
@@ -530,6 +540,30 @@ class Service:
             self.project.insert_record("cleaning_rule", rule, scope=spec["id"])
         self._results.clear()
         return self.snapshot()
+
+    # ----- free analyses ----------------------------------------------------------
+
+    def save_analysis(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Create (no id) or replace an analysis. Returns the snapshot and the id."""
+        raw = params.get("analysis") or {}
+        if params.get("id"):
+            current = self.project.record("analysis", params["id"])
+            raw = {**current, **raw}
+        spec = self.dataset_spec(raw.get("dataset_id"))
+        a = analyses.validate({**raw, "dataset_id": spec["id"]}, self.column_names(spec["id"]))
+        if a["type"] == "r_script" and (params.get("analysis") or {}).get("code") is not None:
+            trust.trust([a["code"]])  # written on this computer
+        if params.get("id"):
+            self.project.update_record("analysis", params["id"], a)
+            created = params["id"]
+        else:
+            created = self.project.insert_record("analysis", a)
+        return {**self.snapshot(), "created": created}
+
+    def run_analysis(self, params: dict[str, Any]) -> dict[str, Any]:
+        lang = params.get("lang") if params.get("lang") in ("fr", "en") else "fr"
+        a = self.project.record("analysis", params.get("id"))
+        return {"id": a["id"], **analyses.run(self, a, lang)}
 
     def formula_preview(self, params: dict[str, Any]) -> dict[str, Any]:
         spec = self.dataset_spec(params.get("dataset_id"))
@@ -1154,6 +1188,29 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
                 for name, (aliases, lo, hi) in formula.FUNCTIONS.items()
             ]
         }
+
+    @server.method("report.set_content")
+    def rp_set_content(params: dict[str, Any]) -> dict[str, Any]:
+        report_content.save(svc.project, params.get("content"))
+        return svc.snapshot()
+
+    @server.method("analysis.save")
+    def an_save(params: dict[str, Any]) -> dict[str, Any]:
+        return svc.save_analysis(params)
+
+    @server.method("analysis.run")
+    def an_run(params: dict[str, Any]) -> dict[str, Any]:
+        return svc.run_analysis(params)
+
+    @server.method("analysis.delete")
+    def an_delete(params: dict[str, Any]) -> dict[str, Any]:
+        svc.project.delete_record("analysis", params.get("id"))
+        return svc.snapshot()
+
+    @server.method("analysis.move")
+    def an_move(params: dict[str, Any]) -> dict[str, Any]:
+        svc.project.move_record("analysis", params.get("id"), params.get("direction"))
+        return svc.snapshot()
 
     @server.method("scripts.trust")
     def sc_trust(params: dict[str, Any]) -> dict[str, Any]:

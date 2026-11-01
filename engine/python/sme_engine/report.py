@@ -17,7 +17,19 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
-from . import __version__, cleaning_free, cleaning_more, frameworks, routine, stattests, xlsform
+from . import (
+    __version__,
+    cleaning_free,
+    cleaning_more,
+    frameworks,
+    report_content,
+    routine,
+    stattests,
+    xlsform,
+)
+from . import (
+    analyses as free_analyses,
+)
 
 INK = RGBColor(0x1F, 0x1E, 0x1C)
 ACTION = RGBColor(0x1D, 0x4F, 0x91)
@@ -103,6 +115,11 @@ T = {
         "effect_created": "{n} valeurs calculées",
         "effect_flagged": "{n} lignes incohérentes",
         "effect_none": "aucun changement",
+        "analyses_title": "Analyses statistiques",
+        "analysis_data": "Données : {name} ({round}), après nettoyage.",
+        "analysis_failed": "Cette analyse n'a pas pu être calculée : {detail}",
+        "analysis_paused": "Script R en pause : il n'a pas encore été accepté sur cet ordinateur.",
+        "analysis_test": "Test : {test}{stat}, {p}.",
         "effect_paused": "en pause : code R pas encore accepté sur cet ordinateur",
         "effect_error": "non appliquée (erreur, voir le journal dans l'application)",
         "disabled": "désactivée",
@@ -207,6 +224,11 @@ T = {
         "effect_created": "{n} values computed",
         "effect_flagged": "{n} inconsistent rows",
         "effect_none": "no change",
+        "analyses_title": "Statistical analyses",
+        "analysis_data": "Data: {name} ({round}), after cleaning.",
+        "analysis_failed": "This analysis could not be computed: {detail}",
+        "analysis_paused": "R script paused: it has not yet been accepted on this computer.",
+        "analysis_test": "Test: {test}{stat}, {p}.",
         "effect_paused": "paused: R code not yet accepted on this computer",
         "effect_error": "not applied (error, see the journal in the application)",
         "disabled": "disabled",
@@ -616,213 +638,249 @@ def generate(svc: Any, path: Path, lang: str, template: bytes | None = None) -> 
     gen.runs[0].font.size = Pt(9)
     gen.runs[0].font.color.rgb = MUTED
 
-    # 1. Summary
-    _heading(doc, f"1. {t['summary']}", level=1)
-    counts = {"achieved": 0, "on_track": 0, "late": 0, "unknown": 0}
-    rows = []
-    for ind in snap["indicators"]:
-        an = analyses[ind["id"]]
-        counts[an["status"]] += 1
-        node = nodes.get(ind["node_id"], {})
-        rows.append(
-            [
-                f"{node.get('code', '')} {ind['name']}".strip(),
-                f.value(an["baseline"], ind["unit"]),
-                f.value(an["current"], ind["unit"]),
-                f.value(an["target"], ind["unit"]),
-                f.pct(an["achievement"], 0),
-                t["status"][an["status"]],
-            ]
-        )
-    doc.add_paragraph(t["summary_text"].format(n=len(rows), **counts))
-    _table(
-        doc,
-        [t["col_indicator"], t["col_baseline"], t["col_current"], t["col_target"], t["col_rate"], t["col_status"]],
-        rows,
-        [6.4, 2, 2.2, 1.8, 2, 2.2],
-    )
-
-    # 2. Results
-    _heading(doc, f"2. {t['results']}", level=1)
+    content = report_content.load(svc.project)
+    shown = [i for i in snap["indicators"] if report_content.indicator(content, i["id"])["on"]]
     workdir = Path(svc.bridge.workdir)
-    for node in snap["framework"]:
-        inds = [i for i in snap["indicators"] if i["node_id"] == node["id"]]
-        if not inds:
-            continue
-        label = frameworks.name(project["framework_model"], node["level"], lang)
-        _heading(
-            doc,
-            f"{label} {node['code']} : {node['title']}"
-            if lang == "fr" and node["code"]
-            else f"{label} {node['code']}: {node['title']}"
-            if node["code"]
-            else f"{label}: {node['title']}",
-            level=2,
-        )
-        for ind in inds:
-            an = analyses[ind["id"]]
-            _heading(doc, ind["name"], level=3)
-            if ind.get("definition"):
-                p = doc.add_paragraph()
-                p.add_run(t["definition"]).bold = True
-                p.add_run(ind["definition"])
-            if an.get("source") == "routine":
-                _routine_section(doc, svc, ind, an, lang, f, workdir)
-                continue
-            usable = [r for r in an["rounds"] if "error_key" not in r["result"]]
-            if not usable:
-                doc.add_paragraph(t["no_data"])
-                continue
-            for sentence in [" ".join(_narrative(ind, an, t, f))]:
-                doc.add_paragraph(sentence)
-            # Chart
-            png = workdir / f"chart_{ind['id']}.png"
-            svc.bridge.call(
-                "chart",
-                {
-                    "out": str(png),
-                    "labels": [t["rounds"][r["round"]] for r in usable],
-                    "values": [r["result"]["estimate"] for r in usable],
-                    "lows": [r["result"].get("ci_low") for r in usable],
-                    "highs": [r["result"].get("ci_high") for r in usable],
-                    "target": an.get("target"),
-                    "percent": ind["unit"] == "percent",
-                    # Counts and ratios keep their own scale on the chart.
-                    "title": "",
-                    "ylab": t["chart_ylab_percent"] if ind["unit"] == "percent" else (ind.get("unit_label") or ""),
-                    "target_label": t["chart_target"],
-                    "decimal": "," if lang == "fr" else ".",
-                },
-            )
-            doc.add_picture(str(png), width=Cm(15))
-            # Breakdown
-            if ind.get("disaggregation") and any(r["result"].get("by") for r in usable):
-                by_col = ind["disaggregation"]
-                doc.add_paragraph(t["by"].format(column=readable(by_col))).runs[0].bold = True
-                groups = sorted({g["group"] for r in usable for g in r["result"].get("by", [])})
-                body = []
-                for g in groups:
-                    line = [readable(by_col, str(g))]
-                    for r in usable:
-                        hit = next((x for x in r["result"].get("by", []) if x["group"] == g), None)
-                        line.append(
-                            f"{f.value(hit.get('estimate'), ind['unit'])} (n = {f.num(hit['n'], 0)})"
-                            if hit and hit.get("estimate") is not None
-                            else f.none
-                        )
-                    body.append(line)
-                _table(doc, [t["col_group"], *[t["rounds"][r["round"]] for r in usable]], body)
-            if ind.get("source"):
-                p = doc.add_paragraph()
-                r1 = p.add_run(t["source"])
-                r1.font.size = Pt(9)
-                r1.font.color.rgb = MUTED
-                r2 = p.add_run(ind["source"])
-                r2.font.size = Pt(9)
-                r2.font.color.rgb = MUTED
+    number = [0]
 
-    # 3. Additional analyses (saved tests)
-    section = 3
-    if snap.get("tests"):
-        _heading(doc, f"{section}. {t['tests_title']}", level=1)
-        label = svc.labeller(lang)
-        for spec in snap["tests"]:
-            try:
-                res = stattests.run(svc, spec)
-            except Exception as exc:  # noqa: BLE001 - a broken saved test must not stop the report
-                _heading(doc, spec.get("title") or t["test_untitled"], level=2)
-                doc.add_paragraph(t["test_failed"].format(detail=str(exc)))
+    def numbered(title: str) -> str:
+        number[0] += 1
+        return f"{number[0]}. {title}"
+
+    def summary_section() -> None:
+        _heading(doc, numbered(t["summary"]), level=1)
+        counts = {"achieved": 0, "on_track": 0, "late": 0, "unknown": 0}
+        rows = []
+        for ind in shown:
+            an = analyses[ind["id"]]
+            counts[an["status"]] += 1
+            node = nodes.get(ind["node_id"], {})
+            rows.append(
+                [
+                    f"{node.get('code', '')} {ind['name']}".strip(),
+                    f.value(an["baseline"], ind["unit"]),
+                    f.value(an["current"], ind["unit"]),
+                    f.value(an["target"], ind["unit"]),
+                    f.pct(an["achievement"], 0),
+                    t["status"][an["status"]],
+                ]
+            )
+        doc.add_paragraph(t["summary_text"].format(n=len(rows), **counts))
+        _table(
+            doc,
+            [t["col_indicator"], t["col_baseline"], t["col_current"], t["col_target"], t["col_rate"], t["col_status"]],
+            rows,
+            [6.4, 2, 2.2, 1.8, 2, 2.2],
+        )
+
+    def results_section() -> None:
+        _heading(doc, numbered(t["results"]), level=1)
+        for node in snap["framework"]:
+            inds = [i for i in shown if i["node_id"] == node["id"]]
+            if not inds:
                 continue
-            _heading(doc, spec.get("title") or t["test_untitled"], level=2)
-            doc.add_paragraph(" ".join(stattests.conclusion(spec, res, lang, f, label)))
-            if spec["question"] == "groups":
-                unit = "percent" if spec["kind"] == "proportion" else "mean"
+            label = frameworks.name(project["framework_model"], node["level"], lang)
+            _heading(
+                doc,
+                f"{label} {node['code']} : {node['title']}"
+                if lang == "fr" and node["code"]
+                else f"{label} {node['code']}: {node['title']}"
+                if node["code"]
+                else f"{label}: {node['title']}",
+                level=2,
+            )
+            for ind in inds:
+                an = analyses[ind["id"]]
+                parts = report_content.indicator(content, ind["id"])
+                _heading(doc, ind["name"], level=3)
+                if ind.get("definition") and parts["definition"]:
+                    p = doc.add_paragraph()
+                    p.add_run(t["definition"]).bold = True
+                    p.add_run(ind["definition"])
+                if an.get("source") == "routine":
+                    _routine_section(doc, svc, ind, an, lang, f, workdir)
+                    continue
+                usable = [r for r in an["rounds"] if "error_key" not in r["result"]]
+                if not usable:
+                    doc.add_paragraph(t["no_data"])
+                    continue
+                if parts["reading"]:
+                    doc.add_paragraph(" ".join(_narrative(ind, an, t, f)))
+                # Chart
+                png = workdir / f"chart_{ind['id']}.png"
+                if parts["chart"]:
+                    svc.bridge.call(
+                        "chart",
+                        {
+                            "out": str(png),
+                            "labels": [t["rounds"][r["round"]] for r in usable],
+                            "values": [r["result"]["estimate"] for r in usable],
+                            "lows": [r["result"].get("ci_low") for r in usable],
+                            "highs": [r["result"].get("ci_high") for r in usable],
+                            "target": an.get("target"),
+                            "percent": ind["unit"] == "percent",
+                            # Counts and ratios keep their own scale on the chart.
+                            "title": "",
+                            "ylab": t["chart_ylab_percent"]
+                            if ind["unit"] == "percent"
+                            else (ind.get("unit_label") or ""),
+                            "target_label": t["chart_target"],
+                            "decimal": "," if lang == "fr" else ".",
+                        },
+                    )
+                    doc.add_picture(str(png), width=Cm(15))
+                # Breakdown
+                if parts["breakdown"] and ind.get("disaggregation") and any(r["result"].get("by") for r in usable):
+                    by_col = ind["disaggregation"]
+                    doc.add_paragraph(t["by"].format(column=readable(by_col))).runs[0].bold = True
+                    groups = sorted({g["group"] for r in usable for g in r["result"].get("by", [])})
+                    body = []
+                    for g in groups:
+                        line = [readable(by_col, str(g))]
+                        for r in usable:
+                            hit = next((x for x in r["result"].get("by", []) if x["group"] == g), None)
+                            line.append(
+                                f"{f.value(hit.get('estimate'), ind['unit'])} (n = {f.num(hit['n'], 0)})"
+                                if hit and hit.get("estimate") is not None
+                                else f.none
+                            )
+                        body.append(line)
+                    _table(doc, [t["col_group"], *[t["rounds"][r["round"]] for r in usable]], body)
+                if ind.get("source"):
+                    p = doc.add_paragraph()
+                    r1 = p.add_run(t["source"])
+                    r1.font.size = Pt(9)
+                    r1.font.color.rgb = MUTED
+                    r2 = p.add_run(ind["source"])
+                    r2.font.size = Pt(9)
+                    r2.font.color.rgb = MUTED
+
+    def tests_section() -> None:
+        saved = [x for x in snap.get("tests") or [] if content["tests"].get(x["id"], True)]
+        if saved:
+            _heading(doc, numbered(t["tests_title"]), level=1)
+            label = svc.labeller(lang)
+            for spec in saved:
+                try:
+                    res = stattests.run(svc, spec)
+                except Exception as exc:  # noqa: BLE001 - a broken saved test must not stop the report
+                    _heading(doc, spec.get("title") or t["test_untitled"], level=2)
+                    doc.add_paragraph(t["test_failed"].format(detail=str(exc)))
+                    continue
+                _heading(doc, spec.get("title") or t["test_untitled"], level=2)
+                doc.add_paragraph(" ".join(stattests.conclusion(spec, res, lang, f, label)))
+                if spec["question"] == "groups":
+                    unit = "percent" if spec["kind"] == "proportion" else "mean"
+                    _table(
+                        doc,
+                        [label(spec["group"]), t["col_value"], t["col_ci"], "n"],
+                        [
+                            [
+                                label(spec["group"], g["group"]),
+                                f.value(g.get("estimate"), unit),
+                                f"{f.value(g.get('ci_low'), unit)} ; {f.value(g.get('ci_high'), unit)}",
+                                f.num(g.get("n"), 0),
+                            ]
+                            for g in res.get("groups", [])
+                        ],
+                    )
+                tname = stattests.TEXT[lang]["tests"].get(res.get("test_key"), res.get("test_key"))
+                p = doc.add_paragraph()
+                run_ = p.add_run(t["test_used"].format(test=tname, n=f.num(res.get("n"), 0)))
+                run_.font.size = Pt(9)
+                run_.font.color.rgb = MUTED
+
+    def framework_section() -> None:
+        _heading(doc, numbered(t["framework"]), level=1)
+        fw_rows = []
+        for node in snap["framework"]:
+            names = "; ".join(i["name"] for i in snap["indicators"] if i["node_id"] == node["id"])
+            fw_rows.append(
+                [
+                    node["code"] or "",
+                    frameworks.name(project["framework_model"], node["level"], lang),
+                    node["title"],
+                    names,
+                ]
+            )
+        if any(n.get("assumptions") for n in snap["framework"]):
+            # Logframe column: assumptions and risks of each element.
+            for row, node in zip(fw_rows, snap["framework"], strict=True):
+                row.insert(3, node.get("assumptions") or "")
+            header = [t["col_code"], t["col_level"], t["col_title"], t["col_assumptions"], t["col_indicators"]]
+            _table(doc, header, fw_rows, [1.2, 2.2, 5.4, 4, 4])
+        else:
+            _table(
+                doc, [t["col_code"], t["col_level"], t["col_title"], t["col_indicators"]], fw_rows, [1.4, 2, 7.8, 5.4]
+            )
+
+    def annex_data_section() -> None:
+        _heading(doc, t["annex_data"], level=1)
+        for ds in snap["datasets"]:
+            _heading(doc, f"{ds['name']} ({t['rounds'][ds['round']]})", level=2)
+            doc.add_paragraph(
+                t["ds_line"].format(
+                    file=ds["source_name"],
+                    sheet=ds.get("sheet") or "CSV",
+                    date=f_date(lang, ds["imported_at"][:10]),
+                    rows=f.num(ds["rows"], 0),
+                    clean=f.num(ds["clean_rows"], 0),
+                )
+            )
+            doc.add_paragraph(t["design"].format(text=_design_text(ds["design"], t)))
+            if ds["rules"] and content["journal"]:
+                doc.add_paragraph(t["rules"]).runs[0].bold = True
                 _table(
                     doc,
-                    [label(spec["group"]), t["col_value"], t["col_ci"], "n"],
+                    ["#", t["col_rule"], t["col_effect"], t["col_note"]],
                     [
-                        [
-                            label(spec["group"], g["group"]),
-                            f.value(g.get("estimate"), unit),
-                            f"{f.value(g.get('ci_low'), unit)} ; {f.value(g.get('ci_high'), unit)}",
-                            f.num(g.get("n"), 0),
-                        ]
-                        for g in res.get("groups", [])
+                        [str(i), _rule_text(r, t, f), _effect_text(r, t), r.get("note") or ""]
+                        for i, r in enumerate(ds["rules"], start=1)
                     ],
+                    [0.8, 7, 3.6, 5.2],
                 )
-            tname = stattests.TEXT[lang]["tests"].get(res.get("test_key"), res.get("test_key"))
-            p = doc.add_paragraph()
-            run_ = p.add_run(t["test_used"].format(test=tname, n=f.num(res.get("n"), 0)))
-            run_.font.size = Pt(9)
-            run_.font.color.rgb = MUTED
-        section += 1
 
-    # Framework
-    _heading(doc, f"{section}. {t['framework']}", level=1)
-    fw_rows = []
-    for node in snap["framework"]:
-        names = "; ".join(i["name"] for i in snap["indicators"] if i["node_id"] == node["id"])
-        fw_rows.append(
-            [node["code"] or "", frameworks.name(project["framework_model"], node["level"], lang), node["title"], names]
-        )
-    if any(n.get("assumptions") for n in snap["framework"]):
-        # Logframe column: assumptions and risks of each element.
-        for row, node in zip(fw_rows, snap["framework"], strict=True):
-            row.insert(3, node.get("assumptions") or "")
-        header = [t["col_code"], t["col_level"], t["col_title"], t["col_assumptions"], t["col_indicators"]]
-        _table(doc, header, fw_rows, [1.2, 2.2, 5.4, 4, 4])
-    else:
-        _table(doc, [t["col_code"], t["col_level"], t["col_title"], t["col_indicators"]], fw_rows, [1.4, 2, 7.8, 5.4])
+    def annex_methods_section() -> None:
+        _heading(doc, t["annex_methods"], level=1)
+        doc.add_paragraph(t["methods_intro"].format(effect=t["effect_names"]))
+        used_methods, used_tests = set(), set()
+        for an in analyses.values():
+            for r in an["rounds"]:
+                if "method_key" in r["result"]:
+                    used_methods.add(r["result"]["method_key"])
+            if an.get("comparison") and "test_key" in an["comparison"]:
+                used_tests.add(an["comparison"]["test_key"])
+        for key in sorted(used_methods):
+            _bullet(doc, t["methods"][key])
+        for key in sorted(used_tests):
+            _bullet(doc, t["tests"][key])
+        for how in sorted({a["aggregation"] for a in analyses.values() if a.get("source") == "routine"}):
+            _bullet(doc, routine.TEXT[lang]["method"].format(how=routine.TEXT[lang]["how"][how]))
+        doc.add_paragraph(t["achievement_def"])
 
-    # Appendix A
-    _heading(doc, t["annex_data"], level=1)
-    for ds in snap["datasets"]:
-        _heading(doc, f"{ds['name']} ({t['rounds'][ds['round']]})", level=2)
-        doc.add_paragraph(
-            t["ds_line"].format(
-                file=ds["source_name"],
-                sheet=ds.get("sheet") or "CSV",
-                date=f_date(lang, ds["imported_at"][:10]),
-                rows=f.num(ds["rows"], 0),
-                clean=f.num(ds["clean_rows"], 0),
-            )
-        )
-        doc.add_paragraph(t["design"].format(text=_design_text(ds["design"], t)))
-        if ds["rules"]:
-            doc.add_paragraph(t["rules"]).runs[0].bold = True
-            _table(
-                doc,
-                ["#", t["col_rule"], t["col_effect"], t["col_note"]],
-                [
-                    [str(i), _rule_text(r, t, f), _effect_text(r, t), r.get("note") or ""]
-                    for i, r in enumerate(ds["rules"], start=1)
-                ],
-                [0.8, 7, 3.6, 5.2],
-            )
+    def sources_section() -> None:
+        attributions = [ds["attribution"] for ds in snap["datasets"] if ds.get("attribution")]
+        if attributions:
+            _heading(doc, t["sources"], level=1)
+            for a in dict.fromkeys(attributions):
+                _bullet(doc, a)
 
-    # Appendix B
-    _heading(doc, t["annex_methods"], level=1)
-    doc.add_paragraph(t["methods_intro"].format(effect=t["effect_names"]))
-    used_methods, used_tests = set(), set()
-    for an in analyses.values():
-        for r in an["rounds"]:
-            if "method_key" in r["result"]:
-                used_methods.add(r["result"]["method_key"])
-        if an.get("comparison") and "test_key" in an["comparison"]:
-            used_tests.add(an["comparison"]["test_key"])
-    for key in sorted(used_methods):
-        _bullet(doc, t["methods"][key])
-    for key in sorted(used_tests):
-        _bullet(doc, t["tests"][key])
-    for how in sorted({a["aggregation"] for a in analyses.values() if a.get("source") == "routine"}):
-        _bullet(doc, routine.TEXT[lang]["method"].format(how=routine.TEXT[lang]["how"][how]))
-    doc.add_paragraph(t["achievement_def"])
+    def analyses_section() -> None:
+        _analyses_section(doc, svc, snap, content, lang, t, f, workdir, numbered)
 
-    attributions = [ds["attribution"] for ds in snap["datasets"] if ds.get("attribution")]
-    if attributions:
-        _heading(doc, t["sources"], level=1)
-        for a in dict.fromkeys(attributions):
-            _bullet(doc, a)
+    sections = {
+        "summary": summary_section,
+        "results": results_section,
+        "analyses": analyses_section,
+        "tests": tests_section,
+        "framework": framework_section,
+        "annex_data": annex_data_section,
+        "annex_methods": annex_methods_section,
+        "sources": sources_section,
+    }
+    for sec in content["sections"]:
+        if sec["on"]:
+            sections[sec["id"]]()
 
     if anchor is not None:
         # The sectPr (page setup) stays last in the body; the content moves to the placeholder.
@@ -831,7 +889,110 @@ def generate(svc: Any, path: Path, lang: str, template: bytes | None = None) -> 
     if path.suffix.lower() != ".docx":
         path = path.with_suffix(".docx")
     doc.save(path)
-    return {"path": str(path), "indicators": len(rows)}
+    return {"path": str(path), "indicators": len(shown)}
+
+
+def _analyses_section(
+    doc: Any,
+    svc: Any,
+    snap: dict[str, Any],
+    content: dict[str, Any],
+    lang: str,
+    t: dict[str, Any],
+    f: Fmt,
+    workdir: Path,
+    numbered: Any,
+) -> None:
+    """Analyses chosen on the Analyses screen: reading, tables, charts, R script."""
+    import base64
+
+    items = [a for a in snap.get("analyses") or [] if report_content.analysis(content, a)["on"]]
+    if not items:
+        return
+    _heading(doc, numbered(t["analyses_title"]), level=1)
+    for a in items:
+        parts = report_content.analysis(content, a)
+        _heading(doc, free_analyses.title(a, lang), level=2)
+        ds = next((d for d in snap["datasets"] if d["id"] == a.get("dataset_id")), None)
+        if ds:
+            p = doc.add_paragraph(t["analysis_data"].format(name=ds["name"], round=t["rounds"][ds["round"]]))
+            p.runs[0].font.size = Pt(9)
+            p.runs[0].font.color.rgb = MUTED
+        if a.get("note"):
+            doc.add_paragraph(a["note"])
+        try:
+            res = free_analyses.run(svc, a, lang)
+        except Exception as exc:  # noqa: BLE001 - one broken analysis must not stop the report
+            doc.add_paragraph(t["analysis_failed"].format(detail=str(exc)[:300]))
+            continue
+        if res.get("paused"):
+            doc.add_paragraph(t["analysis_paused"])
+            continue
+        if res.get("error"):
+            detail = res.get("message") or ", ".join(res.get("columns") or []) or res["error"]
+            doc.add_paragraph(t["analysis_failed"].format(detail=detail[:300]))
+            continue
+        if "script_result" in res:
+            out = res["script_result"]
+            if parts["tables"] and out.get("output"):
+                para = doc.add_paragraph()
+                r = para.add_run(out["output"][:6000])
+                r.font.name = "Consolas"
+                r.font.size = Pt(8)
+            if parts["tables"] and out.get("table"):
+                tab = out["table"]
+                _table(doc, tab["columns"], [["" if v is None else str(v) for v in row] for row in tab["rows"][:60]])
+            if parts["charts"]:
+                for i, b64 in enumerate(out.get("plots") or []):
+                    png = workdir / f"an_{a['id']}_{i}.png"
+                    png.write_bytes(base64.b64decode(b64))
+                    doc.add_picture(str(png), width=Cm(15))
+            if parts["script"]:
+                _code(doc, a["code"])
+            continue
+        if parts["reading"] and res.get("reading"):
+            doc.add_paragraph(" ".join(res["reading"]))
+        if parts["tables"]:
+            for tab in res.get("tables") or []:
+                if tab.get("title"):
+                    doc.add_paragraph(tab["title"]).runs[0].bold = True
+                header = [c["label"] for c in tab["columns"]]
+                body = [
+                    [free_analyses.cell(v, c["fmt"], f) for v, c in zip(row, tab["columns"], strict=False)]
+                    for row in tab["rows"][:80]
+                ]
+                _table(doc, header, body)
+            for test in res.get("tests") or []:
+                p = doc.add_paragraph()
+                stat = f", F = {f.num(test['statistic'], 2)}" if test.get("statistic") is not None else ""
+                run_ = p.add_run(
+                    t["analysis_test"].format(test=test["label"], stat=stat, p=_p_text(test.get("p_value"), f))
+                )
+                run_.font.size = Pt(9)
+                run_.font.color.rgb = MUTED
+            for note in res.get("notes") or []:
+                doc.add_paragraph(note).runs[0].font.size = Pt(9)
+        if parts["charts"]:
+            for i, b64 in enumerate(res.get("charts") or []):
+                png = workdir / f"an_{a['id']}_{i}.png"
+                png.write_bytes(base64.b64decode(b64))
+                doc.add_picture(str(png), width=Cm(15))
+        if parts["script"] and res.get("script"):
+            _code(doc, res["script"])
+
+
+def _p_text(p: float | None, f: Fmt) -> str:
+    if p is None:
+        return "p " + f.none
+    text = free_analyses.cell(p, "p", f)
+    return f"p {text}" if text.startswith("<") else f"p = {text}"
+
+
+def _code(doc: Any, code: str) -> None:
+    para = doc.add_paragraph()
+    r = para.add_run(code[:8000])
+    r.font.name = "Consolas"
+    r.font.size = Pt(8)
 
 
 def f_date(lang: str, iso: str | None = None) -> str:

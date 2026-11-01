@@ -75,9 +75,11 @@ if (length(.sme_design$weights) || length(.sme_design$strata) || length(.sme_des
   f <- function(x) if (length(x)) stats::as.formula(paste0("~`", x, "`")) else NULL
   d <- .sme_env$data
   if (length(.sme_design$weights)) d <- d[!is.na(d[[.sme_design$weights]]), , drop = FALSE]
+  if (length(.sme_design$strata)) d$.strate <- interaction(d[, .sme_design$strata, drop = FALSE], drop = TRUE)
   .sme_env$plan <- survey::svydesign(
     ids = if (length(.sme_design$cluster)) f(.sme_design$cluster) else ~1,
-    strata = f(.sme_design$strata), weights = f(.sme_design$weights), data = d, nest = TRUE
+    strata = if (length(.sme_design$strata)) ~.strate else NULL, weights = f(.sme_design$weights),
+    data = d, nest = TRUE
   )
 }
 grDevices::png(file.path(.sme_dir, "plot%02d.png"), width = 1600, height = 1000, res = 200)
