@@ -14,15 +14,33 @@ Pour passer d'une version à la suivante, il n'est pas nécessaire de désinstal
 
 *Figure 3. L'écran d'accueil, avec la liste « Mes projets ».*
 
-L'accueil propose trois façons de commencer :
+L'accueil propose deux blocs et deux liens :
 
-| Bloc | Action | Ce qui se passe |
+| Élément | Action | Ce qui se passe |
 |---|---|---|
-| **Nouveau projet** | « Créer un projet », saisir un nom, puis « Choisir l'emplacement » | Un fichier `.sme` vide est créé à l'endroit choisi et le projet s'ouvre sur le cadre de résultats |
+| **Nouveau projet** | « Créer un projet », saisir un nom, choisir le modèle de cadre de résultats, puis « Choisir l'emplacement » | Un fichier `.sme` vide est créé à l'endroit choisi et le projet s'ouvre sur le cadre de résultats |
 | **Ouvrir un projet** | « Ouvrir un fichier » | Ouvre un fichier `.sme` existant, par exemple reçu d'un collègue |
-| **Essayer avec des données réelles** | « Ouvrir l'exemple » | Crée un projet complet à partir de deux enquêtes publiques (REACH, Irak, 2019 et 2020) : cadre, trois indicateurs, données, nettoyage. Idéal pour découvrir l'application |
+| Lien **« Découvrir avec un projet d'exemple »** | Choisir l'emplacement du fichier | Crée un projet complet à partir de deux enquêtes publiques (REACH, Irak, 2019 et 2020) : cadre, trois indicateurs d'enquête, un indicateur de suivi de routine, données, nettoyage. Idéal pour découvrir l'application |
+| Lien **« Calculer une taille d'échantillon »** | Un clic | Ouvre le calculateur sans ouvrir de projet (voir [Outils](outils.md)) |
 
-Le lien **« Calculer une taille d'échantillon »** ouvre le calculateur sans ouvrir de projet (voir [Outils](outils.md)).
+### Créer un projet
+
+![Création d'un projet](../img/04-nouveau-projet.png)
+
+*Figure 4. Le choix du modèle de cadre de résultats à la création d'un projet.*
+
+Le panneau demande le nom du projet et le **modèle de cadre de résultats**, c'est-à-dire la chaîne de niveaux attendue par le bailleur :
+
+| Modèle | Niveaux |
+|---|---|
+| **Standard** | Impact, Effet, Extrant, Activité |
+| **Union européenne (cadre logique)** | Objectif global, Objectif spécifique, Produit, Activité |
+| **USAID (Results Framework)** | But, Objectif de développement, Résultat intermédiaire, Sous-résultat intermédiaire |
+| **Nations unies (gestion axée sur les résultats)** | Impact, Effet, Produit, Activité |
+| **Banque mondiale** | Objectif de développement du projet, Résultat intermédiaire |
+| **Personnalisé** | De 2 à 4 niveaux nommés en français et en anglais, en précisant ceux qui portent des indicateurs |
+
+Le modèle peut être changé plus tard depuis l'écran Cadre de résultats (voir [Cadre de résultats](cadre.md)).
 
 Les boutons qui ont besoin des moteurs de calcul restent grisés pendant leur démarrage, qui prend quelques secondes après l'ouverture de l'application. L'indicateur en bas à gauche passe alors à **« Moteurs prêts »**.
 
@@ -32,7 +50,7 @@ La liste **Mes projets** rassemble les projets créés ou ouverts sur cet ordina
 
 ![Liste Mes projets](../img/80-mes-projets.png)
 
-*Figure 4. Un projet dans la liste, avec l'état de ses indicateurs.*
+*Figure 5. Un projet dans la liste, avec l'état de ses indicateurs.*
 
 Pour chaque projet, la ligne indique :
 

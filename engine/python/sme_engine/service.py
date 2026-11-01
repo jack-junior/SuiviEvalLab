@@ -15,7 +15,20 @@ from typing import Any
 
 import polars as pl
 
-from . import cleaning, datasets, indicators, merge, quality, stattests, xlsform
+from . import (
+    __version__,
+    cleaning,
+    cleaning_more,
+    datasets,
+    frameworks,
+    indicators,
+    merge,
+    quality,
+    routine,
+    rscript,
+    stattests,
+    xlsform,
+)
 from .project import Project, Workspace, _err, _text
 from .r_bridge import RBridge
 from .rpc import INVALID_PARAMS, RpcError, Server
@@ -29,7 +42,7 @@ class Service:
         self.bridge = bridge
         self._raw: dict[str, pl.DataFrame] = {}
         self._clean: dict[str, tuple[str, pl.DataFrame, list[dict[str, Any]]]] = {}
-        self._merged: dict[str, tuple[str, pl.DataFrame, dict[str, int]]] = {}
+        self._merged: dict[str, tuple[str, pl.DataFrame, dict[str, Any]]] = {}
         self._results: dict[str, Any] = {}
 
     # ----- state ------------------------------------------------------------------
@@ -57,8 +70,15 @@ class Service:
             by_id = {e["id"]: e for e in effects}
             for r in rules:
                 r["effect"] = by_id.get(r["id"])
-            extra = {"merge": {**ds["merge"], "stats": self.merged(ds)[2]}} if ds.get("merge") else {}
-            ds_list.append({**ds, **extra, "rules": rules, "clean_rows": cleaned.height})
+                if r["kind"] in cleaning_more.KINDS:
+                    r["description"] = {lang: cleaning_more.describe(r, lang) for lang in ("fr", "en")}
+            extra: dict[str, Any] = {}
+            if ds.get("merge"):
+                extra["merge"] = {**ds["merge"], "stats": self.merged(ds)[2]}
+            if ds.get("stack"):
+                extra["stack"] = {**ds["stack"], "stats": self.merged(ds)[2]}
+            derived = self.derived_columns(ds, rules, cleaned)
+            ds_list.append({**ds, **extra, "rules": rules, "clean_rows": cleaned.height, "derived_columns": derived})
         return {
             "project": p.info(),
             "framework": p.framework(),
@@ -79,14 +99,24 @@ class Service:
 
     def raw(self, dataset_id: str) -> pl.DataFrame:
         spec = self.dataset_spec(dataset_id)
-        if spec.get("merge"):
+        if spec.get("merge") or spec.get("stack"):
             return self.merged(spec)[1]
         if dataset_id not in self._raw:
             self._raw[dataset_id] = datasets.from_parquet(self.project.blob("dataset", "raw", dataset_id))
         return self._raw[dataset_id]
 
-    def merged(self, spec: dict[str, Any]) -> tuple[str, pl.DataFrame, dict[str, int]]:
-        """Rows of a merged dataset, joined from the cleaned data of its sources. Cached."""
+    def merged(self, spec: dict[str, Any]) -> tuple[str, pl.DataFrame, dict[str, Any]]:
+        """Rows of a merged or stacked dataset, built from the cleaned data of its sources. Cached."""
+        if spec.get("stack"):
+            st = spec["stack"]
+            parts = [(self.dataset_spec(i)["name"], self.cleaned(i)) for i in st["sources"]]
+            signature = hashlib.sha256(json.dumps([[p[1][0] for p in parts], st], sort_keys=True).encode()).hexdigest()
+            cached = self._merged.get(spec["id"])
+            if cached and cached[0] == signature:
+                return cached
+            df, stats = merge.stack([(name, c[1]) for name, c in parts], st["source_column"])
+            self._merged[spec["id"]] = (signature, df, stats)
+            return self._merged[spec["id"]]
         m = spec["merge"]
         lsig, left, _ = self.cleaned(m["left"])
         rsig, right, _ = self.cleaned(m["right"])
@@ -102,7 +132,7 @@ class Service:
         """Raw data with missing codes as nulls, then the enabled rules in order. Cached."""
         spec = self.dataset_spec(dataset_id)
         rules = self.project.records("cleaning_rule", dataset_id)
-        source = self.merged(spec)[0] if spec.get("merge") else None
+        source = self.merged(spec)[0] if spec.get("merge") or spec.get("stack") else None
         signature = hashlib.sha256(
             json.dumps([spec["na_values"], rules, source], sort_keys=True, ensure_ascii=False).encode()
         ).hexdigest()
@@ -113,6 +143,23 @@ class Service:
         df, effects = cleaning.apply(df, rules)
         self._clean[dataset_id] = (signature, df, effects)
         return self._clean[dataset_id]
+
+    def column_names(self, dataset_id: Any, skip_rule: Any = None) -> list[str]:
+        """Columns of the file plus those its cleaning rules create, in order."""
+        spec = self.dataset_spec(dataset_id)
+        names = [c["name"] for c in spec["columns"]]
+        for r in self.project.records("cleaning_rule", spec["id"]):
+            if r["id"] != skip_rule:
+                names += [c for c in cleaning.new_columns(r) if c not in names]
+        return names
+
+    def derived_columns(self, spec: dict[str, Any], rules: list[dict[str, Any]], df: pl.DataFrame) -> list[Any]:
+        """Description of the columns created by the cleaning rules, as present in the cleaned table."""
+        raw = {c["name"] for c in spec["columns"]}
+        new: list[str] = []
+        for r in rules:
+            new += [c for c in cleaning.new_columns(r) if c not in raw and c not in new and c in df.columns]
+        return datasets.describe_columns(df.select(new), []) if new else []
 
     def import_dataset(self, params: dict[str, Any]) -> dict[str, Any]:
         path = Path(_text(params, "path", max_len=4000))
@@ -176,7 +223,7 @@ class Service:
         """Labels typed by the user for one column and its values, in one language."""
         spec = self.dataset_spec(params.get("id"))
         column = params.get("column")
-        if column not in [c["name"] for c in spec["columns"]]:
+        if column not in self.column_names(spec["id"]):
             raise _err(f"Unknown column: {column}", "column_not_found")
         lang = params.get("lang") if params.get("lang") in ("fr", "en") else "default"
         labels = spec.setdefault("labels", {"columns": {}, "values": {}})
@@ -199,6 +246,28 @@ class Service:
         self.project.update_record("dataset", spec["id"], spec)
         return self.snapshot()
 
+    def export_r(self, params: dict[str, Any]) -> dict[str, Any]:
+        """The cleaning journal as an R script, with the raw data as CSV next to it."""
+        spec = self.dataset_spec(params.get("id"))
+        lang = params.get("lang") if params.get("lang") in ("fr", "en") else "fr"
+        path = Path(_text(params, "path", max_len=4000))
+        if path.suffix.lower() != ".r":
+            path = path.with_suffix(".R")
+        raw_path = path.with_name(path.stem + ("_brut.csv" if lang == "fr" else "_raw.csv"))
+        self.raw(spec["id"]).write_csv(raw_path, include_bom=True, null_value="")
+        rules = self.project.records("cleaning_rule", spec["id"])
+        code = rscript.journal(
+            spec["name"],
+            raw_path.name,
+            spec["na_values"],
+            rules,
+            lang,
+            __version__,
+            derived=bool(spec.get("merge") or spec.get("stack")),
+        )
+        path.write_text(code, encoding="utf-8")
+        return {"path": str(path), "data": str(raw_path), "rules": len(rules)}
+
     def export_dataset(self, params: dict[str, Any]) -> dict[str, Any]:
         """Write the cleaned data as CSV (UTF-8 with BOM, so Excel reads accents), for R or Excel."""
         _, df, _ = self.cleaned(params.get("id"))
@@ -212,10 +281,11 @@ class Service:
         """A new dataset joining two others by a key (individuals to their household)."""
         left = self.dataset_spec(params.get("left"))
         right = self.dataset_spec(params.get("right"))
-        m = merge.validate(params, left, right)
+        cols = {d["id"]: [{"name": n} for n in self.column_names(d["id"])] for d in (left, right)}
+        m = merge.validate(params, {**left, "columns": cols[left["id"]]}, {**right, "columns": cols[right["id"]]})
         df, stats = merge.join(self.cleaned(left["id"])[1], self.cleaned(right["id"])[1], m)
         names = merge.renamed(
-            [c["name"] for c in left["columns"]], [c["name"] for c in right["columns"]], m["right_key"]
+            [c["name"] for c in cols[left["id"]]], [c["name"] for c in cols[right["id"]]], m["right_key"]
         )
         if params.get("dry_run"):
             clashes = [n for c, n in names.items() if n != c]
@@ -251,11 +321,51 @@ class Service:
         new_id = self.project.insert_record("dataset", spec, raw=b"")
         return {**self.snapshot(), "created": new_id}
 
+    def stack_datasets(self, params: dict[str, Any]) -> dict[str, Any]:
+        """A new dataset putting the rows of files of the same structure one under the other
+        (one file per region, per month or per enumerator team)."""
+        ids = params.get("sources")
+        if not isinstance(ids, list) or not 2 <= len(ids) <= 50 or len(set(ids)) != len(ids):
+            raise _err("Choose 2 to 50 different files", "stack_sources")
+        specs = [self.dataset_spec(i) for i in ids]
+        st = {"sources": [s["id"] for s in specs], "source_column": "source_file"}
+        frames = [(s["name"], self.cleaned(s["id"])[1]) for s in specs]
+        df, stats = merge.stack(frames, st["source_column"])
+        if params.get("dry_run"):
+            return {"stats": stats}
+        first = specs[0]
+        labels: dict[str, Any] = {"columns": {}, "values": {}}
+        for s in reversed(specs):
+            lab = s.get("labels") or {}
+            labels["columns"].update(lab.get("columns", {}))
+            labels["values"].update(lab.get("values", {}))
+        spec = {
+            "name": _text(params, "name", max_len=200),
+            "round": params.get("round") or first["round"],
+            "source_name": " + ".join(s["name"] for s in specs),
+            "sheet": None,
+            "imported_at": datasets.now(),
+            "rows": df.height,
+            "na_values": [],
+            "id_column": first.get("id_column"),
+            "design": datasets.validate_design(first.get("design") or {}, df.columns),
+            "attribution": "; ".join(sorted({s.get("attribution") or "" for s in specs} - {""})),
+            "labels": labels,
+            "columns": datasets.describe_columns(df, []),
+            "stack": {**st, "stats": stats},
+        }
+        if spec["round"] not in datasets.ROUNDS:
+            raise _err("Unknown round", "invalid_round")
+        new_id = self.project.insert_record("dataset", spec, raw=b"")
+        return {**self.snapshot(), "created": new_id}
+
     def delete_dataset(self, dataset_id: Any) -> dict[str, Any]:
         users = [
             d["name"]
             for d in self.project.records("dataset")
-            if (d.get("merge") or {}).get("left") == dataset_id or (d.get("merge") or {}).get("right") == dataset_id
+            if (d.get("merge") or {}).get("left") == dataset_id
+            or (d.get("merge") or {}).get("right") == dataset_id
+            or dataset_id in (d.get("stack") or {}).get("sources", [])
         ]
         if users:
             raise _err(f"This file is used by the merged file {users[0]}: delete that one first", "dataset_in_use")
@@ -304,16 +414,15 @@ class Service:
     def add_rule(self, params: dict[str, Any]) -> dict[str, Any]:
         dataset_id = params.get("dataset_id")
         spec = self.dataset_spec(dataset_id)
-        rule = cleaning.validate(params.get("rule") or {}, [c["name"] for c in spec["columns"]])
+        rule = cleaning.validate(params.get("rule") or {}, self.column_names(spec["id"]))
         self.project.insert_record("cleaning_rule", rule, scope=dataset_id)
         self._results.clear()
         return self.snapshot()
 
     def update_rule(self, params: dict[str, Any]) -> dict[str, Any]:
         current = self.project.record("cleaning_rule", params.get("id"))
-        spec = self.dataset_spec(current["dataset_id"])
         merged = {**current, **(params.get("rule") or {})}
-        rule = cleaning.validate(merged, [c["name"] for c in spec["columns"]])
+        rule = cleaning.validate(merged, self.column_names(current["dataset_id"], skip_rule=current["id"]))
         self.project.update_record("cleaning_rule", current["id"], rule)
         self._results.clear()
         return self.snapshot()
@@ -329,8 +438,8 @@ class Service:
         else:
             node_id = params.get("node_id")
             node = self.project._node(node_id)
-            if node["level"] == "activity":
-                raise _err("Indicators belong to results, not activities", "indicator_on_activity")
+            if not frameworks.carries_indicators(self.project.model(), node["level"]):
+                raise _err("This level of the framework does not carry indicators", "indicator_on_activity")
             created = self.project.insert_record("indicator", spec, scope=node_id)
         self._results.clear()
         return {**self.snapshot(), "saved": created}
@@ -509,8 +618,32 @@ class Service:
         w = df[col].cast(pl.Float64, strict=False).drop_nulls()
         return float(w.mean()) if w.len() and w.mean() and w.mean() > 0 else None  # type: ignore[operator]
 
+    def routine_values(self, indicator_id: str) -> list[dict[str, Any]]:
+        recs = self.project.records("routine_value", indicator_id)
+        return [{k: v for k, v in r.items() if k not in ("id", "indicator_id")} for r in recs]
+
+    def save_routine(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Replace all the period values of a routine indicator (the grid is saved as a whole)."""
+        ind = self.project.record("indicator", params.get("indicator_id"))
+        if ind.get("source_type") != "routine":
+            raise _err("This indicator is computed from survey data", "routine_not_routine")
+        rows = routine.validate_values(params.get("values"), ind.get("categories") or [], ind["unit"] == "percent")
+        with self.project.conn:
+            self.project.conn.execute("DELETE FROM routine_value WHERE indicator_id = ?", (ind["id"],))
+        for row in rows:
+            self.project.insert_record("routine_value", row, scope=ind["id"])
+        self._results.clear()
+        return {**self.snapshot(), "analysis": self.indicator_analysis(ind["id"]), "saved": len(rows)}
+
     def indicator_analysis(self, indicator_id: Any) -> dict[str, Any]:
         ind = self.project.record("indicator", indicator_id)
+        if ind.get("source_type") == "routine":
+            return {
+                "indicator": ind,
+                "rounds": [],
+                "comparison": None,
+                **routine.analyse(ind, self.routine_values(ind["id"])),
+            }
         rounds = []
         for ds in self._ordered_datasets():
             est = self.estimate(ind, ds)
@@ -569,6 +702,11 @@ class Service:
         rows = []
         ordered = self._ordered_datasets()
         for ind in self.ordered_indicators():
+            if ind.get("source_type") == "routine":
+                an = routine.analyse(ind, self.routine_values(ind["id"]))
+                keys = ("baseline", "baseline_source", "current", "current_round", "target", "achievement", "status")
+                rows.append({"indicator_id": ind["id"], "node_id": ind["node_id"], **{k: an[k] for k in keys}})
+                continue
             usable = []
             for ds in ordered:
                 est = self.estimate(ind, ds, by=False)
@@ -590,7 +728,8 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
     def create(params: dict[str, Any]) -> dict[str, Any]:
         path = _text(params, "path", max_len=4000)
         name = _text(params, "name", max_len=200)
-        opened(Project.create(path, name))
+        model = frameworks.validate(params["model"]) if params.get("model") else None
+        opened(Project.create(path, name, model))
         if params.get("example") is True:
             from .example import fill_example
 
@@ -691,12 +830,73 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
         parent_id = params.get("parent_id")
         if parent_id is not None and not isinstance(parent_id, str):
             raise _err("parent_id must be a string or null", "invalid_params")
-        created = svc.project.add_node(parent_id, _text(params, "title"), _text(params, "description", required=False))
+        created = svc.project.add_node(
+            parent_id,
+            _text(params, "title"),
+            _text(params, "description", required=False),
+            _text(params, "assumptions", required=False),
+        )
         return {**svc.snapshot(), "created": created["id"]}
 
     @server.method("framework.update")
     def fw_update(params: dict[str, Any]) -> dict[str, Any]:
-        svc.project.update_node(params.get("id"), _text(params, "title"), _text(params, "description", required=False))
+        svc.project.update_node(
+            params.get("id"),
+            _text(params, "title"),
+            _text(params, "description", required=False),
+            _text(params, "assumptions", required=False) if "assumptions" in params else None,
+        )
+        return svc.snapshot()
+
+    @server.method("routine.get")
+    def routine_get(params: dict[str, Any]) -> dict[str, Any]:
+        return svc.indicator_analysis(params.get("indicator_id"))
+
+    @server.method("routine.save")
+    def routine_save(params: dict[str, Any]) -> dict[str, Any]:
+        return svc.save_routine(params)
+
+    @server.method("routine.parse")
+    def routine_parse(params: dict[str, Any]) -> dict[str, Any]:
+        """Rows pasted from Excel, read but not saved: the grid shows them for checking first."""
+        ind = svc.project.record("indicator", params.get("indicator_id"))
+        text = params.get("text")
+        if not isinstance(text, str) or len(text) > 200_000:
+            raise _err("Nothing to read", "routine_invalid")
+        cats = ind.get("categories") or []
+        rows = routine.validate_values(routine.parse_paste(text, cats), cats, ind["unit"] == "percent")
+        return {"values": rows}
+
+    @server.method("framework.models")
+    def fw_models(_: dict[str, Any]) -> dict[str, Any]:
+        """The models offered when creating a project (no project needed)."""
+        return {"models": [{"id": k, "levels": v} for k, v in frameworks.MODELS.items()], "default": frameworks.DEFAULT}
+
+    @server.method("framework.set_model")
+    def fw_set_model(params: dict[str, Any]) -> dict[str, Any]:
+        """Change the framework model. Refused if existing nodes or indicators would not fit."""
+        model = frameworks.validate(params.get("model"))
+        p = svc.project
+        depth = len(model["levels"])
+        nodes = p.framework()
+        too_deep = [n for n in nodes if frameworks.level_index(n["level"]) >= depth]
+        if too_deep:
+            raise _err(
+                f"{len(too_deep)} elements of the framework are below the last level of this model",
+                "framework_model_too_shallow",
+            )
+        with_ind = {i["node_id"] for i in p.records("indicator")}
+        blocked = [
+            n
+            for n in nodes
+            if n["id"] in with_ind and not model["levels"][frameworks.level_index(n["level"])]["indicators"]
+        ]
+        if blocked:
+            raise _err(
+                f"Indicators are attached to {len(blocked)} elements of a level without indicators in this model",
+                "framework_model_indicators",
+            )
+        p.set_meta("framework_model", json.dumps(model, ensure_ascii=False))
         return svc.snapshot()
 
     @server.method("framework.delete")
@@ -750,6 +950,14 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
     @server.method("dataset.export")
     def ds_export(params: dict[str, Any]) -> dict[str, Any]:
         return svc.export_dataset(params)
+
+    @server.method("cleaning.export_r")
+    def cl_export_r(params: dict[str, Any]) -> dict[str, Any]:
+        return svc.export_r(params)
+
+    @server.method("dataset.stack")
+    def ds_stack(params: dict[str, Any]) -> dict[str, Any]:
+        return svc.stack_datasets(params)
 
     @server.method("dataset.merge")
     def ds_merge(params: dict[str, Any]) -> dict[str, Any]:

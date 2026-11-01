@@ -100,3 +100,27 @@ def labels(left: dict[str, Any], right: dict[str, Any], names: dict[str, str]) -
         if src in rl.get("values", {}):
             values[dst] = rl["values"][src]
     return {"columns": columns, "values": values}
+
+
+def stack(frames: list[tuple[str, pl.DataFrame]], source_column: str) -> tuple[pl.DataFrame, dict[str, Any]]:
+    """Rows of several files one under the other, columns matched by name. A column missing
+    from a file is empty for its rows. The first column tells which file each row comes from."""
+    names = [n for n, _ in frames]
+    all_columns: list[str] = []
+    for _, df in frames:
+        all_columns += [c for c in df.columns if c not in all_columns]
+    col = source_column
+    while col in all_columns:
+        col += SUFFIX
+    parts = [df.with_columns(pl.all().cast(pl.Utf8)).with_columns(pl.lit(name).alias(col)) for name, df in frames]
+    out = pl.concat(parts, how="diagonal").select([col, *all_columns])
+    missing = {n: [c for c in all_columns if c not in df.columns] for n, df in frames}
+    stats = {
+        "files": len(frames),
+        "rows": out.height,
+        "rows_by_file": {n: df.height for n, df in frames},
+        "columns": len(all_columns),
+        "missing_columns": {n: m for n, m in missing.items() if m},
+        "names": names,
+    }
+    return out, stats

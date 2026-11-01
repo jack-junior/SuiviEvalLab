@@ -29,6 +29,11 @@ TEXT = {
         "i2d": "Part des ménages déclarant une école secondaire à moins de 2 km de leur logement, parmi les ménages ayant répondu.",
         "i3": "Ménages ayant retiré des enfants de l'école pour faire face au manque de ressources",
         "i3d": "Part des ménages ayant retiré des enfants de l'école au cours des 30 derniers jours comme stratégie d'adaptation, parmi les ménages concernés.",
+        "i4": "Salles de classe réhabilitées et remises en service",
+        "i4d": "Nombre cumulé de salles de classe réhabilitées et réceptionnées. Valeurs fictives, à titre d'illustration du suivi de routine.",
+        "i4s": "Procès-verbaux de réception des travaux",
+        "q": ["2019-T4", "2020-T1", "2020-T2", "2020-T3"],
+        "q_note": "Chantiers suspendus pendant le confinement",
         "source": "Enquête ménages MCNA (REACH)",
         "method": "Entretien en face à face avec un membre adulte du ménage",
         "responsible": "Chargé de suivi-évaluation",
@@ -55,6 +60,11 @@ TEXT = {
         "i2d": "Share of households reporting a secondary school within 2 km of their home, among households who answered.",
         "i3": "Households that withdrew children from school to cope with a lack of resources",
         "i3d": "Share of households that withdrew children from school in the last 30 days as a coping strategy, among households concerned.",
+        "i4": "Classrooms rehabilitated and back in use",
+        "i4d": "Cumulative number of classrooms rehabilitated and handed over. Fictitious values, to illustrate routine monitoring.",
+        "i4s": "Handover reports of the works",
+        "q": ["2019-Q4", "2020-Q1", "2020-Q2", "2020-Q3"],
+        "q_note": "Works suspended during the lockdown",
         "source": "MCNA household survey (REACH)",
         "method": "Face-to-face interview with an adult household member",
         "responsible": "M&E officer",
@@ -220,6 +230,36 @@ def fill_example(svc: Any, lang: str = "fr") -> None:
                 "success_values": ["yes"],
                 "target": 0.02,
             },
+        }
+    )
+
+    # A routine monitoring indicator: values from the works reports, quarter by quarter.
+    routine_id = svc.save_indicator(
+        {
+            "node_id": p11,
+            "indicator": {
+                "name": t["i4"],
+                "definition": t["i4d"],
+                "unit": "count",
+                "source_type": "routine",
+                "aggregation": "sum",
+                "direction": "increase",
+                "target": 40,
+                "source": t["i4s"],
+                "frequency": "quarterly",
+                "responsible": t["responsible"],
+            },
+        }
+    )["saved"]
+    ends = ["2019-12-31", "2020-03-31", "2020-06-30", "2020-09-30"]
+    figures = [(5, 4, ""), (10, 9, ""), (10, 6, t["q_note"]), (10, None, "")]
+    svc.save_routine(
+        {
+            "indicator_id": routine_id,
+            "values": [
+                {"period": q, "end": e, "planned": pl, "achieved": ac, "note": n}
+                for q, e, (pl, ac, n) in zip(t["q"], ends, figures, strict=True)
+            ],
         }
     )
 

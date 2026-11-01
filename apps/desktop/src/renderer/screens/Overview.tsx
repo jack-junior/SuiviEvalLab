@@ -5,9 +5,11 @@ import { OverviewRow, saveSummary } from "../api";
 import { useI18n } from "../i18n";
 import { useProject, View } from "../state";
 import { Empty, Icon, Notice, Progress, StatusTag, useValueFormat } from "../ui";
+import { useLevels } from "../frameworks";
 
 export function Overview() {
   const { t, tn } = useI18n();
+  const levels = useLevels();
   const { snap, run, go, error } = useProject();
   const fmt = useValueFormat();
   const [answer, setAnswer] = useState<{ stamp?: string; rows: OverviewRow[] } | null>(null);
@@ -164,7 +166,7 @@ export function Overview() {
                     <tr key={ind.id} className="clickable" onClick={() => go("analysis", ind.id)}>
                       <td>
                         <div className="cell-title">{ind.name}</div>
-                        <div className="cell-sub">{node ? `${t(`levels.${node.level}`)} ${node.code}`.trim() : ""}</div>
+                        <div className="cell-sub">{node ? `${levels.name(node.level)} ${node.code}`.trim() : ""}</div>
                       </td>
                       <td className="num">{r ? fmt(r.baseline, ind.unit) : "…"}</td>
                       <td className="num">{r ? fmt(r.current, ind.unit) : "…"}</td>

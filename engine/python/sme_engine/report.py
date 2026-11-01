@@ -17,7 +17,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
-from . import __version__, stattests, xlsform
+from . import __version__, cleaning_more, frameworks, routine, stattests, xlsform
 
 INK = RGBColor(0x1F, 0x1E, 0x1C)
 ACTION = RGBColor(0x1D, 0x4F, 0x91)
@@ -79,6 +79,7 @@ T = {
         "col_level": "Niveau",
         "col_title": "Intitulé",
         "col_indicators": "Indicateurs",
+        "col_assumptions": "Hypothèses et risques",
         "annex_data": "Annexe A. Données et nettoyage",
         "ds_line": "Fichier {file} ({sheet}), importé le {date} : {rows} lignes, {clean} après nettoyage.",
         "design": "Plan d'enquête : {text}.",
@@ -99,6 +100,8 @@ T = {
         "missing": "valeur manquante",
         "effect_rows": "{n} lignes retirées",
         "effect_cells": "{n} valeurs modifiées",
+        "effect_created": "{n} valeurs calculées",
+        "effect_flagged": "{n} lignes incohérentes",
         "effect_none": "aucun changement",
         "disabled": "désactivée",
         "annex_methods": "Annexe B. Méthodes statistiques",
@@ -178,6 +181,7 @@ T = {
         "col_level": "Level",
         "col_title": "Title",
         "col_indicators": "Indicators",
+        "col_assumptions": "Assumptions and risks",
         "annex_data": "Appendix A. Data and cleaning",
         "ds_line": "File {file} ({sheet}), imported on {date}: {rows} rows, {clean} after cleaning.",
         "design": "Survey design: {text}.",
@@ -198,6 +202,8 @@ T = {
         "missing": "missing value",
         "effect_rows": "{n} rows removed",
         "effect_cells": "{n} values changed",
+        "effect_created": "{n} values computed",
+        "effect_flagged": "{n} inconsistent rows",
         "effect_none": "no change",
         "disabled": "disabled",
         "annex_methods": "Appendix B. Statistical methods",
@@ -392,6 +398,8 @@ def _design_text(design: dict[str, Any], t: dict[str, Any]) -> str:
 def _rule_text(rule: dict[str, Any], t: dict[str, Any], f: Fmt) -> str:
     q = (lambda v: f"« {v} »") if f.lang == "fr" else (lambda v: f'"{v}"')
     kind = rule["kind"]
+    if kind in cleaning_more.KINDS:
+        return cleaning_more.describe(rule, f.lang)
     tpl = t["rule_text"][kind]
     if kind == "duplicates":
         return tpl.format(columns=", ".join(q(c) for c in rule["columns"]))
@@ -417,7 +425,12 @@ def _effect_text(rule: dict[str, Any], t: dict[str, Any]) -> str:
     if e.get("rows_removed"):
         parts.append(t["effect_rows"].format(n=e["rows_removed"]))
     if e.get("cells_changed"):
-        parts.append(t["effect_cells"].format(n=e["cells_changed"]))
+        key = "effect_cells"
+        if rule["kind"] in ("compute", "classes", "date"):
+            key = "effect_created"
+        elif rule["kind"] == "check":
+            key = "effect_flagged"
+        parts.append(t[key].format(n=e["cells_changed"]))
     return ", ".join(parts) or t["effect_none"]
 
 
@@ -481,6 +494,63 @@ def _narrative(ind: dict[str, Any], an: dict[str, Any], t: dict[str, Any], f: Fm
         elif an.get("achievement") is not None:
             out.append(t["target_rate"].format(target=f.value(an["target"], unit), rate=f.pct(an["achievement"], 0)))
     return out
+
+
+def _routine_section(doc: Any, svc: Any, ind: dict[str, Any], an: dict[str, Any], lang: str, f: Fmt, workdir: Path):
+    """A routine monitoring indicator: reading, chart of the values to date, table of the periods."""
+    t, rt = T[lang], routine.TEXT[lang]
+    unit = ind["unit"]
+    doc.add_paragraph(" ".join(routine.sentences(ind, an, lang, f)))
+    done = [p for p in an["periods"] if p.get("to_date") is not None]
+    if not done:
+        return
+    png = workdir / f"chart_{ind['id']}.png"
+    svc.bridge.call(
+        "chart",
+        {
+            "out": str(png),
+            "labels": [p["period"] for p in done],
+            "values": [p["to_date"] for p in done],
+            "lows": [None for _ in done],
+            "highs": [None for _ in done],
+            "target": an.get("target"),
+            "percent": unit == "percent",
+            "title": "",
+            "ylab": t["chart_ylab_percent"] if unit == "percent" else (ind.get("unit_label") or ""),
+            "target_label": t["chart_target"],
+            "decimal": "," if lang == "fr" else ".",
+        },
+    )
+    doc.add_picture(str(png), width=Cm(15))
+    cats = ind.get("categories") or []
+    header = [
+        rt["col_period"],
+        rt["col_achieved"],
+        *cats,
+        rt["col_planned"],
+        rt["col_to_date"],
+        rt["col_planned_to_date"],
+    ]
+    rows = [
+        [
+            p["period"],
+            f.value(p.get("achieved"), unit),
+            *[f.value(p.get("by", {}).get(c), unit) for c in cats],
+            f.value(p.get("planned"), unit),
+            f.value(p.get("to_date"), unit),
+            f.value(p.get("planned_to_date"), unit),
+        ]
+        for p in an["periods"]
+    ]
+    _table(doc, header, rows)
+    if ind.get("source"):
+        p = doc.add_paragraph()
+        r1 = p.add_run(t["source"])
+        r1.font.size = Pt(9)
+        r1.font.color.rgb = MUTED
+        r2 = p.add_run(ind["source"])
+        r2.font.size = Pt(9)
+        r2.font.color.rgb = MUTED
 
 
 def generate(svc: Any, path: Path, lang: str, template: bytes | None = None) -> dict[str, Any]:
@@ -569,7 +639,7 @@ def generate(svc: Any, path: Path, lang: str, template: bytes | None = None) -> 
         inds = [i for i in snap["indicators"] if i["node_id"] == node["id"]]
         if not inds:
             continue
-        label = t["levels"][node["level"]]
+        label = frameworks.name(project["framework_model"], node["level"], lang)
         _heading(
             doc,
             f"{label} {node['code']} : {node['title']}"
@@ -586,6 +656,9 @@ def generate(svc: Any, path: Path, lang: str, template: bytes | None = None) -> 
                 p = doc.add_paragraph()
                 p.add_run(t["definition"]).bold = True
                 p.add_run(ind["definition"])
+            if an.get("source") == "routine":
+                _routine_section(doc, svc, ind, an, lang, f, workdir)
+                continue
             usable = [r for r in an["rounds"] if "error_key" not in r["result"]]
             if not usable:
                 doc.add_paragraph(t["no_data"])
@@ -679,8 +752,17 @@ def generate(svc: Any, path: Path, lang: str, template: bytes | None = None) -> 
     fw_rows = []
     for node in snap["framework"]:
         names = "; ".join(i["name"] for i in snap["indicators"] if i["node_id"] == node["id"])
-        fw_rows.append([node["code"] or "", t["levels"][node["level"]], node["title"], names])
-    _table(doc, [t["col_code"], t["col_level"], t["col_title"], t["col_indicators"]], fw_rows, [1.4, 2, 7.8, 5.4])
+        fw_rows.append(
+            [node["code"] or "", frameworks.name(project["framework_model"], node["level"], lang), node["title"], names]
+        )
+    if any(n.get("assumptions") for n in snap["framework"]):
+        # Logframe column: assumptions and risks of each element.
+        for row, node in zip(fw_rows, snap["framework"], strict=True):
+            row.insert(3, node.get("assumptions") or "")
+        header = [t["col_code"], t["col_level"], t["col_title"], t["col_assumptions"], t["col_indicators"]]
+        _table(doc, header, fw_rows, [1.2, 2.2, 5.4, 4, 4])
+    else:
+        _table(doc, [t["col_code"], t["col_level"], t["col_title"], t["col_indicators"]], fw_rows, [1.4, 2, 7.8, 5.4])
 
     # Appendix A
     _heading(doc, t["annex_data"], level=1)
@@ -722,6 +804,8 @@ def generate(svc: Any, path: Path, lang: str, template: bytes | None = None) -> 
         _bullet(doc, t["methods"][key])
     for key in sorted(used_tests):
         _bullet(doc, t["tests"][key])
+    for how in sorted({a["aggregation"] for a in analyses.values() if a.get("source") == "routine"}):
+        _bullet(doc, routine.TEXT[lang]["method"].format(how=routine.TEXT[lang]["how"][how]))
     doc.add_paragraph(t["achievement_def"])
 
     attributions = [ds["attribution"] for ds in snap["datasets"] if ds.get("attribution")]

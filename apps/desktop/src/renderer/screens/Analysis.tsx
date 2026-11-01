@@ -7,11 +7,14 @@ import { useI18n } from "../i18n";
 import { useLabels } from "../labels";
 import { useProject } from "../state";
 import { Empty, Notice, ResultChart, StatusTag, useValueFormat } from "../ui";
+import { useLevels } from "../frameworks";
+import { Routine, RoutineAnalysis } from "./Routine";
 
 type Tab = "results" | "breakdown" | "method";
 
 export function Analysis() {
   const { t } = useI18n();
+  const levels = useLevels();
   const { snap, focus, go, run, error } = useProject();
   const [answer, setAnswer] = useState<{ key: string; data: IndicatorAnalysis | null } | null>(null);
   const [tab, setTab] = useState<Tab>("results");
@@ -59,7 +62,7 @@ export function Analysis() {
           .map((n) => (
             <div key={n.id} className="split-group">
               <div className="split-group-title">
-                {t(`levels.${n.level}`)} {n.code}
+                {levels.name(n.level)} {n.code}
               </div>
               {indicators
                 .filter((i) => i.node_id === n.id)
@@ -87,7 +90,11 @@ export function Analysis() {
             </div>
           )}
           {error && <Notice kind="error">{error}</Notice>}
-          <div className="tabs" role="tablist">
+          <div
+            className="tabs"
+            role="tablist"
+            style={selected?.source_type === "routine" ? { display: "none" } : undefined}
+          >
             {(["results", "breakdown", "method"] as Tab[]).map((k) => (
               <button
                 key={k}
@@ -102,7 +109,12 @@ export function Analysis() {
             ))}
           </div>
           {loading && !data && <p className="muted">{t("common.computing")}</p>}
-          {data && data.indicator.id === selected?.id && (
+          {data && data.indicator.id === selected?.id && "source" in data && (
+            <div className={loading ? "dim" : undefined}>
+              <Routine key={answer?.key} a={data as RoutineAnalysis} />
+            </div>
+          )}
+          {data && data.indicator.id === selected?.id && !("source" in data) && (
             <div className={loading ? "dim" : undefined}>
               {tab === "results" && <Results a={data} />}
               {tab === "breakdown" && <Breakdown a={data} />}

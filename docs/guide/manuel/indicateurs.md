@@ -1,12 +1,12 @@
 # Indicateurs
 
-Un indicateur dit **ce qui est mesuré** et **comment le calculer à partir des données**. Il est rattaché à un résultat du cadre (impact, effet ou extrant).
+Un indicateur dit **ce qui est mesuré** et **comment le calculer à partir des données**. Il est rattaché à un résultat du cadre, à l'un des niveaux qui portent des indicateurs dans le modèle choisi (impact, effet ou extrant avec le modèle standard).
 
 ## La liste des indicateurs
 
 ![Liste des indicateurs](../img/20-indicateurs.png)
 
-*Figure 8. Les indicateurs, groupés par résultat.*
+*Figure 10. Les indicateurs, groupés par résultat.*
 
 Les indicateurs sont regroupés sous le résultat qu'ils mesurent. Pour chacun, la liste rappelle la règle de calcul en une phrase et la cible.
 
@@ -19,7 +19,7 @@ L'ordre des indicateurs est celui de la vue d'ensemble, de l'analyse et du rappo
 
 ![Fiche d'un indicateur, haut](../img/21-indicateur-fiche.png)
 
-*Figure 9. La fiche : description, type et règle de calcul.*
+*Figure 11. La fiche : description, type et règle de calcul.*
 
 ### Description
 
@@ -30,6 +30,26 @@ L'ordre des indicateurs est celui de la vue d'ensemble, de l'analyse et du rappo
 | **Définition** | La définition précise (population, période, critères). Reprise dans le rapport et dans le plan de suivi |
 | **Type** | Pourcentage, Moyenne, Effectif ou Ratio (voir ci-dessous) |
 | **Sens souhaité** | Hausse ou Baisse : sert au statut et au taux de réalisation |
+
+### Source : enquête ou suivi de routine
+
+Le premier choix de la fiche est la **source** des valeurs :
+
+| Source | Quand l'utiliser | D'où viennent les valeurs |
+|---|---|---|
+| **Enquête** | Indicateurs d'effet et d'impact mesurés auprès d'un échantillon | Calculées à partir des jeux de données importés, avec intervalle de confiance |
+| **Suivi de routine** | Indicateurs d'extrant et d'activité tenus dans les registres, listes de présence ou rapports mensuels | Saisies période par période, ou collées depuis Excel, dans l'écran Analyse |
+
+Un indicateur de suivi de routine n'a pas de règle de calcul sur les données. La fiche demande à la place :
+
+| Champ | Usage |
+|---|---|
+| **Cumul des périodes** | Somme des périodes : le cas habituel des effectifs (personnes formées depuis le début) |
+| **Dernière période** | La valeur de la dernière période : pour les taux et les stocks (taux de fréquentation ce trimestre) |
+| **Moyenne des périodes** | La moyenne des valeurs saisies |
+| **Répartition (facultatif)** | Jusqu'à 12 catégories séparées par des virgules (Femmes, Hommes). Chaque période peut alors être saisie par catégorie ; le total se calcule s'il est laissé vide |
+
+La saisie des valeurs est décrite au chapitre [Analyse et tests](analyse.md).
 
 ### Les quatre types d'indicateurs
 
@@ -61,7 +81,7 @@ Pour une **moyenne**, choisissez une colonne numérique. Pour un **ratio**, choi
 
 ![Fiche d'un indicateur, bas](../img/22-indicateur-plan-de-suivi.png)
 
-*Figure 10. Valeurs et informations du plan de suivi.*
+*Figure 12. Valeurs et informations du plan de suivi.*
 
 | Champ | Usage |
 |---|---|

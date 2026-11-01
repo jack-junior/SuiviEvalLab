@@ -14,7 +14,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from . import __version__, stattests
+from . import __version__, frameworks, routine, stattests
 from .report import Fmt, T, _design_text, _narrative, f_date
 
 MIN_CELL = 5
@@ -108,7 +108,9 @@ def _chart(rounds: list[dict[str, Any]], unit: str, target: float | None, t: dic
             )
         label_y = y(hi if hi is not None else v) - 7
         parts.append(f'<text x="{cx:.1f}" y="{max(label_y, 30):.1f}" class="val">{e(f.value(v, unit))}</text>')
-        parts.append(f'<text x="{cx:.1f}" y="{h - 12}" class="lab">{e(t["rounds"][r["round"]])}</text>')
+        parts.append(
+            f'<text x="{cx:.1f}" y="{h - 12}" class="lab">{e(r.get("label") or t["rounds"][r["round"]])}</text>'
+        )
     if target is not None:
         ty = y(target)
         parts.append(f'<line x1="{left}" y1="{ty:.1f}" x2="{w - left}" y2="{ty:.1f}" class="target"/>')
@@ -173,8 +175,17 @@ def _indicator(ind: dict[str, Any], an: dict[str, Any], node: dict[str, Any], la
             (t["col_rate"], f.pct(ach, 0)),
         )
     )
-    text = " ".join(_narrative(ind, an, t, f)) if usable else t["no_data"]
-    chart = _chart(usable, unit, an.get("target"), t, f) if usable else ""
+    if an.get("source") == "routine":
+        text = " ".join(routine.sentences(ind, an, lang, f))
+        points = [
+            {"label": p["period"], "result": {"estimate": p["to_date"]}}
+            for p in an["periods"]
+            if p.get("to_date") is not None
+        ]
+        chart = _chart(points, unit, an.get("target"), t, f) if points else ""
+    else:
+        text = " ".join(_narrative(ind, an, t, f)) if usable else t["no_data"]
+        chart = _chart(usable, unit, an.get("target"), t, f) if usable else ""
     definition = (
         f'<p class="muted small"><strong>{e(t["definition"])}</strong>{e(ind["definition"])}</p>'
         if ind.get("definition")
@@ -214,7 +225,8 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
         if not inds:
             continue
         sep = " : " if lang == "fr" else ": "
-        head = f"{t['levels'][node['level']]} {node['code']}".strip() + sep + node["title"]
+        level = frameworks.name(project["framework_model"], node["level"], lang)
+        head = f"{level} {node['code']}".strip() + sep + node["title"]
         cards = "".join(_indicator(i, analyses[i["id"]], node, lang, f, label) for i in inds)
         sections.append(f'<section class="node"><h2>{e(head)}</h2><div class="grid">{cards}</div></section>')
 

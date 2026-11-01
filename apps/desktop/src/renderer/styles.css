@@ -1280,6 +1280,40 @@ button.cell-sub {
   font-size: 12.5px;
   color: var(--encre-2);
 }
+.kind-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.kind-group-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--encre-2);
+}
+.condition-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.1fr) minmax(0, 1fr) 32px;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.class-row {
+  display: grid;
+  grid-template-columns: 90px 90px minmax(0, 1fr) 32px;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.class-row.head {
+  margin-bottom: 2px;
+}
+.small-tag {
+  margin-left: 8px;
+  cursor: default;
+  font-family: inherit;
+}
 
 /* ----- analysis ----- */
 .split {
@@ -1457,7 +1491,7 @@ button.cell-sub {
 
 .choice-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
 }
 .choice-row .choice p {
@@ -1787,4 +1821,63 @@ button.cell-sub {
   border-left: 3px solid var(--action);
   border-radius: 8px;
   background: var(--action-teinte);
+}
+
+.home-links {
+  line-height: 2;
+}
+.model-list {
+  display: grid;
+  gap: 6px;
+}
+.model-option {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--ligne);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--encre);
+  cursor: pointer;
+}
+.model-option[aria-checked="true"] {
+  border-color: var(--action);
+  background: var(--action-teinte);
+}
+.model-name {
+  font-weight: 600;
+}
+.model-chain {
+  font-size: 12.5px;
+  color: var(--encre-2);
+}
+.custom-levels {
+  display: grid;
+  gap: 8px;
+}
+.custom-level {
+  display: grid;
+  grid-template-columns: 60px 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.tree-assumptions {
+  display: block;
+  font-size: 12.5px;
+  color: var(--encre-2);
+  margin-top: 2px;
+}
+
+.routine-grid input.input {
+  min-width: 70px;
+  padding: 4px 6px;
+}
+.routine-grid input.num {
+  text-align: right;
+}
+.paste-box textarea.mono {
+  font-family: var(--code);
+  font-size: 12.5px;
 }

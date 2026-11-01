@@ -6,7 +6,7 @@ Le calculateur aide à préparer une enquête : combien de ménages ou de perso
 
 ![Taille d'échantillon](../img/02-taille-echantillon.png)
 
-*Figure 29. Taille d'échantillon pour estimer une part avec une marge de 5 points.*
+*Figure 36. Taille d'échantillon pour estimer une part avec une marge de 5 points.*
 
 ### Objectifs
 
@@ -33,7 +33,7 @@ Comme il n'y a pas de bouton Enregistrer, une suppression par erreur est enregis
 
 ![Copies automatiques](../img/81-copies.png)
 
-*Figure 30. Les copies d'un projet, accessibles depuis Mes projets.*
+*Figure 37. Les copies d'un projet, accessibles depuis Mes projets.*
 
 Pour restaurer : à l'accueil, icône **horloge** du projet, choisir la copie, **« Restaurer »**, confirmer. L'état actuel du projet est lui-même copié avant la restauration : une restauration peut donc toujours être annulée.
 
@@ -45,7 +45,7 @@ L'écran Moteurs s'ouvre en cliquant sur **« Moteurs prêts »** en bas de la
 
 ![Écran Moteurs](../img/03-moteurs.png)
 
-*Figure 31. État des moteurs et mises à jour.*
+*Figure 38. État des moteurs et mises à jour.*
 
 ### État des moteurs
 

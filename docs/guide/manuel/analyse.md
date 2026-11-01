@@ -6,7 +6,7 @@ L'écran Analyse présente, indicateur par indicateur, les valeurs calculées pa
 
 ![Analyse d'un indicateur](../img/50-analyse.png)
 
-*Figure 20. Analyse : valeurs par collecte, intervalles de confiance et cible.*
+*Figure 26. Analyse : valeurs par collecte, intervalles de confiance et cible.*
 
 ### Onglet Résultats
 
@@ -34,7 +34,7 @@ Sous la conclusion : le test utilisé et la **taille d'effet** (h de Cohen pour
 
 ![Désagrégation](../img/51-analyse-desagregation.png)
 
-*Figure 21. Valeurs par groupe de population, référence et fin de projet.*
+*Figure 27. Valeurs par groupe de population, référence et fin de projet.*
 
 Les valeurs de chaque groupe, pour chaque collecte, avec leur intervalle de confiance et leur effectif. Les groupes affichent leur libellé et, en dessous, leur code.
 
@@ -42,7 +42,7 @@ Les valeurs de chaque groupe, pour chaque collecte, avec leur intervalle de conf
 
 ![Méthode et script R](../img/52-analyse-script-r.png)
 
-*Figure 22. La méthode en clair, et le script R qui reproduit le calcul.*
+*Figure 28. La méthode en clair, et le script R qui reproduit le calcul.*
 
 La méthode d'estimation et le test de comparaison, en une phrase chacun, puis le **script R** de chaque collecte. Ce script refait exactement le calcul à partir des données nettoyées exportées depuis l'écran Données : un statisticien, un auditeur ou un bailleur peut ainsi vérifier n'importe quel chiffre sans l'application.
 
@@ -58,13 +58,33 @@ La méthode d'estimation et le test de comparaison, en une phrase chacun, puis l
 | Effectif, échantillon simple | Comptage observé | Description, sans test |
 | Ratio | `svyratio`, méthode delta | Différence, erreur type combinée, test z |
 
+### Indicateurs de suivi de routine
+
+Pour un indicateur de suivi de routine, l'écran Analyse sert aussi à **saisir les valeurs**. Il n'y a ni intervalle de confiance ni onglets : ce sont des comptages et des relevés, pas un échantillon.
+
+![Indicateur de suivi de routine](../img/23-indicateur-routine.png)
+
+*Figure 29. Le suivi de routine des salles de classe réhabilitées, trimestre par trimestre.*
+
+- **Quatre chiffres** : la valeur à date (avec la dernière période renseignée), la cible et le taux de réalisation, le **prévu à date** et le rythme par rapport au prévu, et le statut.
+- **Le graphique** : la valeur à date à la fin de chaque période, avec la cible.
+- **Le tableau des valeurs** : une ligne par période, avec son nom (« 2026-T1 », « Janvier 2026 »), sa date de fin, le réalisé, le prévu, éventuellement une colonne par catégorie de la répartition, et un commentaire. La colonne « À date » affiche le cumul (ou la dernière valeur, ou la moyenne, selon l'indicateur) après enregistrement.
+
+**« Ajouter une période »** ajoute une ligne ; la corbeille en retire une. Pour un indicateur en pourcentage, on saisit 45 ou 0,45 indifféremment. Les périodes sont remises dans l'ordre de leur date de fin. **« Enregistrer »** valide l'ensemble et met à jour les chiffres, la vue d'ensemble et le rapport.
+
+**« Coller depuis Excel »** ouvre une zone où coller des lignes copiées dans un tableur, dans l'ordre : période, date de fin, réalisé, prévu, puis une colonne par catégorie. Une première ligne d'en-têtes est ignorée. Les lignes lues remplacent le tableau, qu'il reste à enregistrer.
+
+Dans le projet d'exemple, l'indicateur « Salles de classe réhabilitées et remises en service » montre un cas typique : 19 salles réceptionnées pour 25 prévues à la fin du deuxième trimestre 2020, à cause de chantiers suspendus pendant le confinement. Le rythme est de 76 % du prévu : l'indicateur est en retard. Ses valeurs sont fictives.
+
+Dans le rapport Word, chaque indicateur de suivi de routine a sa phrase de lecture, son graphique et le tableau des périodes ; la méthode est décrite en annexe.
+
 ## Assistant de tests
 
 L'assistant répond aux questions que l'on se pose au-delà des indicateurs, **sans avoir à connaître le nom du test** : on décrit la question, l'application choisit la méthode adaptée aux données et au plan d'enquête, et rédige la conclusion.
 
 ![Assistant de tests](../img/60-test-groupes.png)
 
-*Figure 23. Comparer la part de ménages proches d'une école entre groupes de population.*
+*Figure 30. Comparer la part de ménages proches d'une école entre groupes de population.*
 
 ### Les trois questions
 

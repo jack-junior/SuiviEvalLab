@@ -4,7 +4,7 @@ L'écran Rapport produit les trois documents qui sortent de l'application : le 
 
 ![Écran Rapport](../img/70-rapport.png)
 
-*Figure 24. Le contenu du rapport et le choix du modèle Word.*
+*Figure 31. Le contenu du rapport et le choix du modèle Word.*
 
 ## Le rapport Word
 
@@ -24,7 +24,7 @@ Le texte d'interprétation suit toujours le même ordre : l'ampleur du changeme
 
 ![Pages du rapport Word](../img/73-rapport-word.png)
 
-*Figure 25. Les premières pages du rapport généré pour le projet d'exemple.*
+*Figure 32. Les premières pages du rapport généré pour le projet d'exemple.*
 
 ### Modèle Word de l'organisation
 
@@ -65,13 +65,13 @@ Chaque point a un lien **« Corriger »** qui ouvre le bon écran. Les **remar
 
 ![Plan de suivi et partage](../img/71-rapport-partage.png)
 
-*Figure 26. Plan de suivi Excel et tableau de bord, en bas de l'écran Rapport.*
+*Figure 33. Plan de suivi Excel et tableau de bord, en bas de l'écran Rapport.*
 
 **« Exporter le plan de suivi »** produit la fiche de référence des indicateurs demandée par la plupart des bailleurs : une ligne par indicateur, dans l'ordre du cadre.
 
 ![Plan de suivi Excel](../img/74-plan-excel.png)
 
-*Figure 27. Le plan de suivi ouvert dans un tableur.*
+*Figure 34. Le plan de suivi ouvert dans un tableur.*
 
 Colonnes : code, niveau, résultat, indicateur, définition, **mode de calcul rédigé en phrase** (avec les libellés du questionnaire), unité, désagrégation, source, méthode de collecte, fréquence, responsable, référence, cible, échéance, valeur actuelle, réalisation, statut (coloré). Une seconde feuille reprend le cadre de résultats. Le classeur reste modifiable et s'imprime en paysage sur une page de large.
 
@@ -81,7 +81,7 @@ Colonnes : code, niveau, résultat, indicateur, définition, **mode de calcul r
 
 ![Tableau de bord partagé](../img/72-tableau-de-bord.png)
 
-*Figure 28. Le tableau de bord tel que le voit son destinataire.*
+*Figure 35. Le tableau de bord tel que le voit son destinataire.*
 
 - Chiffres clés par statut, filtres par statut et recherche d'un indicateur.
 - Pour chaque indicateur : valeurs, barre de réalisation, texte d'interprétation, graphique, désagrégation dépliable, définition et source.

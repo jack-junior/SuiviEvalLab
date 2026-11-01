@@ -51,7 +51,10 @@ def weighted_share(file: str, column: str, success: str, excluded_groups=(), mis
 def test_example_project_analysis_and_report(engine, tmp_path):
     snap = engine("project.create", {"path": str(tmp_path / "exemple.sme"), "name": "x", "example": True})
     assert len(snap["framework"]) == 8
-    assert len(snap["indicators"]) == 3
+    assert len(snap["indicators"]) == 4
+    routine_ind = next(i for i in snap["indicators"] if i["source_type"] == "routine")
+    an = engine("analysis.indicator", {"id": routine_ind["id"]})
+    assert an["current"] == 19 and an["planned_to_date"] == 25 and an["status"] == "late"
     base, end = snap["datasets"]
     assert (base["rows"], base["clean_rows"]) == (12887, 8952)
     assert (end["rows"], end["clean_rows"]) == (3872, 3872)
@@ -66,7 +69,8 @@ def test_example_project_analysis_and_report(engine, tmp_path):
     assert primary["current"] == pytest.approx(expected_end, abs=1e-9)
     assert primary["status"] in ("achieved", "on_track", "late")
 
-    dropout = engine("analysis.indicator", {"id": snap["indicators"][2]["id"]})
+    dropout_id = next(i["id"] for i in snap["indicators"] if i.get("column") == "child_dropout_school")
+    dropout = engine("analysis.indicator", {"id": dropout_id})
     comp = dropout["comparison"]
     assert comp["test_key"] == "z_survey_prop"
     assert comp["ci_low"] < comp["difference"] < comp["ci_high"]
@@ -86,7 +90,7 @@ def test_example_project_analysis_and_report(engine, tmp_path):
         text = "\n".join(p.text for p in doc.paragraphs)
         assert ("Synthèse" if lang == "fr" else "Summary") in text
         assert "REACH Initiative" in text
-        assert len(doc.inline_shapes) == 3  # one chart per indicator
+        assert len(doc.inline_shapes) == 4  # one chart per indicator
         for forbidden in ("—", "–"):  # writing conventions: no em or en dash
             assert forbidden not in text
 

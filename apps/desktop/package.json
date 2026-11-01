@@ -1,7 +1,7 @@
 {
   "name": "suivievallab",
   "productName": "SuiviEvalLab",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Poste de travail du suivi-évaluation, du cadre logique au rapport Word",
   "license": "GPL-3.0-or-later",
   "author": "SuiviEvalLab",

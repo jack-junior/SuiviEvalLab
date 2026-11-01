@@ -20,6 +20,7 @@ from .rpc import INVALID_PARAMS, RpcError
 
 UNITS = ("percent", "mean", "count", "ratio")
 DIRECTIONS = ("increase", "decrease")
+SOURCES = ("survey", "routine")
 FREQUENCIES = ("", "monthly", "quarterly", "semiannual", "annual", "rounds", "other")
 
 
@@ -89,13 +90,27 @@ def validate(spec: dict[str, Any]) -> dict[str, Any]:
     count_mode = spec.get("count_mode", "rows")
     if count_mode not in ("rows", "sum"):
         raise _err("count_mode must be rows or sum", "invalid_params")
-    conditions = _conditions(spec) if unit in ("percent", "count") else []
+    source_type = spec.get("source_type") or "survey"
+    if source_type not in SOURCES:
+        raise _err(f"source_type must be one of {SOURCES}", "invalid_params")
+    aggregation = spec.get("aggregation") or ("last" if unit == "percent" else "sum")
+    if aggregation not in ("sum", "last", "mean"):
+        raise _err("aggregation must be sum, last or mean", "invalid_params")
+    categories = spec.get("categories") or []
+    if not isinstance(categories, list) or len(categories) > 12:
+        raise _err("categories must be a list of at most 12 names", "invalid_params")
+    categories = list(dict.fromkeys(str(c).strip()[:40] for c in categories if str(c).strip()))
+    conditions = _conditions(spec) if unit in ("percent", "count") and source_type == "survey" else []
     column = _text(spec, "column", max_len=300) or None
     if unit == "percent" or (unit == "count" and count_mode == "rows"):
         column = conditions[0]["column"] if conditions else None
     multiplier = _num(spec, "multiplier")
     out = {
         "name": _text(spec, "name", required=True, max_len=300),
+        # survey: computed from the datasets; routine: values typed period by period (routine.py).
+        "source_type": source_type,
+        "aggregation": aggregation,
+        "categories": categories if source_type == "routine" else [],
         "definition": _text(spec, "definition"),
         "unit": unit,
         "direction": direction,
@@ -133,6 +148,8 @@ def validate(spec: dict[str, Any]) -> dict[str, Any]:
 
 def ready(ind: dict[str, Any]) -> bool:
     """True when the calculation rule is complete enough to compute."""
+    if ind.get("source_type") == "routine":
+        return False  # no dataset calculation: values are typed (routine.py)
     unit = ind["unit"]
     if unit == "percent":
         return bool(ind.get("conditions")) and all(c["values"] for c in ind["conditions"])

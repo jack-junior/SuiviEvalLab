@@ -25,6 +25,7 @@ const bgd = path.join(data, "03_bangladesh_wash_2018_reference.xlsx");
 const dialogs = [
   path.join(work, "Acces-education-Irak.sme"), // example project
   bgd, // Kobo households
+  path.join(work, "nettoyage.R"), // cleaning journal as an R script
   bgd, // Kobo containers
   path.join(work, "rapport.docx"),
   path.join(work, "plan-de-suivi.xlsx"),
@@ -78,6 +79,14 @@ try {
   await shot("03-moteurs");
   await page.locator('a[href="#home"]').click();
 
+  // New project: choice of the framework model
+  await id("new-project").click();
+  await panel().waitFor();
+  await id("new-name").fill("Projet eau et assainissement");
+  await id("model-eu").click();
+  await shot("04-nouveau-projet");
+  await closePanel();
+
   // Example project
   await id("open-example").click();
   await id("overview-table").waitFor({ timeout: 180_000 });
@@ -92,6 +101,10 @@ try {
   await shot("11-cadre-resultats");
   await page.locator(".tree-row").first().hover();
   await shot("12-cadre-actions", page.locator(".tree-row").first());
+  await id("change-model").click();
+  await id("model-panel").waitFor();
+  await shot("13-modele-cadre");
+  await closePanel();
 
   await id("nav-indicators").click();
   await page.locator(".ind-row").first().waitFor();
@@ -104,6 +117,14 @@ try {
     .evaluate((el) => (el.scrollTop = el.scrollHeight));
   await shot("22-indicateur-plan-de-suivi");
   await closePanel();
+
+  // Routine monitoring indicator
+  await id("nav-analysis").click();
+  await page
+    .locator('[data-testid="analysis-item"]', { hasText: "Salles de classe" })
+    .click();
+  await id("routine").waitFor({ timeout: 60_000 });
+  await shot("23-indicateur-routine");
 
   // Data
   await id("nav-data").click();
@@ -150,6 +171,29 @@ try {
     .check()
     .catch(() => id("show-labels").click());
   await shot("37-apercu-libelles");
+  // Advanced cleaning on the Kobo file: interview duration, then too short interviews.
+  await id("tab-cleaning").click();
+  await id("add-rule").click();
+  await id("kind-date").click();
+  await id("rule-target").fill("duree_entretien");
+  await shot("41-regle-duree");
+  await id("rule-save").click();
+  await page.locator(".journal-row").first().waitFor();
+  await id("add-rule").click();
+  await id("kind-check").click();
+  await id("cond-column-0").selectOption("duree_entretien");
+  await id("cond-op-0").selectOption("lt");
+  await id("cond-value-0").fill("15");
+  await id("rule-target").fill("entretien_court");
+  await shot("42-controle-coherence");
+  await id("rule-save").click();
+  await page.locator(".journal-row").nth(1).waitFor();
+  await shot("43-journal-avance");
+  await id("export-r").click();
+  await page
+    .locator(".notice")
+    .filter({ hasText: "Script R" })
+    .waitFor({ timeout: 60_000 });
   await id("tab-columns").click();
   await pause(600);
   await shot("38-colonnes");
@@ -182,9 +226,16 @@ try {
   await id("merge-check").waitFor({ timeout: 60_000 });
   await shot("40-fusion");
   await closePanel();
+  await id("stack-data").click();
+  await page.locator('[data-testid^="stack-file-"]').nth(0).check();
+  await page.locator('[data-testid^="stack-file-"]').nth(1).check();
+  await id("stack-check").waitFor({ timeout: 60_000 });
+  await shot("44-empiler");
+  await closePanel();
 
   // Analysis and tests
   await id("nav-analysis").click();
+  await id("analysis-item").first().click();
   await id("comparison").waitFor({ timeout: 120_000 });
   await shot("50-analyse");
   await page.getByRole("tab", { name: "Désagrégation" }).click();
