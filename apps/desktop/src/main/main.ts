@@ -43,6 +43,16 @@ const ALLOWED = new Set([
   "cleaning.update",
   "cleaning.delete",
   "cleaning.move",
+  "cleaning.edit_cells",
+  "dataset.rows",
+  "formula.preview",
+  "formula.functions",
+  "scripts.trust",
+  "analysis.save",
+  "analysis.run",
+  "analysis.delete",
+  "analysis.move",
+  "report.set_content",
   "analysis.indicator",
   "analysis.overview",
   "test.run",
@@ -289,7 +299,7 @@ app.whenReady().then(() => {
       if (method === "project.close") win?.setTitle("SuiviEvalLab");
       return { ok: true, result };
     } catch (err) {
-      if (err instanceof EngineError) return { ok: false, error: err.message, key: err.key };
+      if (err instanceof EngineError) return { ok: false, error: err.message, key: err.key, data: err.data };
       return { ok: false, error: err instanceof Error ? err.message : String(err), key: "unknown" };
     }
   });

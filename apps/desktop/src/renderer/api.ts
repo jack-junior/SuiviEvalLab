@@ -2,13 +2,16 @@
 // In the app, window.sme is provided by the preload script. Opened in a plain browser
 // (development preview), the interface falls back to simulated responses.
 
-export type CallResult<T> = { ok: true; result: T } | { ok: false; error: string; key?: string };
+export type CallResult<T> =
+  { ok: true; result: T } | { ok: false; error: string; key?: string; data?: Record<string, unknown> };
 
 /** Error from the engines: `key` is translated by the interface, `message` is the technical detail. */
 export class EngineCallError extends Error {
   constructor(
     message: string,
     public readonly key: string = "unknown",
+    /** Details sent by the engine (for formulas: reason, position, column name). */
+    public readonly data: Record<string, unknown> = {},
   ) {
     super(message);
   }
@@ -166,7 +169,27 @@ export interface Design {
 }
 
 export type RuleKind =
-  "duplicates" | "recode" | "range" | "exclude" | "text" | "compute" | "classes" | "date" | "check" | "conditional";
+  | "duplicates"
+  | "recode"
+  | "range"
+  | "exclude"
+  | "text"
+  | "compute"
+  | "classes"
+  | "date"
+  | "check"
+  | "conditional"
+  | "formula"
+  | "filter"
+  | "edit"
+  | "r_script";
+
+export interface EditedCell {
+  row: number;
+  column: string;
+  value: string | null;
+  old?: string | null;
+}
 
 export type ComputeOp = "sum" | "mean" | "min" | "max" | "difference" | "ratio" | "count_values";
 export type CondOp = "eq" | "ne" | "in" | "not_in" | "lt" | "le" | "gt" | "ge" | "missing" | "present";
@@ -204,15 +227,122 @@ export interface Rule {
   conditions?: RuleCondition[];
   combine?: "all" | "any";
   value?: string | null;
-  action?: "flag" | "exclude" | "missing";
+  /** check: flag, exclude or missing; filter: keep or drop. */
+  action?: "flag" | "exclude" | "missing" | "keep" | "drop";
   ops?: TextOp[];
   mode?: DateMode;
   end?: string;
   ref_date?: string;
   ref_column?: string;
+  /** Formula (formula and filter kinds), keep or drop for filters. */
+  expression?: string;
+  cells?: EditedCell[];
+  /** R code of an R script step, and whether it is accepted on this computer. */
+  code?: string;
+  trusted?: boolean;
   /** Plain-language description in both languages, for the advanced kinds. */
   description?: { fr: string; en: string };
-  effect?: { applied: boolean; rows_removed: number; cells_changed: number } | null;
+  effect?: RuleEffect | null;
+}
+
+export interface RuleEffect {
+  applied: boolean;
+  rows_removed: number;
+  cells_changed: number;
+  paused?: boolean;
+  error?: string;
+  error_info?: Record<string, string>;
+  message?: string;
+  log?: string;
+  columns_added?: string[];
+  columns_removed?: string[];
+  rows_added?: number;
+}
+
+export interface UntrustedScript {
+  where: "cleaning" | "analysis";
+  id: string;
+  dataset?: string;
+  title?: string;
+  code: string;
+}
+
+export type AnalysisType = "descriptives" | "crosstab" | "means" | "correlation" | "regression" | "did" | "r_script";
+
+export interface AnalysisSpec {
+  id: string;
+  type: AnalysisType;
+  dataset_id: string;
+  title: string;
+  note: string;
+  level: number;
+  in_report: boolean;
+  variables?: string[];
+  by?: string | null;
+  types?: Record<string, "numeric" | "categorical">;
+  row?: string;
+  column?: string;
+  percent?: "row" | "column" | "total";
+  outcome?: string;
+  group?: string;
+  predictors?: string[];
+  family?: "linear" | "logistic";
+  success?: string[] | null;
+  factors?: string[];
+  reference?: Record<string, string>;
+  treated?: string[];
+  period?: string;
+  after?: string[];
+  code?: string;
+  trusted?: boolean;
+}
+
+export type CellFormat = "text" | "int" | "num" | "pct" | "p";
+export interface ResultTable {
+  key: string;
+  title: string;
+  columns: { key: string; label: string; fmt: CellFormat; data: boolean }[];
+  rows: (string | number | null)[][];
+}
+export interface AnalysisResult {
+  id: string;
+  error?: string;
+  message?: string;
+  columns?: string[];
+  paused?: boolean;
+  tables?: ResultTable[];
+  tests?: { key: string; label: string; statistic?: number; df?: number; df2?: number; p_value?: number }[];
+  charts?: string[];
+  notes?: string[];
+  reading?: string[];
+  script?: string;
+  design?: boolean;
+  n?: number;
+  script_result?: { output: string; plots: string[]; table: { columns: string[]; rows: (string | null)[][] } | null };
+}
+
+export type ReportSection =
+  "summary" | "results" | "analyses" | "tests" | "framework" | "annex_data" | "annex_methods" | "sources";
+export interface ReportContent {
+  sections: { id: ReportSection; on: boolean }[];
+  indicators: Record<
+    string,
+    { on?: boolean; reading?: boolean; chart?: boolean; breakdown?: boolean; definition?: boolean }
+  >;
+  analyses: Record<string, { reading?: boolean; tables?: boolean; charts?: boolean; script?: boolean }>;
+  tests: Record<string, boolean>;
+  journal: boolean;
+}
+
+export interface FormulaPreview {
+  type: "num" | "text" | "bool" | "date" | "col" | "null";
+  columns: string[];
+  rows: number;
+  true?: number;
+  false?: number;
+  missing?: number;
+  distinct?: number;
+  sample?: { inputs: Record<string, string | null>; value: string | null }[];
 }
 
 export type Frequency = "" | "monthly" | "quarterly" | "semiannual" | "annual" | "rounds" | "other";
@@ -303,6 +433,9 @@ export interface Snapshot {
   indicators: Indicator[];
   datasets: Dataset[];
   tests: TestSpec[];
+  analyses: AnalysisSpec[];
+  untrusted_scripts: UntrustedScript[];
+  report_content: ReportContent;
 }
 
 export type TestQuestion = "groups" | "target" | "paired";
@@ -489,7 +622,7 @@ const bridge: SmeBridge = (typeof window !== "undefined" && window.sme) || simul
 
 export async function call<T>(method: string, params?: Record<string, unknown>): Promise<T> {
   const res = (await bridge.call(method, params)) as CallResult<T>;
-  if (!res.ok) throw new EngineCallError(res.error, res.key);
+  if (!res.ok) throw new EngineCallError(res.error, res.key, res.data ?? {});
   return res.result;
 }
 

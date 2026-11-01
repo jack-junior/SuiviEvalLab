@@ -25,6 +25,7 @@ export class EngineError extends Error {
     message: string,
     public readonly key: string = "unknown",
     public readonly code: number = -32000,
+    public readonly data: Record<string, unknown> = {},
   ) {
     super(message);
   }
@@ -125,7 +126,7 @@ export class EngineClient {
     let msg: {
       id?: number;
       result?: unknown;
-      error?: { code: number; message: string; data?: { key?: string } };
+      error?: { code: number; message: string; data?: { key?: string } & Record<string, unknown> };
       method?: string;
       params?: unknown;
     };
@@ -143,7 +144,8 @@ export class EngineClient {
     if (!p) return;
     this.pending.delete(msg.id);
     clearTimeout(p.timer);
-    if (msg.error) p.reject(new EngineError(msg.error.message, msg.error.data?.key ?? "unknown", msg.error.code));
+    if (msg.error)
+      p.reject(new EngineError(msg.error.message, msg.error.data?.key ?? "unknown", msg.error.code, msg.error.data));
     else p.resolve(msg.result);
   }
 

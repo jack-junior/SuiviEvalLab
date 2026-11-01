@@ -1,4 +1,4 @@
-// Data: import Excel, Kobo or CSV files, survey design, cleaning journal, preview.
+// Data: import Excel, Kobo or CSV files, survey design, cleaning journal, data table.
 
 import { useEffect, useMemo, useState } from "react";
 import { allColumns, call, Dataset, Design, Inspection, Picked, pick, Round, Rule, RuleKind } from "../api";
@@ -7,6 +7,8 @@ import { pickLabel, useLabels } from "../labels";
 import { useProject } from "../state";
 import { Confirm, Empty, Field, Icon, IconButton, Notice, Panel } from "../ui";
 import { ADVANCED, AdvancedFields, GROUPS } from "./AdvancedRule";
+import { DataTable } from "./DataTable";
+import { FREE, FreeFields } from "./FreeRule";
 import { MergePanel } from "./MergePanel";
 import { StackPanel } from "./StackPanel";
 import { Quality } from "./Quality";
@@ -592,20 +594,26 @@ function Journal({ ds }: { ds: Dataset }) {
   const { run } = useProject();
   const [adding, setAdding] = useState(false);
   const text = useRuleText();
+  const [editingRule, setEditingRule] = useState<Rule | null>(null);
   const effect = (r: Rule) => {
     if (!r.enabled) return t("cleaning.disabled");
     const e = r.effect;
     if (!e) return "";
+    if (e.paused) return t("cleaning.paused");
+    if (e.error) return t("cleaning.failed");
     const parts = [];
     if (e.rows_removed) parts.push(tn("cleaning.rowsRemoved", e.rows_removed));
     if (e.cells_changed) {
-      const key = ["compute", "classes", "date"].includes(r.kind)
+      const key = ["compute", "classes", "date", "formula"].includes(r.kind)
         ? "cleaning.cellsCreated"
         : r.kind === "check" && r.action !== "missing"
           ? "cleaning.rowsFlagged"
           : "cleaning.cellsChanged";
       parts.push(tn(key, e.cells_changed));
     }
+    if (e.columns_added?.length) parts.push(t("cleaning.columnsAdded", { names: e.columns_added.join(", ") }));
+    if (e.columns_removed?.length) parts.push(t("cleaning.columnsRemoved", { names: e.columns_removed.join(", ") }));
+    if (e.rows_added) parts.push(tn("cleaning.rowsAdded", e.rows_added));
     return parts.join(", ") || t("cleaning.noChange");
   };
   return (
@@ -628,6 +636,22 @@ function Journal({ ds }: { ds: Dataset }) {
               <div className="journal-main">
                 <div className="journal-text">{text(r)}</div>
                 {r.note && <div className="journal-note">{r.note}</div>}
+                {r.kind === "r_script" && (
+                  <details className="journal-code">
+                    <summary>{t("rscript.show")}</summary>
+                    <pre className="mono">{r.code}</pre>
+                    {r.effect?.log && (
+                      <>
+                        <span className="muted small">{t("rscript.output")}</span>
+                        <pre className="mono">{r.effect.log}</pre>
+                      </>
+                    )}
+                  </details>
+                )}
+                {r.effect?.message && <div className="journal-error">{r.effect.message}</div>}
+                {r.effect?.error && r.effect.error !== "r_script_failed" && (
+                  <div className="journal-error">{t("cleaning.waiting")}</div>
+                )}
               </div>
               <span className="journal-effect">{effect(r)}</span>
               <div className="row-tools">
@@ -640,6 +664,14 @@ function Journal({ ds }: { ds: Dataset }) {
                   />
                   <span aria-hidden="true" />
                 </label>
+                {FREE.includes(r.kind) && (
+                  <IconButton
+                    icon="edit"
+                    label={t("common.edit")}
+                    onClick={() => setEditingRule(r)}
+                    testId={`edit-rule-${i + 1}`}
+                  />
+                )}
                 <IconButton
                   icon="up"
                   label={t("common.moveUp")}
@@ -664,6 +696,7 @@ function Journal({ ds }: { ds: Dataset }) {
         {t("cleaning.summary", { rows: number(ds.rows, 0), clean: number(ds.clean_rows, 0) })}
       </p>
       {adding && <RulePanel ds={ds} onClose={() => setAdding(false)} />}
+      {editingRule && <EditFreePanel ds={ds} rule={editingRule} onClose={() => setEditingRule(null)} />}
     </section>
   );
 }
@@ -684,7 +717,8 @@ function RulePanel({ ds, onClose }: { ds: Dataset; onClose: () => void }) {
   const [values, setValues] = useState<{ value: string | null; n: number }[]>([]);
   const [stats, setStats] = useState<{ min: number; max: number } | null>(null);
   const [advanced, setAdvanced] = useState<Partial<Rule> | null>(null);
-  const isAdvanced = ADVANCED.includes(kind);
+  const isFree = FREE.includes(kind);
+  const isAdvanced = ADVANCED.includes(kind) || isFree;
 
   useEffect(() => {
     if (!column || isAdvanced) return;
@@ -758,7 +792,9 @@ function RulePanel({ ds, onClose }: { ds: Dataset; onClose: () => void }) {
         </div>
       ))}
 
-      {isAdvanced ? (
+      {isFree ? (
+        <FreeFields key={kind} kind={kind} ds={ds} onChange={setAdvanced} />
+      ) : isAdvanced ? (
         <AdvancedFields key={kind} kind={kind} ds={ds} onChange={setAdvanced} />
       ) : kind === "duplicates" ? (
         <div className="field">
@@ -912,6 +948,38 @@ function RulePanel({ ds, onClose }: { ds: Dataset; onClose: () => void }) {
   );
 }
 
+function EditFreePanel({ ds, rule, onClose }: { ds: Dataset; rule: Rule; onClose: () => void }) {
+  const { t } = useI18n();
+  const { run } = useProject();
+  const [draft, setDraft] = useState<Partial<Rule> | null>(null);
+  const [note, setNote] = useState(rule.note);
+  const save = async () => {
+    if (draft && (await run("cleaning.update", { id: rule.id, rule: { ...draft, note } }))) onClose();
+  };
+  return (
+    <Panel
+      title={t(`cleaning.kind_${rule.kind}`)}
+      onClose={onClose}
+      testId="edit-rule-panel"
+      footer={
+        <>
+          <button className="btn" onClick={onClose}>
+            {t("common.cancel")}
+          </button>
+          <button className="btn primary" onClick={save} disabled={!draft} data-testid="rule-update">
+            {t("common.save")}
+          </button>
+        </>
+      }
+    >
+      <FreeFields kind={rule.kind} ds={ds} initial={rule} onChange={setDraft} />
+      <Field label={t("cleaning.note")}>
+        {(id) => <textarea id={id} className="input" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />}
+      </Field>
+    </Panel>
+  );
+}
+
 function Preview({ ds }: { ds: Dataset }) {
   const { t, number } = useI18n();
   const { describe } = useProject();
@@ -924,6 +992,7 @@ function Preview({ ds }: { ds: Dataset }) {
   const [err, setErr] = useState<string | null>(null);
   const stamp = `${ds.id}-${ds.clean_rows}-${ds.rules.length}`;
   useEffect(() => {
+    if (cleaned) return;
     call<{ total: number; columns: string[]; rows: (string | null)[][] }>("dataset.preview", {
       id: ds.id,
       cleaned,
@@ -937,10 +1006,20 @@ function Preview({ ds }: { ds: Dataset }) {
     <section className="stack">
       <div className="section-head">
         <div className="chips">
-          <button className="chip" aria-pressed={cleaned} onClick={() => (setCleaned(true), setOffset(0))}>
+          <button
+            className="chip"
+            aria-pressed={cleaned}
+            onClick={() => (setCleaned(true), setOffset(0))}
+            data-testid="view-cleaned"
+          >
             {t("data.cleaned")}
           </button>
-          <button className="chip" aria-pressed={!cleaned} onClick={() => (setCleaned(false), setOffset(0))}>
+          <button
+            className="chip"
+            aria-pressed={!cleaned}
+            onClick={() => (setCleaned(false), setOffset(0))}
+            data-testid="view-raw"
+          >
             {t("data.raw")}
           </button>
           {hasLabels && (
@@ -955,7 +1034,7 @@ function Preview({ ds }: { ds: Dataset }) {
             </label>
           )}
         </div>
-        {page && (
+        {page && !cleaned && (
           <div className="pager">
             <span className="muted small">
               {t("data.pageInfo", {
@@ -979,8 +1058,9 @@ function Preview({ ds }: { ds: Dataset }) {
           </div>
         )}
       </div>
-      {err && <Notice kind="error">{err}</Notice>}
-      {page && (
+      {cleaned && <DataTable ds={ds} showLabels={showLabels} />}
+      {!cleaned && err && <Notice kind="error">{err}</Notice>}
+      {!cleaned && page && (
         <div className="grid-wrap" data-testid="preview-grid">
           <table className="table compact grid">
             <thead>

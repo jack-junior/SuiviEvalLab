@@ -23,6 +23,7 @@ export const GROUPS: { key: string; kinds: RuleKind[] }[] = [
   { key: "fix", kinds: ["recode", "exclude", "range", "duplicates", "text"] },
   { key: "create", kinds: ["compute", "classes", "date"] },
   { key: "control", kinds: ["check", "conditional"] },
+  { key: "free", kinds: ["formula", "filter", "r_script"] },
 ];
 
 type Draft = Partial<Rule> | null;

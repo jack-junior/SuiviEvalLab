@@ -121,6 +121,7 @@ T = {
         "analysis_paused": "Script R en pause : il n'a pas encore été accepté sur cet ordinateur.",
         "analysis_test": "Test : {test}{stat}, {p}.",
         "effect_paused": "en pause : code R pas encore accepté sur cet ordinateur",
+        "effect_columns": "colonnes ajoutées : {names}",
         "effect_error": "non appliquée (erreur, voir le journal dans l'application)",
         "disabled": "désactivée",
         "annex_methods": "Annexe B. Méthodes statistiques",
@@ -230,6 +231,7 @@ T = {
         "analysis_paused": "R script paused: it has not yet been accepted on this computer.",
         "analysis_test": "Test: {test}{stat}, {p}.",
         "effect_paused": "paused: R code not yet accepted on this computer",
+        "effect_columns": "columns added: {names}",
         "effect_error": "not applied (error, see the journal in the application)",
         "disabled": "disabled",
         "annex_methods": "Appendix B. Statistical methods",
@@ -463,6 +465,8 @@ def _effect_text(rule: dict[str, Any], t: dict[str, Any]) -> str:
         elif rule["kind"] == "check":
             key = "effect_flagged"
         parts.append(t[key].format(n=e["cells_changed"]))
+    if e.get("columns_added"):
+        parts.append(t["effect_columns"].format(names=", ".join(e["columns_added"])))
     return ", ".join(parts) or t["effect_none"]
 
 
