@@ -7,8 +7,8 @@ Deux sortes de tests se complètent. Les **tests automatiques** vérifient à ch
 | Série | Nombre | Ce qu'elle garantit |
 |---|---|---|
 | Fonctions statistiques R | 4 fichiers de tests | Chaque estimation, intervalle, comparaison, test et taille d'échantillon égale l'appel direct au package de référence (écart inférieur à 10⁻⁹) ou une valeur publiée |
-| Moteur Python | 36 tests | Fichier projet et migration, import de tous les formats, libellés Kobo, nettoyage, qualité, fusion, indicateurs, tests, rapport Word et modèle d'organisation, plan Excel, tableau de bord, copies, vérifications ; les chiffres sont recalculés indépendamment avec polars |
-| Fichiers originaux | 2 tests | Les quatre enquêtes complètes de HDX (jusqu'à 436 colonnes) s'importent et se fusionnent correctement |
+| Moteur Python | 80 tests | Fichier projet et migration, import de tous les formats, libellés Kobo, nettoyage (dont formules, corrections à la main et scripts R), qualité, fusion, indicateurs, tests, analyses libres, rapport Word et modèle d'organisation, plan Excel, tableau de bord, copies, vérifications ; les chiffres sont recalculés indépendamment avec polars et numpy, et le journal exporté en R redonne la même table |
+| Fichiers originaux | 4 tests | Les quatre enquêtes complètes de HDX (jusqu'à 436 colonnes) s'importent, se fusionnent et s'analysent correctement |
 | Parcours complet | 1 scénario | L'application installée sous Windows est pilotée comme par un utilisateur, du projet vide au rapport |
 | Mise à jour | 1 scénario | L'application installée se met à jour seule et respecte la stratégie de groupe |
 
@@ -20,7 +20,7 @@ Le kit de test est un dossier à remettre aux testeurs. Il contient :
 
 | Élément | Contenu |
 |---|---|
-| `GUIDE-DE-TEST.docx` | 19 scénarios pas à pas, avec le résultat attendu et un tableau où noter ce qui a été obtenu |
+| `GUIDE-DE-TEST.docx` | 21 scénarios pas à pas, avec le résultat attendu et un tableau où noter ce qui a été obtenu |
 | `donnees/01` à `04` | Les fichiers originaux de quatre enquêtes publiques (Irak 2019 et 2020, Bangladesh 2018 référence et suivi), identiques octet pour octet à ceux publiés sur HDX |
 | `donnees/05` | Un extrait au format SPSS et Stata, avec libellés |
 | `modeles/` | Un modèle Word d'organisation pour tester le rapport |
@@ -50,7 +50,9 @@ Les **résultats attendus** du guide ont été obtenus deux fois : par l'applic
 | 16 | Rapport et livrables | Vérifications, rapport Word, modèle d'organisation, plan Excel, tableau de bord |
 | 17 | Taille d'échantillon | 641 et 646 enquêtés |
 | 18 | Copies automatiques | Restauration après une suppression |
-| 19 | Langue et mises à jour | Interface en anglais, vérification des mises à jour |
+| 19 | Nettoyage libre | Formule avec une erreur signalée, filtre et correction dans le tableau des données |
+| 20 | Analyses libres | Tableau croisé (Rao-Scott), régression logistique, script R, contenu du rapport |
+| 21 | Langue et mises à jour | Interface en anglais, vérification des mises à jour |
 
 Quelques valeurs de référence du guide, sur les fichiers originaux d'Irak :
 

@@ -9,7 +9,7 @@
 // use the same files, so running this again refreshes both.
 
 import { _electron as electron } from "playwright";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -40,6 +40,7 @@ const app = await electron.launch({
     SME_E2E_DIALOGS: dialogs.join("|"),
     XDG_CONFIG_HOME: profile,
     SME_BACKUP_DIR: path.join(profile, "backups"),
+    SME_TRUST_DIR: path.join(profile, "trust"),
   },
   timeout: 60_000,
 });
@@ -143,7 +144,7 @@ try {
   await id("quality").waitFor({ timeout: 60_000 });
   await shot("33-qualite");
   await id("tab-preview").click();
-  await id("preview-grid").waitFor();
+  await id("data-grid").waitFor({ timeout: 60_000 });
   await shot("34-apercu");
 
   // Kobo survey with its questionnaire
@@ -166,11 +167,25 @@ try {
   await id("quality-warnings").waitFor({ timeout: 60_000 });
   await shot("36-qualite-kobo");
   await id("tab-preview").click();
-  await id("preview-grid").waitFor();
+  await id("data-grid").waitFor({ timeout: 60_000 });
   await id("show-labels")
     .check()
     .catch(() => id("show-labels").click());
-  await shot("37-apercu-libelles");
+  // A cell corrected by hand, a display filter and a sort.
+  const size = page
+    .locator('[data-testid^="cell-"][data-testid$="-HoH/household_size"]')
+    .first();
+  const sizeId = await size.getAttribute("data-testid");
+  await size.dblclick();
+  await id("cell-input").fill("6");
+  await id("cell-input").press("Enter");
+  await page
+    .locator(`[data-testid="${sizeId}"].edited`)
+    .waitFor({ timeout: 60_000 });
+  await id("grid-filter").fill("[HoH/household_size] >= 6");
+  await id("grid-filter-apply").click();
+  await pause(1500);
+  await shot("37-tableau");
   // Advanced cleaning on the Kobo file: interview duration, then too short interviews.
   await id("tab-cleaning").click();
   await id("add-rule").click();
@@ -189,6 +204,33 @@ try {
   await id("rule-save").click();
   await page.locator(".journal-row").nth(1).waitFor();
   await shot("43-journal-avance");
+  // Formula: first with a misspelt column, then corrected.
+  await id("add-rule").click();
+  await id("kind-formula").click();
+  await id("rule-target").fill("grand_menage");
+  await id("formula-text").fill('si([HoH/houshold_size] >= 8; "oui"; "non")');
+  await id("formula-error").waitFor({ timeout: 30_000 });
+  await panel()
+    .locator(".panel-body")
+    .evaluate((el) => (el.scrollTop = el.scrollHeight));
+  await shot("46-formule-erreur");
+  await id("formula-text").fill('si([HoH/household_size] >= 8; "oui"; "non")');
+  await id("formula-preview").waitFor({ timeout: 30_000 });
+  await id("formula-functions").click();
+  await panel()
+    .locator(".panel-body")
+    .evaluate((el) => (el.scrollTop = el.scrollHeight - 900));
+  await shot("45-formule");
+  await id("rule-save").click();
+  await page.locator(".journal-row").nth(3).waitFor();
+  // An R script step, shown later in the trust dialog.
+  await id("add-rule").click();
+  await id("kind-r_script").click();
+  await id("rscript-code").fill(
+    'data$personnes_log <- log(data[["HoH/household_size"]])\nprint(summary(data$personnes_log))',
+  );
+  await id("rule-save").click();
+  await page.locator(".journal-row").nth(4).waitFor();
   await id("export-r").click();
   await page
     .locator(".notice")
@@ -254,10 +296,46 @@ try {
   await id("test-result").waitFor({ timeout: 120_000 });
   await shot("60-test-groupes");
 
+  // Custom analyses
+  await id("nav-workshop").click();
+  await id("atype-crosstab").click();
+  await id("a-row").selectOption("population_group");
+  await id("a-column").selectOption("primary_school_place");
+  await id("analysis-chart").waitFor({ timeout: 120_000 });
+  await shot("55-analyses-libres");
+  await id("new-analysis").click();
+  await id("atype-regression").click();
+  await id("a-family-logistic").click();
+  await id("a-outcome").selectOption("child_dropout_school");
+  await id("a-success-yes").click({ timeout: 30_000 });
+  await id("a-predictors").selectOption("population_group");
+  await id("a-predictors").selectOption("tot_child");
+  await id("analysis-chart").waitFor({ timeout: 120_000 });
+  await id("analysis-result").scrollIntoViewIfNeeded();
+  await page
+    .locator(".split-main")
+    .evaluate((el) => (el.scrollTop = el.scrollHeight));
+  await shot("56-analyse-regression");
+  await id("new-analysis").click();
+  await id("atype-r_script").click();
+  await id("rscript-analysis-code").fill(
+    "print(svymean(~tot_child, plan, na.rm = TRUE))\nresultat <- aggregate(tot_child ~ population_group, data, mean)",
+  );
+  await id("run-script").click();
+  await id("script-output").waitFor({ timeout: 120_000 });
+  await page
+    .locator(".split-main")
+    .evaluate((el) => (el.scrollTop = el.scrollHeight));
+  await shot("57-analyse-script-r");
+
   // Report
   await id("nav-report").click();
   await id("report-checks").waitFor({ timeout: 120_000 });
   await shot("70-rapport");
+  await id("report-content").evaluate((el) =>
+    el.scrollIntoView({ block: "start" }),
+  );
+  await shot("75-contenu-rapport");
   await id("generate-report").click();
   await id("report-done").waitFor({ timeout: 180_000 });
   await id("export-plan").click();
@@ -270,8 +348,15 @@ try {
   // My projects and automatic copies
   await id("close-project").click();
   await id("my-projects").waitFor();
-  // Reopen once: the first automatic copy is taken at opening.
+  // Reopen once: the first automatic copy is taken at opening. The list of R code
+  // accepted on this computer is emptied first, as on a colleague's computer.
+  const trusted = path.join(profile, "trust", "trusted-r.json");
+  if (existsSync(trusted)) rmSync(trusted);
   await id("project-row").first().click();
+  await id("trust-dialog").waitFor({ timeout: 180_000 });
+  await shot("47-confiance");
+  await id("trust-accept").click();
+  await id("trust-dialog").waitFor({ state: "detached" });
   await id("overview-table").waitFor({ timeout: 180_000 });
   await id("close-project").click();
   await id("my-projects").waitFor();

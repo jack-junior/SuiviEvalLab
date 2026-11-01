@@ -20,6 +20,6 @@ about 50 MB); they are downloaded and checked by SHA-256.
 
 `expected.py` plays each scenario through the engine as a tester would and
 writes `expected.json`. `check_in_r.R` recomputes the survey estimates of
-scenarios 8 to 11 directly with the R `survey` package from the raw files (after
+scenarios 8 to 11 and 20 directly with the R `survey` package from the raw files (after
 exporting the columns to `/tmp/i19.csv` and `/tmp/i20.csv`, see the script);
 both must agree before the guide is handed out.

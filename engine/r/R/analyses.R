@@ -576,7 +576,8 @@ sme_an_regression <- function(df, d, o, level, outdir, decimal) {
     if (family == "logistic") {
       charts <- sme_an_chart_coef(file.path(outdir, "coef.png"), vapply(rr, function(r) r$term, ""),
                                   vapply(rr, function(r) r$odds_ratio, 0), vapply(rr, function(r) r$or_low, 0),
-                                  vapply(rr, function(r) r$or_high, 0), 1, "Odds ratio")
+                                  vapply(rr, function(r) r$or_high, 0), 1,
+                                  if (is.null(o$labels$odds_ratio)) "Odds ratio" else o$labels$odds_ratio)
     } else {
       charts <- sme_an_chart_coef(file.path(outdir, "coef.png"), vapply(rr, function(r) r$term, ""),
                                   vapply(rr, function(r) r$estimate, 0), vapply(rr, function(r) r$ci_low, 0),
@@ -666,6 +667,9 @@ sme_an_did <- function(df, d, o, level, outdir, decimal) {
 sme_analysis <- function(path, type, options, weights = NULL, strata = NULL, cluster = NULL, level = 0.95,
                          outdir = ".", decimal = ".") {
   weights <- sme_null(weights); strata <- sme_null(strata); cluster <- sme_null(cluster)
+  # Axis labels of the charts in the language of the interface (decimal comma in French).
+  old <- options(OutDec = decimal)
+  on.exit(options(old), add = TRUE)
   df <- sme_an_frame(path, weights, strata, cluster)
   d <- sme_an_design(df, weights, strata, cluster)
   fn <- switch(type,

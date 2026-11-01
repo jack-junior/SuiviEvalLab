@@ -171,6 +171,8 @@ def run(svc: Any, spec: dict[str, Any], lang: str) -> dict[str, Any]:
     options = {k: v for k, v in spec.items() if k not in ("title", "note", "in_report", "dataset_id", "level", "type")}
     if spec["type"] == "did":
         options["labels"] = {w: LABELS[lang]["special"][w] for w in GROUP_WORDS}
+    if spec["type"] == "regression":
+        options["labels"] = {"odds_ratio": LABELS[lang]["columns"]["odds_ratio"]}
     try:
         res = svc.bridge.call(
             "analysis",

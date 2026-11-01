@@ -1925,10 +1925,14 @@ button.cell-sub {
 .palette-list {
   max-height: 160px;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
 }
 .palette-item {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: left;
   border: 0;
   background: none;
@@ -2103,7 +2107,8 @@ button.cell-sub {
   gap: 6px;
 }
 .result-table td.num,
-.result-table th.num {
+.result-table th.num,
+.analysis-result td.num {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }

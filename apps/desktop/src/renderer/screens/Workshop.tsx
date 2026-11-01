@@ -513,7 +513,12 @@ function ResultTableView({ tab, cell }: { tab: ResultTable; cell: ReturnType<typ
   );
 }
 
+const NUMBER = /^-?\d+(\.\d+)?(e[+-]?\d+)?$/i;
+
 function DataTableView({ columns, rows }: { columns: string[]; rows: (string | null)[][] }) {
+  const cell = useCell();
+  const show = (v: string | null) =>
+    v === null ? "" : NUMBER.test(v) ? cell(Number(v), Number.isInteger(Number(v)) ? "int" : "num") : v;
   return (
     <div className="table-wrap">
       <table className="table compact">
@@ -528,7 +533,9 @@ function DataTableView({ columns, rows }: { columns: string[]; rows: (string | n
           {rows.map((r, i) => (
             <tr key={i}>
               {r.map((v, j) => (
-                <td key={j}>{v ?? ""}</td>
+                <td key={j} className={v !== null && NUMBER.test(v) ? "num" : undefined}>
+                  {show(v)}
+                </td>
               ))}
             </tr>
           ))}

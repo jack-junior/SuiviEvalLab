@@ -72,7 +72,8 @@ R tourne en **processus persistant** : il démarre une fois avec l'application,
 
 - **Aucune donnée ne quitte l'ordinateur.** Pas de compte, pas de serveur, pas de statistiques d'usage envoyées.
 - **L'interface ne manipule jamais un chemin de fichier.** Quand l'utilisateur choisit un fichier, l'hôte garde le chemin et donne à l'interface un jeton à usage interne. Une page piégée ne pourrait donc pas demander la lecture d'un fichier quelconque.
-- **Aucune formule saisie par l'utilisateur n'est exécutée comme du code.** Les règles de calcul et de nettoyage sont des descriptions structurées, interprétées par les moteurs.
+- **Aucune formule saisie par l'utilisateur n'est exécutée comme du code.** Les règles de calcul et de nettoyage sont des descriptions structurées, interprétées par les moteurs. Les formules sont lues par un analyseur propre à l'application (`formula.py`), qui ne connaît que ses opérateurs et ses fonctions, puis traduites en opérations sur les colonnes.
+- **Le code R écrit par l'utilisateur ne tourne qu'avec son accord.** Un script R du journal de nettoyage ou des analyses s'exécute dans un processus R séparé, lancé pour l'occasion, qui ne peut pas perturber le moteur statistique. Il ne tourne que si son texte exact a été écrit ou accepté sur cet ordinateur : la liste des scripts acceptés est gardée dans le dossier de l'utilisateur (`trusted-r.json`), jamais dans le fichier projet. Un projet reçu d'une autre personne ne peut donc pas déclencher de code à son ouverture ; l'application montre le code et demande d'abord.
 - **Les données importées ne sont jamais modifiées.** Le nettoyage s'applique à une copie, règle par règle.
 - Le tableau de bord partageable ne contient que des résultats agrégés, et masque les groupes de moins de 5 observations.
 
@@ -96,7 +97,8 @@ apps/desktop/          Interface et hôte (Electron, React, TypeScript)
   src/main/            Hôte : fenêtre, moteurs, sécurité, mises à jour
   src/renderer/        Interface : écrans (screens/), composants, traductions (i18n/)
 engine/python/         Moteur métier
-  sme_engine/          Fichier projet, import, nettoyage, qualité, fusion, rapport, plan, tableau de bord
+  sme_engine/          Fichier projet, import, nettoyage (dont formules et scripts R), qualité, fusion,
+                       analyses libres, rapport, plan, tableau de bord
   tests/               Tests automatiques du moteur
 engine/r/              Moteur statistique
   R/                   Fonctions statistiques (préfixe sme_)

@@ -69,6 +69,7 @@ nav:
       - Indicateurs: manuel/indicateurs.md
       - Données: manuel/donnees.md
       - Analyse et tests: manuel/analyse.md
+      - Analyses libres: manuel/analyses-libres.md
       - Rapport et livrables: manuel/rapport.md
       - Outils: manuel/outils.md
   - Contribuer: contribuer.md

@@ -945,7 +945,7 @@ def _analyses_section(
                 r.font.size = Pt(8)
             if parts["tables"] and out.get("table"):
                 tab = out["table"]
-                _table(doc, tab["columns"], [["" if v is None else str(v) for v in row] for row in tab["rows"][:60]])
+                _table(doc, tab["columns"], [[_script_cell(v, f) for v in row] for row in tab["rows"][:60]])
             if parts["charts"]:
                 for i, b64 in enumerate(out.get("plots") or []):
                     png = workdir / f"an_{a['id']}_{i}.png"
@@ -983,6 +983,17 @@ def _analyses_section(
                 doc.add_picture(str(png), width=Cm(15))
         if parts["script"] and res.get("script"):
             _code(doc, res["script"])
+
+
+def _script_cell(v: str | None, f: Fmt) -> str:
+    """A cell of a table returned by an R script: numbers written as in the report."""
+    if v is None:
+        return ""
+    try:
+        x = float(v)
+    except ValueError:
+        return v
+    return free_analyses.cell(x, "int" if x.is_integer() else "num", f)
 
 
 def _p_text(p: float | None, f: Fmt) -> str:

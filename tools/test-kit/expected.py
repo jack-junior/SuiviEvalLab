@@ -17,6 +17,7 @@ import tempfile
 from pathlib import Path
 
 os.environ.setdefault("SME_BACKUP_DIR", tempfile.mkdtemp())
+os.environ.setdefault("SME_TRUST_DIR", tempfile.mkdtemp())
 
 from sme_engine.methods import register  # noqa: E402
 from sme_engine.r_bridge import RBridge  # noqa: E402
@@ -127,6 +128,53 @@ E["test"] = {k: t["result"].get(k) for k in ("test_key", "p_value", "statistic",
     "groups": [(g["group"], g.get("estimate"), g.get("n")) for g in t["result"].get("groups", [])],
     "fr": t["conclusion"]["fr"],
 }
+# Free cleaning and custom analyses on the 2019 file (scenarios 19 and 20).
+try:
+    bad = {"kind": "formula", "target": "grande_famille", "expression": "si(tot_chld >= 4; 1; 0)"}
+    call("cleaning.add", {"dataset_id": d19, "rule": bad})
+    E["formula_error"] = None
+except RuntimeError as exc:
+    E["formula_error"] = exc.args[0]["data"]
+good = {"kind": "formula", "target": "grande_famille", "expression": "si(tot_child >= 4; 1; 0)"}
+call("cleaning.add", {"dataset_id": d19, "rule": good})
+page = call("dataset.rows", {"id": d19, "filter": "grande_famille = 1", "limit": 1})
+E["free"] = {
+    "big": page["filtered"],
+    "clean": next(d for d in call("project.get")["datasets"] if d["id"] == d19)["clean_rows"],
+}
+
+
+def analysis(spec: dict) -> dict:
+    saved = call("analysis.save", {"analysis": {"dataset_id": d19, **spec}})["created"]
+    return call("analysis.run", {"id": saved, "lang": "fr"})
+
+
+ct = analysis({"type": "crosstab", "row": "population_group", "column": "grande_famille", "percent": "row"})
+tab = next(t for t in ct["tables"] if t["key"] == "percent_row")
+col1 = next(i for i, c in enumerate(tab["columns"]) if c.get("data") and c["label"] == "1")
+E["crosstab"] = {
+    "shares": {r[0]: r[col1] for r in tab["rows"]},
+    "p_value": ct["tests"][0]["p_value"],
+    "statistic": ct["tests"][0]["statistic"],
+    "reading": ct["reading"][0],
+}
+rg = analysis(
+    {
+        "type": "regression",
+        "family": "logistic",
+        "outcome": "child_dropout_school",
+        "success": ["yes"],
+        "predictors": ["population_group", "tot_child"],
+    }
+)
+co = next(t for t in rg["tables"] if t["key"] == "coefficients_logistic")
+keys = [c["key"] for c in co["columns"]]
+E["regression"] = {
+    r[0]: {k: r[keys.index(k)] for k in ("odds_ratio", "or_low", "or_high", "p_value")} for r in co["rows"]
+} | {"n": rg["tables"][1]["rows"][0][0]}
+sc = analysis({"type": "r_script", "code": "print(svymean(~tot_child, plan, na.rm = TRUE))"})
+E["rscript"] = sc["script_result"]["output"]
+
 E["quality20"] = [
     (i["key"], i["column"], i["count"], i["severity"])
     for i in call("dataset.quality", {"id": d20})["issues"]
