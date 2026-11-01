@@ -228,7 +228,12 @@ def _mask(rule: dict[str, Any]) -> pl.Expr:
 
 def _datetime(col: str) -> pl.Expr:
     """Kobo and Excel dates: ISO date-times (offset ignored), ISO dates, dd/mm/yyyy, Excel serial numbers."""
-    s = pl.col(col).cast(pl.Utf8).str.strip_chars()
+    return datetime_expr(pl.col(col))
+
+
+def datetime_expr(expr: pl.Expr) -> pl.Expr:
+    """Same as _datetime, for any text expression (used by the formula language)."""
+    s = expr.cast(pl.Utf8).str.strip_chars()
     head = s.str.slice(0, 19).str.replace("T", " ")
     serial = s.cast(pl.Float64, strict=False)
     excel = pl.when((serial > 20000) & (serial < 80000)).then(

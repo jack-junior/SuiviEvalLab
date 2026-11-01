@@ -17,7 +17,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
-from . import __version__, cleaning_more, frameworks, routine, stattests, xlsform
+from . import __version__, cleaning_free, cleaning_more, frameworks, routine, stattests, xlsform
 
 INK = RGBColor(0x1F, 0x1E, 0x1C)
 ACTION = RGBColor(0x1D, 0x4F, 0x91)
@@ -103,6 +103,8 @@ T = {
         "effect_created": "{n} valeurs calculées",
         "effect_flagged": "{n} lignes incohérentes",
         "effect_none": "aucun changement",
+        "effect_paused": "en pause : code R pas encore accepté sur cet ordinateur",
+        "effect_error": "non appliquée (erreur, voir le journal dans l'application)",
         "disabled": "désactivée",
         "annex_methods": "Annexe B. Méthodes statistiques",
         "methods": {
@@ -205,6 +207,8 @@ T = {
         "effect_created": "{n} values computed",
         "effect_flagged": "{n} inconsistent rows",
         "effect_none": "no change",
+        "effect_paused": "paused: R code not yet accepted on this computer",
+        "effect_error": "not applied (error, see the journal in the application)",
         "disabled": "disabled",
         "annex_methods": "Appendix B. Statistical methods",
         "methods": {
@@ -400,6 +404,8 @@ def _rule_text(rule: dict[str, Any], t: dict[str, Any], f: Fmt) -> str:
     kind = rule["kind"]
     if kind in cleaning_more.KINDS:
         return cleaning_more.describe(rule, f.lang)
+    if kind in cleaning_free.KINDS:
+        return cleaning_free.describe(rule, f.lang)
     tpl = t["rule_text"][kind]
     if kind == "duplicates":
         return tpl.format(columns=", ".join(q(c) for c in rule["columns"]))
@@ -421,6 +427,10 @@ def _effect_text(rule: dict[str, Any], t: dict[str, Any]) -> str:
     e = rule.get("effect") or {}
     if not rule.get("enabled", True):
         return t["disabled"]
+    if e.get("paused"):
+        return t["effect_paused"]
+    if e.get("error"):
+        return t["effect_error"]
     parts = []
     if e.get("rows_removed"):
         parts.append(t["effect_rows"].format(n=e["rows_removed"]))

@@ -1,8 +1,8 @@
 """Cleaning journal: rules applied in order to a copy of the raw data.
 
 The raw table is never modified. Each rule is a small JSON object, so the journal
-can be replayed, reordered, switched off, and printed in the report. There is no
-free-text expression language and nothing is evaluated as code.
+can be replayed, reordered, switched off, and printed in the report. Formulas are
+read by our own parser and nothing is evaluated as Python code.
 
 Rule kinds
 - duplicates: keep the first row of each group of identical values in `columns`.
@@ -11,7 +11,9 @@ Rule kinds
 - exclude:    drop the rows where `column` takes one of `values` (null in values = missing).
 
 Advanced kinds (new variables, classes, conditions, consistency checks, text and
-dates) are in cleaning_more.py.
+dates) are in cleaning_more.py. Free kinds (formulas, filters, cells corrected by
+hand, R scripts) are in cleaning_free.py; formulas are read by formula.py, R
+scripts only run once trusted on this computer.
 """
 
 from __future__ import annotations
@@ -20,11 +22,12 @@ from typing import Any
 
 import polars as pl
 
-from . import cleaning_more
+from . import cleaning_free, cleaning_more
 from .rpc import INVALID_PARAMS, RpcError
 
 BASIC = ("duplicates", "recode", "range", "exclude")
-KINDS = BASIC + cleaning_more.KINDS
+KINDS = BASIC + cleaning_more.KINDS + cleaning_free.KINDS
+ROW = cleaning_free.ROW
 
 
 def _err(message: str, key: str) -> RpcError:
@@ -66,6 +69,8 @@ def validate(rule: dict[str, Any], columns: list[str]) -> dict[str, Any]:
     out: dict[str, Any] = {"kind": kind, "note": note.strip()[:500], "enabled": rule.get("enabled", True) is not False}
     if kind in cleaning_more.KINDS:
         return cleaning_more.validate(rule, columns, out)
+    if kind in cleaning_free.KINDS:
+        return cleaning_free.validate(rule, columns, out)
 
     def column(name: Any) -> str:
         if not isinstance(name, str) or name not in columns:
@@ -93,8 +98,12 @@ def validate(rule: dict[str, Any], columns: list[str]) -> dict[str, Any]:
 
 
 def new_columns(rule: dict[str, Any]) -> list[str]:
-    """Columns a rule adds to the cleaned table (none for the basic kinds)."""
-    return cleaning_more.new_columns(rule) if rule["kind"] in cleaning_more.KINDS else []
+    """Columns a rule adds to the cleaned table (none for the basic kinds; R scripts are known once run)."""
+    if rule["kind"] in cleaning_more.KINDS:
+        return cleaning_more.new_columns(rule)
+    if rule["kind"] in cleaning_free.KINDS:
+        return cleaning_free.new_columns(rule)
+    return []
 
 
 def missing_to_null(df: pl.DataFrame, na_values: list[str]) -> pl.DataFrame:
@@ -102,9 +111,20 @@ def missing_to_null(df: pl.DataFrame, na_values: list[str]) -> pl.DataFrame:
     return df.with_columns(pl.when(pl.all().is_in(na_values)).then(None).otherwise(pl.all()).name.keep())
 
 
-def apply(df: pl.DataFrame, rules: list[dict[str, Any]]) -> tuple[pl.DataFrame, list[dict[str, Any]]]:
-    """Apply the enabled rules in order. Returns the cleaned table and one effect per rule."""
+def apply(
+    df: pl.DataFrame,
+    rules: list[dict[str, Any]],
+    ctx: cleaning_free.Context | None = None,
+    keep_rows: bool = False,
+) -> tuple[pl.DataFrame, list[dict[str, Any]]]:
+    """Apply the enabled rules in order. Returns the cleaned table and one effect per rule.
+
+    Each row carries its number in the file (column ROW) while the rules run, so
+    that cells corrected by hand find their row; it is dropped unless keep_rows.
+    """
     effects = []
+    if ROW not in df.columns:
+        df = df.with_columns(pl.int_range(1, df.height + 1, dtype=pl.Int64).alias(ROW))
     for rule in rules:
         before = df.height
         changed = 0
@@ -115,6 +135,10 @@ def apply(df: pl.DataFrame, rules: list[dict[str, Any]]) -> tuple[pl.DataFrame, 
         if kind in cleaning_more.KINDS:
             df, removed, changed = cleaning_more.apply(df, rule)
             effects.append({"id": rule.get("id"), "applied": True, "rows_removed": removed, "cells_changed": changed})
+            continue
+        if kind in cleaning_free.KINDS:
+            df, effect = cleaning_free.apply(df, rule, ctx)
+            effects.append({"id": rule.get("id"), "applied": True, "rows_removed": 0, "cells_changed": 0, **effect})
             continue
         if kind == "duplicates":
             df = df.unique(subset=rule["columns"], keep="first", maintain_order=True)
@@ -149,4 +173,6 @@ def apply(df: pl.DataFrame, rules: list[dict[str, Any]]) -> tuple[pl.DataFrame, 
         effects.append(
             {"id": rule.get("id"), "applied": True, "rows_removed": before - df.height, "cells_changed": changed}
         )
+    if not keep_rows:
+        df = df.drop(ROW)
     return df, effects

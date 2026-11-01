@@ -18,15 +18,19 @@ import polars as pl
 from . import (
     __version__,
     cleaning,
+    cleaning_free,
     cleaning_more,
     datasets,
+    formula,
     frameworks,
     indicators,
     merge,
     quality,
+    r_user,
     routine,
     rscript,
     stattests,
+    trust,
     xlsform,
 )
 from .project import Project, Workspace, _err, _text
@@ -34,6 +38,16 @@ from .r_bridge import RBridge
 from .rpc import INVALID_PARAMS, RpcError, Server
 
 ROUND_ORDER = {r: i for i, r in enumerate(datasets.ROUNDS)}
+
+
+class _UserR:
+    """What the cleaning journal needs to run R scripts: the trust list and an R process."""
+
+    def trusted(self, code: str) -> bool:
+        return trust.is_trusted(code)
+
+    def run_r(self, df: pl.DataFrame, code: str) -> tuple[pl.DataFrame, str]:
+        return r_user.run_cleaning(df, code)
 
 
 class Service:
@@ -44,6 +58,7 @@ class Service:
         self._clean: dict[str, tuple[str, pl.DataFrame, list[dict[str, Any]]]] = {}
         self._merged: dict[str, tuple[str, pl.DataFrame, dict[str, Any]]] = {}
         self._results: dict[str, Any] = {}
+        self._rows: dict[str, tuple[str, pl.Series]] = {}
 
     # ----- state ------------------------------------------------------------------
 
@@ -55,6 +70,7 @@ class Service:
         self._raw.clear()
         self._merged.clear()
         self._clean.clear()
+        self._rows.clear()
         self._results.clear()
 
     def snapshot(self) -> dict[str, Any]:
@@ -72,6 +88,10 @@ class Service:
                 r["effect"] = by_id.get(r["id"])
                 if r["kind"] in cleaning_more.KINDS:
                     r["description"] = {lang: cleaning_more.describe(r, lang) for lang in ("fr", "en")}
+                elif r["kind"] in cleaning_free.KINDS:
+                    r["description"] = {lang: cleaning_free.describe(r, lang) for lang in ("fr", "en")}
+                if r["kind"] == "r_script":
+                    r["trusted"] = trust.is_trusted(r["code"])
             extra: dict[str, Any] = {}
             if ds.get("merge"):
                 extra["merge"] = {**ds["merge"], "stats": self.merged(ds)[2]}
@@ -85,7 +105,32 @@ class Service:
             "indicators": self.ordered_indicators(),
             "datasets": ds_list,
             "tests": p.records("saved_test"),
+            "untrusted_scripts": self.untrusted_scripts(ds_list),
         }
+
+    def untrusted_scripts(self, ds_list: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+        """R code in the project not yet accepted on this computer (paused until accepted)."""
+        out = []
+        for ds in ds_list if ds_list is not None else self.project.records("dataset"):
+            rules = ds.get("rules") if "rules" in ds else self.project.records("cleaning_rule", ds["id"])
+            for r in rules:
+                if r["kind"] == "r_script" and not trust.is_trusted(r["code"]):
+                    out.append({"where": "cleaning", "id": r["id"], "dataset": ds["name"], "code": r["code"]})
+        for a in self.project.records("analysis"):
+            if a["type"] == "r_script" and not trust.is_trusted(a["code"]):
+                out.append({"where": "analysis", "id": a["id"], "title": a.get("title") or "", "code": a["code"]})
+        return out
+
+    def trust_scripts(self, params: dict[str, Any]) -> dict[str, Any]:
+        ids = params.get("ids")
+        if not isinstance(ids, list):
+            raise _err("ids must be a list", "invalid_params")
+        codes = [s["code"] for s in self.untrusted_scripts() if s["id"] in ids]
+        trust.trust(codes)
+        self._clean.clear()
+        self._merged.clear()
+        self._results.clear()
+        return self.snapshot()
 
     def ordered_indicators(self) -> list[dict[str, Any]]:
         """Indicators in framework order (node order, then position under the node)."""
@@ -133,24 +178,44 @@ class Service:
         spec = self.dataset_spec(dataset_id)
         rules = self.project.records("cleaning_rule", dataset_id)
         source = self.merged(spec)[0] if spec.get("merge") or spec.get("stack") else None
+        trusted = [trust.is_trusted(r["code"]) for r in rules if r["kind"] == "r_script"]
         signature = hashlib.sha256(
-            json.dumps([spec["na_values"], rules, source], sort_keys=True, ensure_ascii=False).encode()
+            json.dumps([spec["na_values"], rules, source, trusted], sort_keys=True, ensure_ascii=False).encode()
         ).hexdigest()
         cached = self._clean.get(dataset_id)
         if cached and cached[0] == signature:
             return cached
         df = cleaning.missing_to_null(self.raw(dataset_id), spec["na_values"])
-        df, effects = cleaning.apply(df, rules)
+        df, effects = cleaning.apply(df, rules, ctx=_UserR(), keep_rows=True)
+        rows = df[cleaning.ROW]
+        df = df.drop(cleaning.ROW)
+        self._rows[dataset_id] = (signature, rows)
         self._clean[dataset_id] = (signature, df, effects)
         return self._clean[dataset_id]
+
+    def row_numbers(self, dataset_id: str) -> pl.Series:
+        """Row number in the file of each row of the cleaned table (for the data table and corrections)."""
+        sig = self.cleaned(dataset_id)[0]
+        cached = self._rows.get(dataset_id)
+        if cached and cached[0] == sig:
+            return cached[1]
+        self._clean.pop(dataset_id, None)
+        self.cleaned(dataset_id)
+        return self._rows[dataset_id][1]
 
     def column_names(self, dataset_id: Any, skip_rule: Any = None) -> list[str]:
         """Columns of the file plus those its cleaning rules create, in order."""
         spec = self.dataset_spec(dataset_id)
         names = [c["name"] for c in spec["columns"]]
-        for r in self.project.records("cleaning_rule", spec["id"]):
+        rules = self.project.records("cleaning_rule", spec["id"])
+        for r in rules:
             if r["id"] != skip_rule:
                 names += [c for c in cleaning.new_columns(r) if c not in names]
+        if any(r["kind"] == "r_script" for r in rules):  # columns an R script creates are known once it ran
+            try:
+                names += [c for c in self.cleaned(spec["id"])[1].columns if c not in names]
+            except RpcError:
+                pass
         return names
 
     def derived_columns(self, spec: dict[str, Any], rules: list[dict[str, Any]], df: pl.DataFrame) -> list[Any]:
@@ -159,6 +224,7 @@ class Service:
         new: list[str] = []
         for r in rules:
             new += [c for c in cleaning.new_columns(r) if c not in raw and c not in new and c in df.columns]
+        new += [c for c in df.columns if c not in raw and c not in new]
         return datasets.describe_columns(df.select(new), []) if new else []
 
     def import_dataset(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -264,6 +330,7 @@ class Service:
             lang,
             __version__,
             derived=bool(spec.get("merge") or spec.get("stack")),
+            columns=self.column_names(spec["id"]),
         )
         path.write_text(code, encoding="utf-8")
         return {"path": str(path), "data": str(raw_path), "rules": len(rules)}
@@ -388,6 +455,87 @@ class Service:
         page = df.slice(offset, limit)
         return {"id": spec["id"], "total": df.height, "offset": offset, "columns": page.columns, "rows": page.rows()}
 
+    def rows(self, params: dict[str, Any]) -> dict[str, Any]:
+        """A page of the cleaned table for the data editor, with row numbers; optional filter and sort."""
+        dataset_id = params.get("id")
+        spec = self.dataset_spec(dataset_id)
+        df = self.cleaned(spec["id"])[1].with_columns(self.row_numbers(spec["id"]).alias(cleaning.ROW))
+        columns = [c for c in df.columns if c != cleaning.ROW]
+        filtered = None
+        where = params.get("filter")
+        if isinstance(where, str) and where.strip():
+            df = df.filter(formula.condition_expr(where, columns))
+            filtered = df.height
+        sort = params.get("sort")
+        if isinstance(sort, dict) and sort.get("column") in columns:
+            c = sort["column"]
+            num = pl.col(c).cast(pl.Float64, strict=False)
+            numeric = df[c].drop_nulls().len() > 0 and df.select(num.is_null().sum()).item() == df[c].null_count()
+            df = df.sort(num if numeric else pl.col(c), descending=bool(sort.get("descending")), nulls_last=True)
+        offset = max(0, int(params.get("offset") or 0))
+        limit = min(500, max(1, int(params.get("limit") or 100)))
+        page = df.slice(offset, limit)
+        edited = {}
+        for r in self.project.records("cleaning_rule", spec["id"]):
+            if r["kind"] == "edit" and r.get("enabled", True):
+                for c in r["cells"]:
+                    edited[f"{c['row']}|{c['column']}"] = r["id"]
+        page_rows = set(page[cleaning.ROW].to_list())
+        return {
+            "id": spec["id"],
+            "total": df.height,
+            "filtered": filtered,
+            "offset": offset,
+            "columns": columns,
+            "row_numbers": page[cleaning.ROW].to_list(),
+            "rows": page.select(columns).rows(),
+            "edited": [k for k in edited if int(k.split("|", 1)[0]) in page_rows],
+        }
+
+    def edit_cells(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Corrections typed in the data table, added to the journal.
+
+        They go into the last rule of the journal when it is already a correction
+        step, otherwise into a new one; a cell corrected twice keeps the last value.
+        """
+        spec = self.dataset_spec(params.get("dataset_id"))
+        cells = params.get("cells")
+        if not isinstance(cells, list) or not cells:
+            raise _err("cells must be a non-empty list", "invalid_params")
+        df = self.cleaned(spec["id"])[1]
+        rows = self.row_numbers(spec["id"])
+        index = {n: i for i, n in enumerate(rows.to_list())}
+        for c in cells:
+            i = index.get(c.get("row")) if isinstance(c, dict) else None
+            if i is None:
+                raise _err(
+                    f"Row {c.get('row') if isinstance(c, dict) else c} is not in the cleaned table", "row_not_found"
+                )
+            if c.get("column") in df.columns:
+                c.setdefault("old", df[c["column"]][i])
+        rules = self.project.records("cleaning_rule", spec["id"])
+        last = rules[-1] if rules else None
+        columns = self.column_names(spec["id"])
+        if last and last["kind"] == "edit" and last.get("enabled", True):
+            previous = {(c["row"], c["column"]): c for c in last["cells"]}
+            for c in cells:
+                key = (c.get("row"), c.get("column"))
+                if key in previous:  # keep the value before the first correction
+                    c["old"] = previous[key]["old"]
+                previous[key] = c
+            rule = cleaning.validate({**last, "cells": list(previous.values())}, columns)
+            self.project.update_record("cleaning_rule", last["id"], rule)
+        else:
+            rule = cleaning.validate({"kind": "edit", "cells": cells, "note": params.get("note") or ""}, columns)
+            self.project.insert_record("cleaning_rule", rule, scope=spec["id"])
+        self._results.clear()
+        return self.snapshot()
+
+    def formula_preview(self, params: dict[str, Any]) -> dict[str, Any]:
+        spec = self.dataset_spec(params.get("dataset_id"))
+        df = self.cleaned(spec["id"])[1]
+        return formula.preview(df, params.get("expression"), condition=bool(params.get("condition")))
+
     def column_values(self, params: dict[str, Any]) -> dict[str, Any]:
         dataset_id = params.get("id")
         column = params.get("column")
@@ -415,6 +563,8 @@ class Service:
         dataset_id = params.get("dataset_id")
         spec = self.dataset_spec(dataset_id)
         rule = cleaning.validate(params.get("rule") or {}, self.column_names(spec["id"]))
+        if rule["kind"] == "r_script":
+            trust.trust([rule["code"]])  # written on this computer
         self.project.insert_record("cleaning_rule", rule, scope=dataset_id)
         self._results.clear()
         return self.snapshot()
@@ -423,6 +573,8 @@ class Service:
         current = self.project.record("cleaning_rule", params.get("id"))
         merged = {**current, **(params.get("rule") or {})}
         rule = cleaning.validate(merged, self.column_names(current["dataset_id"], skip_rule=current["id"]))
+        if rule["kind"] == "r_script" and (params.get("rule") or {}).get("code") is not None:
+            trust.trust([rule["code"]])  # edited on this computer
         self.project.update_record("cleaning_rule", current["id"], rule)
         self._results.clear()
         return self.snapshot()
@@ -975,6 +1127,37 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
     @server.method("dataset.preview")
     def ds_preview(params: dict[str, Any]) -> dict[str, Any]:
         return svc.preview(params)
+
+    @server.method("dataset.rows")
+    def ds_rows(params: dict[str, Any]) -> dict[str, Any]:
+        return svc.rows(params)
+
+    @server.method("cleaning.edit_cells")
+    def cl_edit_cells(params: dict[str, Any]) -> dict[str, Any]:
+        return svc.edit_cells(params)
+
+    @server.method("formula.preview")
+    def fo_preview(params: dict[str, Any]) -> dict[str, Any]:
+        return svc.formula_preview(params)
+
+    @server.method("formula.functions")
+    def fo_functions(params: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "functions": [
+                {
+                    "name": name,
+                    "fr": formula.display_name(aliases, "fr"),
+                    "en": formula.display_name(aliases, "en"),
+                    "min": lo,
+                    "max": hi,
+                }
+                for name, (aliases, lo, hi) in formula.FUNCTIONS.items()
+            ]
+        }
+
+    @server.method("scripts.trust")
+    def sc_trust(params: dict[str, Any]) -> dict[str, Any]:
+        return svc.trust_scripts(params)
 
     @server.method("dataset.column_values")
     def ds_values(params: dict[str, Any]) -> dict[str, Any]:

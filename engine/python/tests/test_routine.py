@@ -9,7 +9,7 @@ import sqlite3
 import pytest
 from docx import Document
 
-from sme_engine import frameworks, routine
+from sme_engine import frameworks, project, routine
 from sme_engine.methods import register
 from sme_engine.r_bridge import RBridge, find_rscript
 from sme_engine.rpc import Server
@@ -90,7 +90,7 @@ def test_migration_from_version_2(tmp_path, call):
     conn.close()
     snap = call("project.open", {"path": str(path)})
     assert snap["framework"][0]["assumptions"] == "" and snap["project"]["framework_model"]["id"] == "standard"
-    assert sqlite3.connect(path).execute("PRAGMA user_version").fetchone()[0] == 3
+    assert sqlite3.connect(path).execute("PRAGMA user_version").fetchone()[0] == project.SCHEMA_VERSION
 
 
 # ----- routine values ------------------------------------------------------------
