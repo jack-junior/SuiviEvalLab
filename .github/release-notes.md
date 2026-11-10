@@ -2,6 +2,10 @@
 
 SuiviEvalLab couvre le parcours complet du suivi-évaluation, sur votre ordinateur et sans connexion internet : cadre de résultats, indicateurs, import et nettoyage des données, calcul par R avec intervalles de confiance et plan d'enquête, rapport Word. Un projet d'exemple fonctionne sur des données d'enquête réelles et publiques (REACH, Irak, 2019 et 2020).
 
+### Corrigé dans la 0.5.2
+
+- Dans les panneaux de saisie (cadre de résultats, indicateurs, nettoyage...), le curseur revenait dans le premier champ à chaque lettre tapée dans un autre champ. Il reste désormais dans le champ où l'on écrit.
+
 ### Nouveautés de la 0.5.1
 
 - Mentions d'auteur : le projet, l'installeur et l'écran Moteurs (section « À propos ») indiquent les auteurs, GAYI Komi Selassi et SANOUSSI Moudjibou, et la licence GPL. Chaque fichier source porte la mention de droits d'auteur.
@@ -26,6 +30,10 @@ Si une version précédente est installée, elle propose celle-ci d'elle-même :
 **Preview release, to be tested before any real use.**
 
 SuiviEvalLab covers the whole monitoring and evaluation path, on your computer and offline: results framework, indicators, data import and cleaning, calculations in R with confidence intervals and survey design, Word report. An example project runs on real public survey data (REACH, Iraq, 2019 and 2020).
+
+### Fixed in 0.5.2
+
+- In the side panels (results framework, indicators, cleaning...), the cursor went back to the first field at each letter typed in another field. It now stays in the field being typed in.
 
 ### New in 0.5.1
 
