@@ -109,6 +109,16 @@ try {
   await page.locator(".tree-row").first().hover();
   await id("node-add-child").first().click();
   await id("node-title").fill("L'accès aux écoles s'améliore");
+  // Typed key by key in a second field: the cursor must stay there (it used to go
+  // back to the first field of the panel at every key).
+  await id("node-assumptions").click();
+  await id("node-assumptions").pressSequentially("Pas de conflit", {
+    delay: 30,
+  });
+  const typed = await id("node-assumptions").inputValue();
+  const title = await id("node-title").inputValue();
+  if (typed !== "Pas de conflit" || title !== "L'accès aux écoles s'améliore")
+    throw new Error(`Typing in a second field failed: "${title}" / "${typed}"`);
   await id("node-save").click();
   await page.locator(".tree-row").nth(1).waitFor();
 
@@ -172,7 +182,10 @@ try {
   );
   await id("indicator-column").selectOption("primary_school_place");
   await id("value-within_2km").check({ timeout: 30_000 });
-  await id("indicator-target").fill("90");
+  await id("indicator-target").click();
+  await id("indicator-target").pressSequentially("90", { delay: 30 });
+  if ((await id("indicator-target").inputValue()) !== "90")
+    throw new Error("Typing in the indicator target failed");
   await id("indicator-save").click();
   await page.locator(".ind-row").first().waitFor();
 

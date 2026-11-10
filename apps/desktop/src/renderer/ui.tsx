@@ -115,12 +115,22 @@ export function Panel({
 }) {
   const { t } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
+  // The latest onClose, without making the effects below run again: callers pass a new
+  // function at each render, and focusing again at each render sent the cursor back to
+  // the first field at every key typed in another one.
+  const close = useRef(onClose);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    ref.current?.querySelector<HTMLElement>("input, textarea, select")?.focus();
-    return () => window.removeEventListener("keydown", onKey);
+    close.current = onClose;
   }, [onClose]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close.current();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  // Focus the first field once, when the panel opens.
+  useEffect(() => {
+    ref.current?.querySelector<HTMLElement>("input, textarea, select")?.focus();
+  }, []);
   return (
     <div className="panel-layer" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="panel" role="dialog" aria-modal="true" aria-label={title} ref={ref} data-testid={testId}>
