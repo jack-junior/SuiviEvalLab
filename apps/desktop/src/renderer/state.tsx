@@ -10,6 +10,12 @@ import { call, EngineCallError, Snapshot } from "./api";
 import { useI18n } from "./i18n";
 
 export type View =
+  | "today"
+  | "reception"
+  | "tracking"
+  | "agenda"
+  | "ws_today"
+  | "ws_agenda"
   | "overview"
   | "setup"
   | "framework"

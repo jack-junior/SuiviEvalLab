@@ -30,6 +30,7 @@ interface SmeBridge {
   reveal?: (file: string) => Promise<void>;
   saveSummary?: (file: string, summary: Record<string, number>) => Promise<void>;
   openFile?: (token: string) => Promise<boolean>;
+  workspaceAgenda?: (range: { start: string; end: string; lang: string }) => Promise<AgendaData>;
   updates?: UpdatesBridge;
 }
 
@@ -66,6 +67,10 @@ export type PickKind =
   | "html-save"
   | "xlsx-save"
   | "r-save"
+  | "ics-save"
+  | "ics-open"
+  | "xlsx-open"
+  | "folder"
   | "template-open";
 export interface Picked {
   token: string;
@@ -94,6 +99,7 @@ export interface ProjectCard {
   >;
   time_elapsed?: number | null;
   phase?: "not_started" | "running" | "closed" | "unset";
+  today?: ProjectToday | null;
   current_period?: Period | null;
   next_deadline?: {
     kind: "data" | "report";
@@ -132,7 +138,23 @@ export interface FrameworkModel {
   levels: FrameworkLevel[];
 }
 
-export type Unit = "percent" | "mean" | "count" | "ratio";
+/** Types of indicators (specification 6.1). The last five are for values entered period by period. */
+export type Unit = "percent" | "mean" | "count" | "ratio" | "rate" | "median" | "score" | "milestone" | "scale";
+export const SURVEY_UNITS: Unit[] = ["percent", "mean", "count", "ratio"];
+export const ENTRY_UNITS: Unit[] = [
+  "count",
+  "percent",
+  "rate",
+  "ratio",
+  "mean",
+  "median",
+  "score",
+  "milestone",
+  "scale",
+];
+export type SourceType = "survey" | "routine" | "secondary";
+export const isEntry = (i: { source_type?: SourceType }) =>
+  i.source_type === "routine" || i.source_type === "secondary";
 export interface Condition {
   column: string;
   values: string[];
@@ -163,26 +185,17 @@ export interface Indicator {
   frequency?: Frequency;
   responsible?: string;
   target_date?: string;
-  /** survey: computed from the datasets; routine: values typed period by period. */
-  source_type?: "survey" | "routine";
-  aggregation?: "sum" | "last" | "mean";
+  /** survey: computed from imported data; routine: entered period by period; secondary: from another source. */
+  source_type?: SourceType;
+  aggregation?: "sum" | "last" | "mean" | "max";
+  /** Plausible range of a value entered. */
+  bounds?: { min?: number; max?: number };
   categories?: string[];
   /** Reference sheet of the indicator library, and its citation. */
   library_id?: string;
   library_ref?: string;
   /** Keys of the project disaggregations the indicator is reported by. */
   breakdowns?: string[];
-}
-
-export interface RoutinePeriod {
-  period: string;
-  end: string | null;
-  achieved: number | null;
-  planned: number | null;
-  by: Record<string, number>;
-  note: string;
-  to_date?: number | null;
-  planned_to_date?: number | null;
 }
 
 export interface ColumnInfo {
@@ -475,6 +488,154 @@ export interface Snapshot {
   partners: Partner[];
   disaggregations: Disaggregation[];
   targets: Record<string, Target[]>;
+  submissions: Submission[];
+  units: ReportingUnit[];
+  gap_comments: Record<string, GapComment[]>;
+  tasks: Task[];
+  events: AgendaEvent[];
+}
+
+// ----- monitoring (1.0, milestone J2) -----
+
+export type SubmissionStatus = "draft" | "submitted" | "review" | "returned" | "validated" | "locked";
+export interface Submission {
+  id: string;
+  period: string;
+  place_id: string;
+  partner_id: string;
+  channel: "entry" | "excel" | "import" | "secondary" | "migrated";
+  status: SubmissionStatus;
+  created_at: string;
+  submitted_at: string | null;
+  validated_at: string | null;
+  comment: string;
+  source_ref: string;
+  history: { at: string; action: string; status: string; comment?: string }[];
+}
+export interface ReportingUnit {
+  place_id: string;
+  partner_id: string;
+}
+export interface GapComment {
+  id: string;
+  period: string;
+  text: string;
+  at: string;
+}
+export interface Alert {
+  key: string;
+  check: string;
+  severity: "blocking" | "review" | "info";
+  indicator_id: string;
+  cats: string;
+  info: Record<string, number | string | null>;
+  justification?: string | null;
+}
+/** value, numerator, denominator */
+export type Cell = [number | null, number | null, number | null];
+export interface SubmissionDetail {
+  submission: Submission;
+  cells: Record<string, Record<string, Cell>>;
+  alerts: Alert[];
+}
+export type TrackStatus = "achieved" | "on_track" | "late" | "not_started" | "no_data" | "unknown";
+export interface TrackPoint {
+  period: string;
+  value: number | null;
+  numerator: number | null;
+  denominator: number | null;
+  reason: string | null;
+  provisional: boolean;
+  target: number | null;
+  to_date: number | null;
+  target_to_date: number | null;
+  interpolated: boolean;
+  rate_to_date: number | null;
+  status: TrackStatus;
+  trend: "up" | "down" | "flat" | null;
+}
+export interface TrackRow {
+  indicator_id: string;
+  kind: "count" | "fraction" | "mean" | "level" | "milestone";
+  mode: "sum" | "last" | "mean" | "max";
+  baseline: number | null;
+  target: number | null;
+  period: string | null;
+  value_period: number | null;
+  target_period: number | null;
+  rate_period: number | null;
+  to_date: number | null;
+  target_to_date: number | null;
+  interpolated: boolean;
+  rate_to_date: number | null;
+  status: TrackStatus;
+  trend: "up" | "down" | "flat" | null;
+  provisional: boolean;
+  reason: string | null;
+  series: TrackPoint[];
+}
+export interface Task {
+  id: string;
+  title: string;
+  due: string;
+  priority: "low" | "normal" | "high";
+  status: "todo" | "doing" | "waiting" | "done";
+  note: string;
+  assignee: string;
+  recurrence: "" | "monthly" | "quarterly";
+  link: { kind: string; id: string } | null;
+  created_at: string;
+  done_at: string | null;
+}
+export type EventKind = "meeting" | "mission" | "training" | "workshop" | "absence" | "collection" | "other";
+export interface AgendaEvent {
+  id: string;
+  title: string;
+  kind: EventKind;
+  start: string;
+  end: string;
+  place: string;
+  note: string;
+}
+/** A deadline or a task worked out from the project, or one typed by the user. */
+export interface AgendaItem {
+  id: string;
+  auto: boolean;
+  kind: string;
+  title?: string;
+  start?: string;
+  end?: string;
+  due?: string;
+  period?: string;
+  label?: string;
+  priority?: "low" | "normal" | "high";
+  status?: string;
+  done?: boolean;
+  unit_name?: string;
+  submission_id?: string | null;
+  indicator_id?: string;
+  indicator?: string;
+  missing?: string[];
+  comment?: string;
+  place?: string;
+  note?: string;
+  days?: number;
+  project?: string;
+  path?: string;
+  color?: string;
+  personal?: boolean;
+}
+export interface AgendaData {
+  events: AgendaItem[];
+  tasks: AgendaItem[];
+}
+export interface ProjectToday {
+  day: string;
+  deadlines: AgendaItem[];
+  events: AgendaItem[];
+  tasks: AgendaItem[];
+  alerts: number;
+  late: { indicator_id: string; indicator: string; period: string; rate: number | null }[];
 }
 
 export type PeriodFrequency = "monthly" | "quarterly" | "semiannual" | "annual";
@@ -501,6 +662,9 @@ export interface Profile {
   manager: string;
   color: string;
   place_levels: string[];
+  reporting_by: "project" | "partner" | "place" | "partner_place";
+  reporting_level: number;
+  on_track: number;
 }
 export interface Period {
   id: string;
@@ -512,6 +676,8 @@ export interface Period {
   data_due: string;
   report_due: string;
   state: "open" | "locked";
+  reported_at?: string | null;
+  history?: { at: string; action: string; comment?: string }[];
 }
 export interface Place {
   id: string;
@@ -749,6 +915,8 @@ export const revealProject = (file: string) => bridge.reveal?.(file) ?? Promise.
 export const saveSummary = (file: string, summary: Record<string, number>) =>
   bridge.saveSummary?.(file, summary) ?? Promise.resolve();
 export const openFile = (token: string) => bridge.openFile?.(token) ?? Promise.resolve(false);
+export const workspaceAgenda = (start: string, end: string, lang: string) =>
+  bridge.workspaceAgenda?.({ start, end, lang }) ?? Promise.resolve({ events: [], tasks: [] } as AgendaData);
 
 /** Automatic updates; absent in the browser preview. */
 export const updates = (): UpdatesBridge | null => bridge.updates ?? null;

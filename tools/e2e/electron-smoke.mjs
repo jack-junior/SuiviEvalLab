@@ -99,7 +99,8 @@ try {
   await id("engine-ready").first().waitFor({ timeout: 150_000 });
   notice("E2E", "Engines ready");
 
-  // 1. Manual path
+  // 1. Manual path (from the Projects screen, whatever the workspace opened on)
+  await id("nav-overview").click();
   await id("new-project").click();
   await id("new-name").fill("Projet test");
   await id("new-create").click();
@@ -220,6 +221,77 @@ try {
   if ((await q1.inputValue()) !== "35")
     throw new Error("Revised target not shown");
   await shot("monitoring-plan");
+
+  // An indicator with periodic entry, broken down by sex.
+  await id("nav-indicators").click();
+  await id("add-indicator").click();
+  await id("source-routine").click();
+  await id("unit-count").click();
+  await id("indicator-name").fill("Enseignants formés");
+  await id("breakdown-sex").check();
+  await id("indicator-target").fill("100");
+  await id("indicator-save").click();
+  await page.locator(".ind-row", { hasText: "Enseignants formés" }).waitFor();
+
+  // Reception: the values of the first quarter, entered by sex, then validated.
+  await id("nav-reception").click();
+  await id("rec-period-T1-2026").click();
+  await page
+    .locator('[data-testid="rec-row-Le projet"] [data-testid="rec-open"]')
+    .click();
+  await id("entry-panel").waitFor();
+  await id("cell-Enseignants formés-sex=f").fill("12");
+  await id("cell-Enseignants formés-sex=m").fill("8");
+  await id("entry-save").click();
+  await page.waitForTimeout(300);
+  await id("entry-validate").click();
+  await page
+    .locator('[data-testid="entry-panel"] [data-testid="sub-status"]', {
+      hasText: "Validé",
+    })
+    .waitFor({ timeout: 30_000 });
+  await shot("reception-entry");
+  await page.keyboard.press("Escape");
+  await page
+    .locator('[data-testid="rec-row-Le projet"] [data-testid="sub-status"]', {
+      hasText: "Validé",
+    })
+    .waitFor({ timeout: 30_000 });
+
+  // Tracking: 20 teachers trained to date in the first quarter.
+  await id("nav-tracking").click();
+  await id("trk-period").selectOption("T1-2026");
+  const toDate = page.locator(
+    '[data-testid="trk-row-Enseignants formés"] [data-testid="trk-to-date"]',
+  );
+  await toDate.filter({ hasText: "20" }).waitFor({ timeout: 30_000 });
+  await id("trk-gap-Enseignants formés").click();
+  await id("gap-text").fill("Formateurs disponibles à partir de mars");
+  await id("gap-save").click();
+  await shot("tracking");
+
+  // Today and agenda of the project.
+  await id("nav-today").click();
+  await id("project-today").waitFor();
+  await page
+    .locator('[data-testid^="todo-"]')
+    .first()
+    .waitFor({ timeout: 30_000 });
+  notice(
+    "E2E today",
+    (await id("today-tasks").innerText()).replace(/\s+/g, " ").slice(0, 200),
+  );
+  await shot("project-today");
+  await id("nav-agenda").click();
+  await id("calendar").waitFor();
+  await id("agenda-add-event").click();
+  await id("event-title").fill("Mission de suivi à Kara");
+  await id("event-save").click();
+  await page
+    .locator(".cal-item", { hasText: "Mission de suivi" })
+    .first()
+    .waitFor({ timeout: 30_000 });
+  await shot("agenda");
 
   await id("nav-analysis").click();
   await id("comparison").waitFor({ timeout: 120_000 });
@@ -395,6 +467,16 @@ try {
   // 2. Example project
   await id("close-project").click();
 
+  // Workspace today: the tasks of every project.
+  await id("nav-ws_today").click();
+  await id("workspace-today").waitFor();
+  await page
+    .locator('[data-testid^="todo-"]')
+    .first()
+    .waitFor({ timeout: 60_000 });
+  await shot("workspace-today");
+  await id("nav-overview").click();
+
   // Workspace: the project card shows its calendar, and the next deadline is listed.
   await id("ws-card").first().waitFor({ timeout: 60_000 });
   await id("ws-deadlines").waitFor({ timeout: 60_000 });
@@ -416,6 +498,10 @@ try {
   await shot("sample-size");
   await page.keyboard.press("Escape");
   await id("open-example").click();
+  // The example opens on its day of work; its survey results are in the overview.
+  await id("project-today").waitFor({ timeout: 180_000 });
+  await shot("example-today");
+  await id("nav-overview").click();
   await id("overview-table").waitFor({ timeout: 180_000 });
   await page
     .locator('[data-testid^="status-"]')
@@ -492,7 +578,7 @@ try {
   notice("E2E updates", await id("update-status").innerText());
   notice(
     "E2E",
-    "Full path verified: project sheet, framework, import, cleaning, indicator, monitoring plan, analysis, report, SPSS, quality, merge, dashboard, checks, plan export, workspace, sample size, example, test, logframe matrix, languages, indicator library",
+    "Full path verified: project sheet, framework, import, cleaning, indicator, monitoring plan, periodic entry, reception and validation, tracking, gap comment, project today, agenda, analysis, report, SPSS, quality, merge, dashboard, checks, plan export, workspace today, workspace, sample size, example, test, logframe matrix, languages, indicator library",
   );
 } finally {
   await app.close();

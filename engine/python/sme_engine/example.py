@@ -299,6 +299,9 @@ def fill_example(svc: Any, lang: str = "fr") -> None:
         reception.act(p, sub, "submit")
         reception.act(p, sub, "validate")
     p.insert_record("gap_comment", {"period": codes[2], "text": t["q_note"], "at": reception.now()}, scope=routine_id)
+    # The reports of the first three quarters were sent.
+    for period in p.records("period")[:3]:
+        p.update_record("period", period["id"], {**period, "reported_at": reception.now()})
 
     design = {"weights": "weights", "strata": ["population_group", "governorate_mcna"], "cluster": None}
     for file, name, round_, id_col, round_label in (

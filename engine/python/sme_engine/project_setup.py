@@ -262,6 +262,15 @@ def register_setup(server: Server, svc: Service) -> None:
         lang = "en" if params.get("lang") == "en" else "fr"
         return {"projects": workspace.summaries(params.get("paths"), params.get("today"), lang)}
 
+    @server.method("workspace.agenda")
+    def ws_agenda(params: dict[str, Any]) -> dict[str, Any]:
+        from . import agenda, workspace
+
+        start = agenda._day(params.get("start"), "start", required=True)[:10]
+        end = agenda._day(params.get("end"), "end", required=True)[:10]
+        lang = "en" if params.get("lang") == "en" else "fr"
+        return workspace.agenda_all(params.get("paths"), start, end, lang, params.get("today"))
+
     @server.method("personal.get")
     def personal_get(_: dict[str, Any]) -> dict[str, Any]:
         from . import workspace

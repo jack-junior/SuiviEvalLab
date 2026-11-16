@@ -126,7 +126,7 @@ def _unit_name(view: reception.View, unit: dict[str, str], lang: str) -> str:
     partner = next((p for p in view.partners if p["id"] == unit.get("partner_id")), None)
     place = next((p for p in view.places if p["id"] == unit.get("place_id")), None)
     parts = [x for x in ((partner or {}).get("acronym") or (partner or {}).get("name"), (place or {}).get("name")) if x]
-    return ", ".join(parts) or ("the project" if lang == "en" else "le projet")
+    return ", ".join(parts)
 
 
 def derived(view: reception.View, day: str, lang: str = "fr") -> dict[str, list[dict[str, Any]]]:

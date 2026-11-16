@@ -97,6 +97,29 @@ const ALLOWED = new Set([
   "library.sectors",
   "library.search",
   "library.adopt",
+  "submission.open",
+  "submission.get",
+  "submission.save",
+  "submission.act",
+  "submission.delete",
+  "alert.justify",
+  "tracking.table",
+  "tracking.breakdown",
+  "gap.save",
+  "period.mark_reported",
+  "today.project",
+  "agenda.list",
+  "task.save",
+  "task.delete",
+  "event.save",
+  "event.delete",
+  "agenda.export_ics",
+  "agenda.import_ics",
+  "canevas.write",
+  "canevas.receive",
+  "personal.get",
+  "personal.task_save",
+  "personal.event_save",
 ]);
 
 // Paths chosen by the user in a dialog, by token. Tokens live for the session.
@@ -111,6 +134,10 @@ type DialogKind =
   | "html-save"
   | "xlsx-save"
   | "r-save"
+  | "ics-save"
+  | "ics-open"
+  | "xlsx-open"
+  | "folder"
   | "template-open";
 
 // End-to-end tests answer dialogs through SME_E2E_DIALOGS (paths separated by "|").
@@ -128,7 +155,8 @@ async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token
       kind === "csv-save" ||
       kind === "html-save" ||
       kind === "xlsx-save" ||
-      kind === "r-save"
+      kind === "r-save" ||
+      kind === "ics-save"
     ) {
       const filter = {
         "project-save": { name: "SuiviEvalLab", extensions: ["sme"], file: "Projet.sme" },
@@ -137,12 +165,19 @@ async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token
         "html-save": { name: "HTML", extensions: ["html"], file: "Tableau-de-bord.html" },
         "xlsx-save": { name: "Excel", extensions: ["xlsx"], file: "Plan-de-suivi.xlsx" },
         "r-save": { name: "R", extensions: ["R"], file: "Nettoyage.R" },
+        "ics-save": { name: "iCalendar", extensions: ["ics"], file: "Agenda.ics" },
       }[kind];
       const res = await dialog.showSaveDialog(win, {
         defaultPath: path.join(docs, defaultName ?? filter.file),
         filters: [{ name: filter.name, extensions: filter.extensions }],
       });
       chosen = res.canceled ? undefined : res.filePath;
+    } else if (kind === "folder") {
+      const res = await dialog.showOpenDialog(win, {
+        defaultPath: docs,
+        properties: ["openDirectory", "createDirectory"],
+      });
+      chosen = res.canceled ? undefined : res.filePaths[0];
     } else {
       const filters = {
         "project-open": [{ name: "SuiviEvalLab", extensions: ["sme"] }],
@@ -150,7 +185,9 @@ async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token
           { name: "Excel, CSV, SPSS, Stata", extensions: ["xlsx", "xlsm", "xls", "csv", "sav", "zsav", "dta"] },
         ],
         "template-open": [{ name: "Word", extensions: ["docx", "dotx"] }],
-      }[kind as "project-open" | "data-open" | "template-open"];
+        "ics-open": [{ name: "iCalendar", extensions: ["ics"] }],
+        "xlsx-open": [{ name: "Excel", extensions: ["xlsx", "xlsm"] }],
+      }[kind as "project-open" | "data-open" | "template-open" | "ics-open" | "xlsx-open"];
       const res = await dialog.showOpenDialog(win, { defaultPath: docs, properties: ["openFile"], filters });
       chosen = res.canceled ? undefined : res.filePaths[0];
     }
@@ -337,6 +374,10 @@ app.whenReady().then(() => {
       "html-save",
       "xlsx-save",
       "r-save",
+      "ics-save",
+      "ics-open",
+      "xlsx-open",
+      "folder",
       "template-open",
     ];
     if (typeof kind !== "string" || !kinds.includes(kind as DialogKind)) return null;
@@ -357,6 +398,19 @@ app.whenReady().then(() => {
     }
   };
   ipcMain.handle("project:recents", () => workspaceList());
+  // Agenda of all known projects and of the user, between two dates.
+  ipcMain.handle("workspace:agenda", async (_e, range: unknown) => {
+    const r = (range ?? {}) as { start?: unknown; end?: unknown; lang?: unknown };
+    if (typeof r.start !== "string" || typeof r.end !== "string") return { events: [], tasks: [] };
+    return engine!.call("workspace.agenda", {
+      paths: listProjects()
+        .filter((p) => p.exists)
+        .map((p) => p.path),
+      start: r.start,
+      end: r.end,
+      lang: r.lang === "en" ? "en" : "fr",
+    });
+  });
   ipcMain.handle("project:forget", (_e, file: unknown) => {
     if (typeof file === "string") writeRecents(readRecents().filter((r) => r.path !== file));
     return workspaceList();

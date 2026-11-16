@@ -4,9 +4,10 @@
 // Application shell: sidebar navigation, top bar, and the screen for the current view.
 
 import { useCallback, useEffect, useState } from "react";
-import { appInfo, AppInfo, call, EngineCallError, Versions } from "./api";
+import { appInfo, AppInfo, call, EngineCallError, recents, Versions } from "./api";
 import { Lang, useI18n } from "./i18n";
 import logo from "./logo.svg";
+import { Agenda } from "./screens/Agenda";
 import { Analysis } from "./screens/Analysis";
 import { Data } from "./screens/Data";
 import { Engines, EngineStatus } from "./screens/Engines";
@@ -15,9 +16,12 @@ import { Home } from "./screens/Home";
 import { Indicators } from "./screens/Indicators";
 import { Overview } from "./screens/Overview";
 import { Plan } from "./screens/Plan";
+import { Reception } from "./screens/Reception";
 import { Report } from "./screens/Report";
 import { Setup } from "./screens/Setup";
 import { Tests } from "./screens/Tests";
+import { ProjectTodayScreen, WorkspaceToday } from "./screens/Today";
+import { Tracking } from "./screens/Tracking";
 import { Workshop } from "./screens/Workshop";
 import { TrustDialog } from "./TrustDialog";
 import { useProject, View } from "./state";
@@ -29,17 +33,46 @@ const LANGS: { code: Lang; label: string; name: string }[] = [
   { code: "en", label: "EN", name: "English" },
 ];
 
-const NAV: { view: View; icon: string }[] = [
-  { view: "overview", icon: "gauge" },
-  { view: "setup", icon: "calendar" },
-  { view: "framework", icon: "tree" },
-  { view: "indicators", icon: "target" },
-  { view: "plan", icon: "plan" },
-  { view: "data", icon: "table" },
-  { view: "analysis", icon: "chart" },
-  { view: "tests", icon: "scale" },
-  { view: "workshop", icon: "calc" },
-  { view: "report", icon: "doc" },
+// Project menu, in the order of use (specification 3.3).
+const NAV: { group?: string; items: { view: View; icon: string }[] }[] = [
+  {
+    items: [
+      { view: "today", icon: "home" },
+      { view: "tracking", icon: "gauge" },
+      { view: "reception", icon: "open" },
+      { view: "agenda", icon: "calendar" },
+    ],
+  },
+  {
+    group: "nav.group_design",
+    items: [
+      { view: "framework", icon: "tree" },
+      { view: "indicators", icon: "target" },
+      { view: "plan", icon: "plan" },
+    ],
+  },
+  {
+    group: "nav.group_surveys",
+    items: [
+      { view: "overview", icon: "chart" },
+      { view: "data", icon: "table" },
+      { view: "analysis", icon: "chart" },
+      { view: "tests", icon: "scale" },
+      { view: "workshop", icon: "calc" },
+    ],
+  },
+  {
+    items: [
+      { view: "report", icon: "doc" },
+      { view: "setup", icon: "people" },
+    ],
+  },
+];
+
+const WS_NAV: { view: View; icon: string; label: string }[] = [
+  { view: "ws_today", icon: "home", label: "nav.today" },
+  { view: "overview", icon: "folder", label: "nav.projects" },
+  { view: "ws_agenda", icon: "calendar", label: "nav.agenda" },
 ];
 
 export function App() {
@@ -58,6 +91,16 @@ export function App() {
           e instanceof EngineCallError ? { key: e.key, detail: e.message } : { key: "unknown", detail: String(e) },
         ),
       );
+  }, []);
+
+  // The workspace opens on today's work when there are projects to work on.
+  useEffect(() => {
+    recents()
+      .then((list) => {
+        if (list.some((r) => r.exists)) go("ws_today");
+      })
+      .catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -94,10 +137,13 @@ export function App() {
         indicators: snap.indicators.length,
         data: snap.datasets.length,
         workshop: snap.analyses.length,
+        reception:
+          snap.submissions.filter((s) => s.status === "submitted" || s.status === "review").length || undefined,
       }
     : {};
   const showEngines = view === "engines";
-  const title = showEngines ? t("engines.title") : snap ? t(`nav.${view}`) : t("nav.home");
+  const wsView = (WS_NAV.find((n) => n.view === view) ?? WS_NAV[1]).label;
+  const title = showEngines ? t("engines.title") : snap ? t(`nav.${view}`) : t(wsView);
 
   return (
     <div className={`app${folded ? " folded" : ""}`}>
@@ -129,21 +175,26 @@ export function App() {
               {snap.project.name}
             </div>
             <nav aria-label={t("nav.steps")}>
-              {NAV.map((n) => (
-                <a
-                  key={n.view}
-                  href={`#${n.view}`}
-                  aria-current={view === n.view ? "page" : undefined}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    go(n.view);
-                  }}
-                  data-testid={`nav-${n.view}`}
-                >
-                  <Icon name={n.icon} />
-                  <span className="nav-label">{t(`nav.${n.view}`)}</span>
-                  {counts[n.view] !== undefined && <span className="nav-count">{counts[n.view]}</span>}
-                </a>
+              {NAV.map((g, gi) => (
+                <div key={gi} className="nav-group">
+                  {g.group && <div className="group-title nav-sub">{t(g.group)}</div>}
+                  {g.items.map((n) => (
+                    <a
+                      key={n.view}
+                      href={`#${n.view}`}
+                      aria-current={view === n.view ? "page" : undefined}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        go(n.view);
+                      }}
+                      data-testid={`nav-${n.view}`}
+                    >
+                      <Icon name={n.icon} />
+                      <span className="nav-label">{t(`nav.${n.view}`)}</span>
+                      {counts[n.view] !== undefined && <span className="nav-count">{counts[n.view]}</span>}
+                    </a>
+                  ))}
+                </div>
               ))}
             </nav>
             <button className="link side-close" onClick={closeProject} data-testid="close-project">
@@ -152,17 +203,21 @@ export function App() {
           </div>
         ) : (
           <nav className="fold-hide" aria-label={t("nav.steps")}>
-            <a
-              href="#home"
-              aria-current={!showEngines ? "page" : undefined}
-              onClick={(e) => {
-                e.preventDefault();
-                go("overview");
-              }}
-            >
-              <Icon name="home" />
-              <span className="nav-label">{t("nav.home")}</span>
-            </a>
+            {WS_NAV.map((n) => (
+              <a
+                key={n.view}
+                href={`#${n.view}`}
+                aria-current={!showEngines && view === n.view ? "page" : undefined}
+                onClick={(e) => {
+                  e.preventDefault();
+                  go(n.view);
+                }}
+                data-testid={`nav-${n.view}`}
+              >
+                <Icon name={n.icon} />
+                <span className="nav-label">{t(n.label)}</span>
+              </a>
+            ))}
           </nav>
         )}
 
@@ -238,7 +293,21 @@ export function App() {
           {showEngines ? (
             <Engines info={info} versions={versions} error={engineError} onRecheck={loadVersions} />
           ) : !snap ? (
-            <Home enginesReady={ready} />
+            view === "ws_today" ? (
+              <WorkspaceToday />
+            ) : view === "ws_agenda" ? (
+              <Agenda scope="workspace" />
+            ) : (
+              <Home enginesReady={ready} />
+            )
+          ) : view === "today" ? (
+            <ProjectTodayScreen />
+          ) : view === "reception" ? (
+            <Reception />
+          ) : view === "tracking" ? (
+            <Tracking />
+          ) : view === "agenda" ? (
+            <Agenda scope="project" />
           ) : view === "setup" ? (
             <Setup />
           ) : view === "framework" ? (

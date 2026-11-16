@@ -553,3 +553,16 @@ def test_workspace_today_and_personal_items(call, tmp_path, monkeypatch):
     assert call("personal.get")["events"][0]["title"] == "Congé"
     data = call("personal.task_save", {"id": tid, "delete": True})
     assert data["tasks"] == []
+
+
+def test_workspace_agenda(call, tmp_path, monkeypatch):
+    monkeypatch.setenv("SME_TRUST_DIR", str(tmp_path / "home"))
+    _project(call, tmp_path)
+    call("event.save", {"event": {"title": "Atelier", "kind": "workshop", "start": "2026-02-03"}})
+    path = call("project.get")["project"]["path"]
+    call("personal.event_save", {"event": {"title": "Congé", "kind": "absence", "start": "2026-02-05"}})
+    out = call("workspace.agenda", {"paths": [path], "start": "2026-02-01", "end": "2026-02-28"})
+    assert [(e["title"], e.get("project"), bool(e.get("personal"))) for e in out["events"]] == [
+        ("Atelier", "P", False),
+        ("Congé", None, True),
+    ]

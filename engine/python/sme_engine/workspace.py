@@ -155,3 +155,49 @@ def personal_save(data: dict[str, Any]) -> None:
     tmp = file.with_suffix(".tmp")
     tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
     tmp.replace(file)  # never a half-written file
+
+
+def agenda_all(paths: Any, start: str, end: str, lang: str = "fr", day: str | None = None) -> dict[str, Any]:
+    """Events and dated tasks of every project between two dates, with personal ones."""
+    from . import agenda
+    from .project import Project
+
+    events: list[dict[str, Any]] = []
+    tasks: list[dict[str, Any]] = []
+    for path in (paths if isinstance(paths, list) else [])[:200]:
+        file = Path(path) if isinstance(path, str) else None
+        if file is None or not file.is_file():
+            continue
+        try:
+            conn = sqlite3.connect(f"{file.resolve().as_uri()}?mode=ro", uri=True)
+        except sqlite3.Error:
+            continue
+        try:
+            if conn.execute("PRAGMA user_version").fetchone()[0] != SCHEMA_VERSION:
+                continue
+            if conn.execute("PRAGMA application_id").fetchone()[0] != APPLICATION_ID:
+                continue
+            conn.row_factory = sqlite3.Row
+            p = Project(file, conn)
+            meta = p.meta()
+            color = schedule.profile_from_meta(meta)["color"]
+            got = agenda.agenda(p, start, end, lang, day)
+            tag = {"project": meta.get("name", file.stem), "path": path, "color": color}
+            events += [{**e, **tag} for e in got["events"]]
+            tasks += [{**t, **tag} for t in got["tasks"]]
+        except (sqlite3.Error, KeyError, ValueError):
+            continue
+        finally:
+            conn.close()
+    mine = personal_load()
+    events += [
+        {**e, "auto": False, "personal": True}
+        for e in mine["events"]
+        if e["start"][:10] <= end and e["end"][:10] >= start
+    ]
+    tasks += [
+        {**t, "auto": False, "personal": True} for t in mine["tasks"] if t.get("due") and start <= t["due"][:10] <= end
+    ]
+    events.sort(key=lambda e: e["start"])
+    tasks.sort(key=lambda t: t.get("due") or "9999")
+    return {"events": events, "tasks": tasks}

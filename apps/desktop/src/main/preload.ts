@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld("sme", {
   reveal: (file: string) => ipcRenderer.invoke("project:reveal", file),
   saveSummary: (file: string, summary: Record<string, number>) => ipcRenderer.invoke("project:summary", file, summary),
   openFile: (token: string) => ipcRenderer.invoke("file:reveal", token),
+  workspaceAgenda: (range: { start: string; end: string; lang: string }) =>
+    ipcRenderer.invoke("workspace:agenda", range),
   updates: {
     get: () => ipcRenderer.invoke("updates:get"),
     check: () => ipcRenderer.invoke("updates:check"),

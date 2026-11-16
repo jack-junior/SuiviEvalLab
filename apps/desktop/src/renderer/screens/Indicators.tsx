@@ -4,7 +4,7 @@
 // Indicators: definition, calculation rule from a data column, baseline and target.
 
 import { useMemo, useState } from "react";
-import { allColumns, Indicator } from "../api";
+import { allColumns, ENTRY_UNITS, Indicator, isEntry, SURVEY_UNITS } from "../api";
 import { useI18n } from "../i18n";
 import { useLabels } from "../labels";
 import { useProject } from "../state";
@@ -51,7 +51,7 @@ const fromInput = (s: string, unit: string): number | null => {
 };
 
 export function Indicators() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const levels = useLevels();
   const { snap, run, error, focus } = useProject();
   const { colText, valText } = useLabels();
@@ -61,6 +61,7 @@ export function Indicators() {
   const [baseText, setBaseText] = useState("");
   const [deleting, setDeleting] = useState<Indicator | null>(null);
   const [categoriesText, setCategoriesText] = useState("");
+  const [boundsText, setBoundsText] = useState<[string, string]>(["", ""]);
   const [library, setLibrary] = useState<string | null | false>(false);
 
   const columns = useMemo(() => {
@@ -76,7 +77,7 @@ export function Indicators() {
 
   if (!snap) return null;
   const results = snap.framework.filter((n) => levels.carries(n.level));
-  const routine = draft?.source_type === "routine";
+  const routine = !!draft && isEntry(draft);
 
   const edit = (d: Draft) => {
     // Indicators saved before version 0.3 keep their single condition in column + success_values.
@@ -93,14 +94,21 @@ export function Indicators() {
     setTargetText(toInput(d.target, d.unit));
     setBaseText(toInput(d.baseline_manual, d.unit));
     setCategoriesText((d.categories ?? []).join(", "));
+    setBoundsText([d.bounds?.min ?? "", d.bounds?.max ?? ""].map(String) as [string, string]);
   };
 
   const save = async () => {
     if (!draft) return;
+    const bound = (x: string) => fromInput(x, draft.unit);
+    const bounds: { min?: number; max?: number } = {};
+    if (bound(boundsText[0]) !== null) bounds.min = bound(boundsText[0])!;
+    if (bound(boundsText[1]) !== null) bounds.max = bound(boundsText[1])!;
+    const milestone = draft.unit === "milestone";
     const indicator = {
       ...draft,
-      target: fromInput(targetText, draft.unit),
-      baseline_manual: fromInput(baseText, draft.unit),
+      bounds,
+      target: milestone ? 1 : fromInput(targetText, draft.unit),
+      baseline_manual: milestone ? 0 : fromInput(baseText, draft.unit),
       categories: categoriesText
         .split(/[,;]/)
         .map((c) => c.trim())
@@ -111,8 +119,10 @@ export function Indicators() {
   };
 
   const ruleText = (ind: Indicator) => {
-    if (ind.source_type === "routine")
-      return t("indicators.ruleRoutine", { how: t(`indicators.agg_${ind.aggregation ?? "sum"}`).toLowerCase() });
+    if (isEntry(ind))
+      return t(ind.source_type === "secondary" ? "indicators.ruleSecondary" : "indicators.ruleRoutine", {
+        how: t(`indicators.agg_${ind.aggregation ?? (ind.unit === "count" ? "sum" : "last")}`).toLowerCase(),
+      });
     const conds = ind.conditions?.length
       ? ind.conditions
       : ind.column && ind.unit === "percent"
@@ -284,7 +294,7 @@ export function Indicators() {
           <div className="field">
             <span className="label">{t("indicators.sourceType")}</span>
             <div className="kind-grid">
-              {(["survey", "routine"] as const).map((k) => (
+              {(["routine", "survey", "secondary"] as const).map((k) => (
                 <button
                   key={k}
                   className="kind"
@@ -293,7 +303,7 @@ export function Indicators() {
                     setDraft({
                       ...draft,
                       source_type: k,
-                      unit: k === "routine" && draft.unit === "ratio" ? "count" : draft.unit,
+                      unit: k === "survey" && !SURVEY_UNITS.includes(draft.unit) ? "count" : draft.unit,
                     })
                   }
                   data-testid={`source-${k}`}
@@ -308,15 +318,19 @@ export function Indicators() {
           <div className="field">
             <span className="label">{t("indicators.unit")}</span>
             <div className="chips">
-              {(routine
-                ? (["count", "percent", "mean"] as const)
-                : (["percent", "mean", "count", "ratio"] as const)
-              ).map((u) => (
+              {(routine ? ENTRY_UNITS : SURVEY_UNITS).map((u) => (
                 <button
                   key={u}
                   className="chip"
                   aria-pressed={draft.unit === u}
-                  onClick={() => setDraft({ ...draft, unit: u })}
+                  onClick={() =>
+                    setDraft({
+                      ...draft,
+                      unit: u,
+                      multiplier: u === "rate" ? (draft.multiplier > 1 ? draft.multiplier : 1000) : draft.multiplier,
+                    })
+                  }
+                  data-testid={`unit-${u}`}
                 >
                   {t(`indicators.unit_${u}`)}
                 </button>
@@ -345,11 +359,11 @@ export function Indicators() {
               <div className="field">
                 <span className="label">{t("indicators.aggregation")}</span>
                 <div className="chips">
-                  {(["sum", "last", "mean"] as const).map((a) => (
+                  {(["sum", "last", "mean", "max"] as const).map((a) => (
                     <button
                       key={a}
                       className="chip"
-                      aria-pressed={(draft.aggregation ?? (draft.unit === "percent" ? "last" : "sum")) === a}
+                      aria-pressed={(draft.aggregation ?? (draft.unit === "count" ? "sum" : "last")) === a}
                       onClick={() => setDraft({ ...draft, aggregation: a })}
                       data-testid={`aggregation-${a}`}
                     >
@@ -359,18 +373,70 @@ export function Indicators() {
                 </div>
                 <div className="field-hint">{t("indicators.aggregationHint")}</div>
               </div>
-              <Field label={t("indicators.categories")} hint={t("indicators.categoriesHint")}>
-                {(id) => (
-                  <input
-                    id={id}
-                    className="input"
-                    value={categoriesText}
-                    onChange={(e) => setCategoriesText(e.target.value)}
-                    placeholder={t("indicators.categoriesPlaceholder")}
-                    data-testid="indicator-categories"
-                  />
-                )}
-              </Field>
+              {draft.unit === "rate" && (
+                <div className="field">
+                  <span className="label">{t("indicators.rateBase")}</span>
+                  <div className="chips">
+                    {[1000, 10000, 100000].map((b) => (
+                      <button
+                        key={b}
+                        className="chip"
+                        aria-pressed={draft.multiplier === b}
+                        onClick={() => setDraft({ ...draft, multiplier: b })}
+                      >
+                        {t("indicators.perBase", { n: b.toLocaleString(lang === "en" ? "en-GB" : "fr-FR") })}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <fieldset className="check-list">
+                <legend>{t("mplan.breakdowns")}</legend>
+                {snap.disaggregations.length === 0 && <p className="muted small">{t("mplan.noBreakdowns")}</p>}
+                {snap.disaggregations.map((x) => (
+                  <label key={x.key}>
+                    <input
+                      type="checkbox"
+                      checked={(draft.breakdowns ?? []).includes(x.key)}
+                      onChange={() => {
+                        const list = draft.breakdowns ?? [];
+                        setDraft({
+                          ...draft,
+                          breakdowns: list.includes(x.key) ? list.filter((k) => k !== x.key) : [...list, x.key],
+                        });
+                      }}
+                      data-testid={`breakdown-${x.key}`}
+                    />{" "}
+                    {lang === "en" ? x.name_en : x.name_fr}
+                  </label>
+                ))}
+              </fieldset>
+              {!["milestone", "scale"].includes(draft.unit) && (
+                <div className="field-row">
+                  <Field label={t("indicators.boundMin")} hint={t("indicators.boundsHint")}>
+                    {(id) => (
+                      <input
+                        id={id}
+                        className="input"
+                        inputMode="decimal"
+                        value={boundsText[0]}
+                        onChange={(e) => setBoundsText([e.target.value, boundsText[1]])}
+                      />
+                    )}
+                  </Field>
+                  <Field label={t("indicators.boundMax")}>
+                    {(id) => (
+                      <input
+                        id={id}
+                        className="input"
+                        inputMode="decimal"
+                        value={boundsText[1]}
+                        onChange={(e) => setBoundsText([boundsText[0], e.target.value])}
+                      />
+                    )}
+                  </Field>
+                </div>
+              )}
               <p className="muted small">{t("indicators.routineValuesWhere")}</p>
             </>
           ) : columns.size === 0 ? (
@@ -380,7 +446,8 @@ export function Indicators() {
           )}
 
           <h3 className="panel-section">{t("indicators.values")}</h3>
-          <div className="field-row">
+          {draft.unit === "milestone" && <p className="muted small">{t("indicators.milestoneHint")}</p>}
+          <div className="field-row" hidden={draft.unit === "milestone"}>
             <Field label={draft.unit === "percent" ? t("indicators.targetPercent") : t("indicators.target")}>
               {(id) => (
                 <input

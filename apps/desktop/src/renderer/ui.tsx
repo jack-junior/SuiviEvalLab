@@ -115,12 +115,15 @@ export function Panel({
   children,
   footer,
   testId,
+  wide,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
   testId?: string;
+  /** A wider panel, for grids of values. */
+  wide?: boolean;
 }) {
   const { t } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
@@ -142,7 +145,14 @@ export function Panel({
   }, []);
   return (
     <div className="panel-layer" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="panel" role="dialog" aria-modal="true" aria-label={title} ref={ref} data-testid={testId}>
+      <div
+        className={`panel${wide ? " wide" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        ref={ref}
+        data-testid={testId}
+      >
         <div className="panel-head">
           <h2>{title}</h2>
           <IconButton icon="close" label={t("common.close")} onClick={onClose} />
