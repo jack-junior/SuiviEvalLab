@@ -1,0 +1,86 @@
+{
+  "_licence": "SPDX-License-Identifier: GPL-3.0-or-later. Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou. Definitions written for SuiviEvalLab after the cited public references.",
+  "sector": "cross_cutting",
+  "name": { "fr": "Transversal : redevabilité et inclusion", "en": "Cross-cutting: accountability and inclusion" },
+  "indicators": [
+    {
+      "id": "cross.disability_share",
+      "name": {
+        "fr": "Personnes en situation de handicap parmi les personnes atteintes",
+        "en": "Persons with disabilities among people reached"
+      },
+      "definition": {
+        "fr": "Part des personnes atteintes qui déclarent beaucoup de difficultés, ou ne pas pouvoir du tout, dans au moins un des six domaines des questions courtes du Groupe de Washington.",
+        "en": "Share of people reached who report a lot of difficulty, or cannot do at all, in at least one of the six domains of the Washington Group short set."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes atteintes avec beaucoup de difficultés ou incapacité dans un domaine au moins",
+        "en": "People reached with a lot of difficulty or unable in at least one domain"
+      },
+      "denominator": { "fr": "Personnes atteintes interrogées", "en": "People reached who were asked" },
+      "level": "output",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "age"],
+      "source": "wg"
+    },
+    {
+      "id": "cross.satisfaction",
+      "name": {
+        "fr": "Personnes atteintes satisfaites de l'aide reçue",
+        "en": "People reached satisfied with the assistance received"
+      },
+      "definition": {
+        "fr": "Part des personnes atteintes interrogées qui se disent satisfaites ou très satisfaites de l'aide reçue (pertinence, qualité, délais, respect).",
+        "en": "Share of people reached who say they are satisfied or very satisfied with the assistance received (relevance, quality, timeliness, respect)."
+      },
+      "type": "percent",
+      "numerator": { "fr": "Personnes satisfaites ou très satisfaites", "en": "People satisfied or very satisfied" },
+      "denominator": { "fr": "Personnes interrogées", "en": "People asked" },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "age", "disability"],
+      "source": "chs"
+    },
+    {
+      "id": "cross.feedback_closed",
+      "name": {
+        "fr": "Plaintes et retours traités dans le délai prévu",
+        "en": "Complaints and feedback handled within the set time"
+      },
+      "definition": {
+        "fr": "Part des plaintes et retours reçus pendant la période qui ont obtenu une réponse à la personne dans le délai fixé par la procédure du projet.",
+        "en": "Share of complaints and feedback received in the period that got a response to the person within the time set by the project procedure."
+      },
+      "type": "percent",
+      "numerator": { "fr": "Retours avec réponse dans le délai", "en": "Feedback answered in time" },
+      "denominator": { "fr": "Retours reçus pendant la période", "en": "Feedback received in the period" },
+      "level": "output",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": [],
+      "source": "chs"
+    },
+    {
+      "id": "cross.people_reached",
+      "name": { "fr": "Personnes atteintes par le projet", "en": "People reached by the project" },
+      "definition": {
+        "fr": "Nombre de personnes ayant reçu au moins un service ou un bien du projet depuis son début, chaque personne comptée une seule fois quel que soit le nombre de services reçus.",
+        "en": "Number of people who received at least one service or item from the project since it started, each person counted once whatever the number of services received."
+      },
+      "type": "count",
+      "aggregation": "last",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": ["sex", "age", "disability"],
+      "source": null,
+      "benchmark": {
+        "fr": "Attention au double comptage : additionner les personnes atteintes par plusieurs activités surestime le total.",
+        "en": "Beware of double counting: adding up people reached by several activities overstates the total."
+      }
+    }
+  ]
+}

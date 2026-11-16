@@ -142,6 +142,9 @@ export interface Indicator {
   source_type?: "survey" | "routine";
   aggregation?: "sum" | "last" | "mean";
   categories?: string[];
+  /** Reference sheet of the indicator library, and its citation. */
+  library_id?: string;
+  library_ref?: string;
   /** Keys of the project disaggregations the indicator is reported by. */
   breakdowns?: string[];
 }

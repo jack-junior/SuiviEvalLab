@@ -94,6 +94,9 @@ const ALLOWED = new Set([
   "disaggregation.move",
   "target.set",
   "target.clear",
+  "library.sectors",
+  "library.search",
+  "library.adopt",
 ]);
 
 // Paths chosen by the user in a dialog, by token. Tokens live for the session.

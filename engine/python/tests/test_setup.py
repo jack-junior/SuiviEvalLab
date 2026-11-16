@@ -277,3 +277,41 @@ def test_migration_from_version_4(call, tmp_path):
     b = call("framework.add", {"parent_id": a, "title": "Act"})["created"]
     c = call("framework.add", {"parent_id": b, "title": "Act 2"})
     assert c["framework"][-1]["level"] == "detail"
+
+
+# ----- indicator library -------------------------------------------------------------
+
+
+def test_library_is_complete_and_searchable():
+    from sme_engine import library
+
+    lib = library.load()  # checks every sheet
+    assert {"health", "nutrition", "wash", "education", "food_security", "protection"} <= {
+        s["key"] for s in lib["sectors"]
+    }
+    assert len(lib["sheets"]) >= 50
+    # Accents and case do not matter; every word must match.
+    hits = library.search("COUVERTURE vaccinale rougeole")
+    assert [h["id"] for h in hits] == ["health.mcv1"]
+    assert library.search("odd 6.1.1")[0]["id"] == "wash.safe_water"
+    assert all(h["sector"] == "nutrition" for h in library.search("", "nutrition"))
+
+
+def test_adopt_a_library_indicator(call, tmp_path):
+    call("project.create", {"path": str(tmp_path / "p.sme"), "name": "P", "profile": PROFILE})
+    sectors = call("library.sectors")
+    assert sectors["total"] >= 50
+    node = call("framework.add", {"title": "Les enfants sont mieux nourris"})["created"]
+    out = call("library.adopt", {"id": "nutrition.sam_cure", "node_id": node, "lang": "fr"})
+    ind = out["indicators"][0]
+    assert ind["name"] == "Taux de guérison de la malnutrition aiguë sévère"
+    assert ind["library_id"] == "nutrition.sam_cure" and "Sphère" in ind["library_ref"]
+    assert "Dénominateur" in ind["definition"] and ind["source_type"] == "routine"
+    assert ind["unit"] == "percent" and ind["frequency"] == "monthly" and ind["breakdowns"] == ["sex"]
+    # The suggested disaggregation was added to the project.
+    assert [d["key"] for d in out["disaggregations"]] == ["sex"]
+    out = call("library.adopt", {"id": "education.ger_primary", "node_id": node, "lang": "en"})
+    ger = out["indicators"][1]
+    assert ger["unit"] == "ratio" and ger["multiplier"] == 100 and ger["name"] == "Gross enrolment ratio, primary"
+    with pytest.raises(RuntimeError, match="library_not_found"):
+        call("library.adopt", {"id": "nope", "node_id": node})

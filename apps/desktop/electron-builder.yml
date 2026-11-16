@@ -27,6 +27,7 @@ extraResources:
     filter:
       - "**/*.py"
       - "examples/*.xlsx"
+      - "library/*.json"
   # R statistical engine
   - from: ../../engine/r
     to: engine/r

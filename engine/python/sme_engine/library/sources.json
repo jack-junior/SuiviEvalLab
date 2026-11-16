@@ -1,0 +1,117 @@
+{
+  "_licence": "SPDX-License-Identifier: GPL-3.0-or-later. Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou. Definitions written for SuiviEvalLab after the cited public references.",
+  "who_100": {
+    "title": "Global Reference List of 100 Core Health Indicators (plus health-related SDGs)",
+    "publisher": "Organisation mondiale de la Santé",
+    "year": 2018,
+    "url": "https://www.who.int/data/gho"
+  },
+  "who_unicef_immunization": {
+    "title": "WHO/UNICEF estimates of national immunization coverage (WUENIC)",
+    "publisher": "OMS et UNICEF",
+    "year": 2024,
+    "url": "https://immunizationdata.who.int"
+  },
+  "who_tb": {
+    "title": "Definitions and reporting framework for tuberculosis",
+    "publisher": "Organisation mondiale de la Santé",
+    "year": 2020,
+    "url": "https://www.who.int/teams/global-tuberculosis-programme"
+  },
+  "who_malaria": {
+    "title": "Malaria surveillance, monitoring and evaluation: a reference manual",
+    "publisher": "Organisation mondiale de la Santé",
+    "year": 2018,
+    "url": "https://www.who.int/teams/global-malaria-programme"
+  },
+  "unaids": {
+    "title": "Indicators and questions for monitoring progress on the Political Declaration on HIV and AIDS",
+    "publisher": "ONUSIDA",
+    "year": 2024,
+    "url": "https://www.unaids.org"
+  },
+  "dhs": {
+    "title": "Guide to DHS Statistics",
+    "publisher": "Programme DHS",
+    "year": 2023,
+    "url": "https://dhsprogram.com"
+  },
+  "who_unicef_iycf": {
+    "title": "Indicators for assessing infant and young child feeding practices",
+    "publisher": "OMS et UNICEF",
+    "year": 2021,
+    "url": "https://www.who.int/publications"
+  },
+  "smart": {
+    "title": "Standardized Monitoring and Assessment of Relief and Transitions (SMART) methodology",
+    "publisher": "SMART Initiative",
+    "year": 2017,
+    "url": "https://smartmethodology.org"
+  },
+  "sphere": {
+    "title": "Le manuel Sphère : la Charte humanitaire et les standards minimums de l'intervention humanitaire",
+    "publisher": "Association Sphère",
+    "year": 2018,
+    "url": "https://spherestandards.org"
+  },
+  "jmp": {
+    "title": "Programme commun OMS/UNICEF de suivi de l'approvisionnement en eau, de l'assainissement et de l'hygiène (JMP)",
+    "publisher": "OMS et UNICEF",
+    "year": 2023,
+    "url": "https://washdata.org"
+  },
+  "uis": {
+    "title": "SDG 4 data: indicator definitions",
+    "publisher": "Institut de statistique de l'UNESCO",
+    "year": 2024,
+    "url": "https://uis.unesco.org"
+  },
+  "sdg": {
+    "title": "Cadre mondial d'indicateurs relatifs aux objectifs et cibles du Programme de développement durable à l'horizon 2030",
+    "publisher": "Nations unies, Division de statistique",
+    "year": 2025,
+    "url": "https://unstats.un.org/sdgs/indicators/indicators-list/"
+  },
+  "wfp_fcs": {
+    "title": "Food Consumption Score, reduced Coping Strategies Index and Livelihood Coping Strategies: technical guidance",
+    "publisher": "Programme alimentaire mondial",
+    "year": 2021,
+    "url": "https://www.wfp.org"
+  },
+  "fao_mddw": {
+    "title": "Minimum Dietary Diversity for Women: an updated guide to measurement",
+    "publisher": "FAO",
+    "year": 2021,
+    "url": "https://www.fao.org"
+  },
+  "fao_hdds": {
+    "title": "Guidelines for measuring household and individual dietary diversity",
+    "publisher": "FAO",
+    "year": 2011,
+    "url": "https://www.fao.org"
+  },
+  "cpms": {
+    "title": "Standards minimums pour la protection de l'enfance dans l'action humanitaire",
+    "publisher": "Alliance pour la protection de l'enfance dans l'action humanitaire",
+    "year": 2019,
+    "url": "https://alliancecpha.org"
+  },
+  "iasc_gbv": {
+    "title": "Directives pour l'intégration d'interventions ciblant la violence basée sur le genre dans l'action humanitaire",
+    "publisher": "Comité permanent interorganisations (IASC)",
+    "year": 2015,
+    "url": "https://gbvguidelines.org"
+  },
+  "wg": {
+    "title": "Washington Group Short Set on Functioning (WG-SS)",
+    "publisher": "Groupe de Washington sur les statistiques des incapacités",
+    "year": 2022,
+    "url": "https://www.washingtongroup-disability.com"
+  },
+  "chs": {
+    "title": "Norme humanitaire fondamentale de qualité et de redevabilité (CHS)",
+    "publisher": "CHS Alliance, Groupe URD, Association Sphère",
+    "year": 2024,
+    "url": "https://www.corehumanitarianstandard.org"
+  }
+}

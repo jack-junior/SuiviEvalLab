@@ -10,6 +10,7 @@ import { useLabels } from "../labels";
 import { useProject } from "../state";
 import { Confirm, Empty, Field, IconButton, Notice, Panel, useValueFormat } from "../ui";
 import { IndicatorRule } from "./IndicatorRule";
+import { LibraryPanel } from "./Library";
 import { useLevels } from "../frameworks";
 
 type Draft = Omit<Indicator, "id" | "node_id"> & { id?: string; node_id: string };
@@ -60,6 +61,7 @@ export function Indicators() {
   const [baseText, setBaseText] = useState("");
   const [deleting, setDeleting] = useState<Indicator | null>(null);
   const [categoriesText, setCategoriesText] = useState("");
+  const [library, setLibrary] = useState<string | null | false>(false);
 
   const columns = useMemo(() => {
     const map = new Map<string, { type: string; distinct: number; datasets: string[] }>();
@@ -156,13 +158,22 @@ export function Indicators() {
           <h1>{t("nav.indicators")}</h1>
           <p className="lead">{t("indicators.lead")}</p>
         </div>
-        <button
-          className="btn primary"
-          onClick={() => edit(blank(focus && results.some((n) => n.id === focus) ? focus : results[0].id))}
-          data-testid="add-indicator"
-        >
-          {t("indicators.add")}
-        </button>
+        <div className="row-actions">
+          <button
+            className="btn"
+            onClick={() => setLibrary(focus && results.some((n) => n.id === focus) ? focus : null)}
+            data-testid="open-library"
+          >
+            {t("library.open")}
+          </button>
+          <button
+            className="btn primary"
+            onClick={() => edit(blank(focus && results.some((n) => n.id === focus) ? focus : results[0].id))}
+            data-testid="add-indicator"
+          >
+            {t("indicators.add")}
+          </button>
+        </div>
       </div>
 
       {error && <Notice kind="error">{error}</Notice>}
@@ -399,6 +410,8 @@ export function Indicators() {
           </div>
         </Panel>
       )}
+
+      {library !== false && <LibraryPanel nodeId={library} onClose={() => setLibrary(false)} />}
 
       {deleting && (
         <Confirm

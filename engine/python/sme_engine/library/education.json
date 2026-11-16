@@ -1,0 +1,178 @@
+{
+  "_licence": "SPDX-License-Identifier: GPL-3.0-or-later. Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou. Definitions written for SuiviEvalLab after the cited public references.",
+  "sector": "education",
+  "name": { "fr": "Éducation", "en": "Education" },
+  "indicators": [
+    {
+      "id": "education.ger_primary",
+      "name": { "fr": "Taux brut de scolarisation dans le primaire", "en": "Gross enrolment ratio, primary" },
+      "definition": {
+        "fr": "Élèves inscrits dans le primaire, quel que soit leur âge, rapportés à la population ayant l'âge officiel du primaire. Il peut dépasser 100 % à cause des élèves en avance ou en retard.",
+        "en": "Pupils enrolled in primary education, regardless of age, divided by the population of official primary school age. It can exceed 100% because of early or late entrants and repeaters."
+      },
+      "type": "ratio",
+      "multiplier": 100,
+      "numerator": { "fr": "Élèves inscrits dans le primaire", "en": "Pupils enrolled in primary" },
+      "denominator": {
+        "fr": "Population ayant l'âge officiel du primaire",
+        "en": "Population of official primary school age"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "annual",
+      "breakdowns": ["sex"],
+      "source": "uis"
+    },
+    {
+      "id": "education.ner_primary",
+      "name": {
+        "fr": "Taux net ajusté de scolarisation dans le primaire",
+        "en": "Adjusted net enrolment rate, primary"
+      },
+      "definition": {
+        "fr": "Part des enfants ayant l'âge officiel du primaire qui sont inscrits dans le primaire ou le secondaire.",
+        "en": "Share of children of official primary school age enrolled in primary or secondary education."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Enfants d'âge primaire inscrits dans le primaire ou le secondaire",
+        "en": "Primary-age children enrolled in primary or secondary"
+      },
+      "denominator": { "fr": "Enfants ayant l'âge officiel du primaire", "en": "Children of official primary school age" },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "annual",
+      "breakdowns": ["sex"],
+      "source": "uis"
+    },
+    {
+      "id": "education.completion_primary",
+      "name": { "fr": "Taux d'achèvement du primaire", "en": "Primary completion rate" },
+      "definition": {
+        "fr": "Part des enfants ayant de trois à cinq ans de plus que l'âge prévu pour la dernière année du primaire qui ont achevé cette année.",
+        "en": "Share of children aged three to five years above the intended age for the last grade of primary who have completed that grade."
+      },
+      "type": "percent",
+      "numerator": { "fr": "Enfants de cette tranche d'âge ayant achevé le primaire", "en": "Children in that age group who completed primary" },
+      "denominator": { "fr": "Enfants de cette tranche d'âge", "en": "Children in that age group" },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "area"],
+      "source": "sdg",
+      "ref": "ODD 4.1.2"
+    },
+    {
+      "id": "education.out_of_school",
+      "name": { "fr": "Taux d'enfants non scolarisés en âge du primaire", "en": "Out-of-school rate, primary age" },
+      "definition": {
+        "fr": "Part des enfants ayant l'âge officiel du primaire qui ne sont inscrits ni dans le préprimaire, ni dans le primaire, ni dans le secondaire.",
+        "en": "Share of children of official primary school age not enrolled in pre-primary, primary or secondary education."
+      },
+      "type": "percent",
+      "numerator": { "fr": "Enfants d'âge primaire non scolarisés", "en": "Primary-age children out of school" },
+      "denominator": { "fr": "Enfants ayant l'âge officiel du primaire", "en": "Children of official primary school age" },
+      "direction": "decrease",
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "disability"],
+      "source": "uis"
+    },
+    {
+      "id": "education.gpi",
+      "name": {
+        "fr": "Indice de parité entre les sexes du taux brut de scolarisation",
+        "en": "Gender parity index of the gross enrolment ratio"
+      },
+      "definition": {
+        "fr": "Taux brut de scolarisation des filles divisé par celui des garçons. Une valeur entre 0,97 et 1,03 indique la parité.",
+        "en": "Gross enrolment ratio of girls divided by that of boys. A value between 0.97 and 1.03 indicates parity."
+      },
+      "type": "ratio",
+      "multiplier": 1,
+      "numerator": { "fr": "Taux brut de scolarisation des filles", "en": "Gross enrolment ratio of girls" },
+      "denominator": { "fr": "Taux brut de scolarisation des garçons", "en": "Gross enrolment ratio of boys" },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "annual",
+      "breakdowns": [],
+      "source": "sdg",
+      "ref": "ODD 4.5.1"
+    },
+    {
+      "id": "education.ptr",
+      "name": { "fr": "Nombre d'élèves par enseignant", "en": "Pupil-teacher ratio" },
+      "definition": {
+        "fr": "Nombre moyen d'élèves par enseignant dans les écoles appuyées, à partir des effectifs inscrits et des enseignants en poste.",
+        "en": "Average number of pupils per teacher in supported schools, from enrolment and teachers in post."
+      },
+      "type": "ratio",
+      "multiplier": 1,
+      "numerator": { "fr": "Élèves inscrits", "en": "Pupils enrolled" },
+      "denominator": { "fr": "Enseignants en poste", "en": "Teachers in post" },
+      "direction": "decrease",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "annual",
+      "breakdowns": [],
+      "source": "uis"
+    },
+    {
+      "id": "education.reading_proficiency",
+      "name": {
+        "fr": "Élèves atteignant le seuil minimal de compétence en lecture en fin de primaire",
+        "en": "Pupils reaching minimum proficiency in reading at the end of primary"
+      },
+      "definition": {
+        "fr": "Part des élèves en fin de cycle primaire qui atteignent au moins le niveau minimal de compétence en lecture défini par l'évaluation utilisée.",
+        "en": "Share of pupils at the end of primary who reach at least the minimum proficiency level in reading set by the assessment used."
+      },
+      "type": "percent",
+      "numerator": { "fr": "Élèves au niveau minimal ou au-dessus", "en": "Pupils at or above minimum level" },
+      "denominator": { "fr": "Élèves évalués", "en": "Pupils assessed" },
+      "level": "impact",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex"],
+      "source": "sdg",
+      "ref": "ODD 4.1.1"
+    },
+    {
+      "id": "education.learners_supplies",
+      "name": {
+        "fr": "Enfants ayant reçu du matériel scolaire",
+        "en": "Children who received school supplies"
+      },
+      "definition": {
+        "fr": "Nombre d'enfants ayant reçu un kit de matériel scolaire du projet pendant la période, comptés une fois par distribution.",
+        "en": "Number of children who received a school supply kit from the project during the period, counted once per distribution."
+      },
+      "type": "count",
+      "aggregation": "sum",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": ["sex", "disability"],
+      "source": null
+    },
+    {
+      "id": "education.classrooms",
+      "name": {
+        "fr": "Salles de classe construites ou réhabilitées",
+        "en": "Classrooms built or rehabilitated"
+      },
+      "definition": {
+        "fr": "Nombre de salles de classe construites ou réhabilitées par le projet et réceptionnées pendant la période.",
+        "en": "Number of classrooms built or rehabilitated by the project and handed over during the period."
+      },
+      "type": "count",
+      "aggregation": "sum",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": [],
+      "source": null
+    }
+  ]
+}

@@ -1,0 +1,210 @@
+{
+  "_licence": "SPDX-License-Identifier: GPL-3.0-or-later. Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou. Definitions written for SuiviEvalLab after the cited public references.",
+  "sector": "nutrition",
+  "name": { "fr": "Nutrition", "en": "Nutrition" },
+  "indicators": [
+    {
+      "id": "nutrition.gam",
+      "name": {
+        "fr": "Prévalence de la malnutrition aiguë globale chez les enfants de 6 à 59 mois",
+        "en": "Prevalence of global acute malnutrition among children aged 6 to 59 months"
+      },
+      "definition": {
+        "fr": "Part des enfants de 6 à 59 mois dont l'indice poids pour taille est inférieur à -2 écarts types de la médiane des normes OMS, ou qui présentent des œdèmes bilatéraux.",
+        "en": "Share of children aged 6 to 59 months with a weight-for-height below -2 standard deviations of the WHO standards median, or with bilateral oedema."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Enfants avec poids pour taille < -2 z ou œdèmes bilatéraux",
+        "en": "Children with weight-for-height < -2 z or bilateral oedema"
+      },
+      "denominator": { "fr": "Enfants de 6 à 59 mois mesurés", "en": "Children aged 6 to 59 months measured" },
+      "level": "impact",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex"],
+      "source": "smart",
+      "ref": "ODD 2.2.2",
+      "benchmark": {
+        "fr": "Seuils OMS et UNICEF de 2018 : 15 % ou plus correspond à une prévalence très élevée.",
+        "en": "WHO and UNICEF 2018 thresholds: 15% or more is a very high prevalence."
+      }
+    },
+    {
+      "id": "nutrition.sam",
+      "name": {
+        "fr": "Prévalence de la malnutrition aiguë sévère chez les enfants de 6 à 59 mois",
+        "en": "Prevalence of severe acute malnutrition among children aged 6 to 59 months"
+      },
+      "definition": {
+        "fr": "Part des enfants de 6 à 59 mois dont l'indice poids pour taille est inférieur à -3 écarts types, ou qui présentent des œdèmes bilatéraux.",
+        "en": "Share of children aged 6 to 59 months with a weight-for-height below -3 standard deviations, or with bilateral oedema."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Enfants avec poids pour taille < -3 z ou œdèmes bilatéraux",
+        "en": "Children with weight-for-height < -3 z or bilateral oedema"
+      },
+      "denominator": { "fr": "Enfants de 6 à 59 mois mesurés", "en": "Children aged 6 to 59 months measured" },
+      "level": "impact",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex"],
+      "source": "smart"
+    },
+    {
+      "id": "nutrition.stunting",
+      "name": {
+        "fr": "Prévalence du retard de croissance chez les enfants de moins de cinq ans",
+        "en": "Prevalence of stunting among children under five"
+      },
+      "definition": {
+        "fr": "Part des enfants de 0 à 59 mois dont l'indice taille pour âge est inférieur à -2 écarts types de la médiane des normes OMS.",
+        "en": "Share of children aged 0 to 59 months with a height-for-age below -2 standard deviations of the WHO standards median."
+      },
+      "type": "percent",
+      "numerator": { "fr": "Enfants avec taille pour âge < -2 z", "en": "Children with height-for-age < -2 z" },
+      "denominator": { "fr": "Enfants de 0 à 59 mois mesurés", "en": "Children aged 0 to 59 months measured" },
+      "level": "impact",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex"],
+      "source": "sdg",
+      "ref": "ODD 2.2.1"
+    },
+    {
+      "id": "nutrition.sam_cure",
+      "name": {
+        "fr": "Taux de guérison de la malnutrition aiguë sévère",
+        "en": "Cure rate for severe acute malnutrition"
+      },
+      "definition": {
+        "fr": "Part des enfants sortis du programme de prise en charge de la malnutrition aiguë sévère qui sont sortis guéris.",
+        "en": "Share of children discharged from the severe acute malnutrition programme who were discharged cured."
+      },
+      "type": "percent",
+      "numerator": { "fr": "Sorties guéries", "en": "Discharged cured" },
+      "denominator": {
+        "fr": "Total des sorties : guéris, décès, abandons et non-répondants (transferts exclus)",
+        "en": "All discharges: cured, deaths, defaulters and non-responders (transfers excluded)"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": ["sex"],
+      "source": "sphere",
+      "benchmark": {
+        "fr": "Sphère : plus de 75 % de guérisons, moins de 10 % de décès, moins de 15 % d'abandons.",
+        "en": "Sphere: over 75% cured, under 10% deaths, under 15% defaulters."
+      }
+    },
+    {
+      "id": "nutrition.sam_default",
+      "name": {
+        "fr": "Taux d'abandon du traitement de la malnutrition aiguë sévère",
+        "en": "Default rate for severe acute malnutrition treatment"
+      },
+      "definition": {
+        "fr": "Part des enfants sortis du programme qui ont abandonné le traitement (absents à plusieurs visites consécutives).",
+        "en": "Share of children discharged from the programme who defaulted (absent at several consecutive visits)."
+      },
+      "type": "percent",
+      "numerator": { "fr": "Sorties par abandon", "en": "Discharged as defaulters" },
+      "denominator": {
+        "fr": "Total des sorties (transferts exclus)",
+        "en": "All discharges (transfers excluded)"
+      },
+      "direction": "decrease",
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": ["sex"],
+      "source": "sphere",
+      "benchmark": { "fr": "Sphère : moins de 15 %.", "en": "Sphere: under 15%." }
+    },
+    {
+      "id": "nutrition.ebf",
+      "name": {
+        "fr": "Allaitement exclusif des nourrissons de moins de six mois",
+        "en": "Exclusive breastfeeding under six months"
+      },
+      "definition": {
+        "fr": "Part des nourrissons de 0 à 5 mois nourris exclusivement au lait maternel la veille de l'enquête.",
+        "en": "Share of infants aged 0 to 5 months fed exclusively with breast milk during the previous day."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Nourrissons de 0 à 5 mois nourris exclusivement au sein la veille",
+        "en": "Infants aged 0 to 5 months exclusively breastfed the previous day"
+      },
+      "denominator": { "fr": "Nourrissons de 0 à 5 mois", "en": "Infants aged 0 to 5 months" },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex"],
+      "source": "who_unicef_iycf"
+    },
+    {
+      "id": "nutrition.mdd_child",
+      "name": {
+        "fr": "Diversité alimentaire minimale chez les enfants de 6 à 23 mois",
+        "en": "Minimum dietary diversity among children aged 6 to 23 months"
+      },
+      "definition": {
+        "fr": "Part des enfants de 6 à 23 mois ayant consommé des aliments d'au moins cinq des huit groupes la veille (le lait maternel compte comme un groupe).",
+        "en": "Share of children aged 6 to 23 months who ate foods from at least five of eight groups the previous day (breast milk counts as one group)."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Enfants ayant consommé au moins cinq groupes d'aliments",
+        "en": "Children who ate at least five food groups"
+      },
+      "denominator": { "fr": "Enfants de 6 à 23 mois", "en": "Children aged 6 to 23 months" },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex"],
+      "source": "who_unicef_iycf"
+    },
+    {
+      "id": "nutrition.vita",
+      "name": {
+        "fr": "Supplémentation en vitamine A des enfants de 6 à 59 mois",
+        "en": "Vitamin A supplementation of children aged 6 to 59 months"
+      },
+      "definition": {
+        "fr": "Part des enfants de 6 à 59 mois ayant reçu une dose de vitamine A pendant la campagne ou le semestre.",
+        "en": "Share of children aged 6 to 59 months who received a vitamin A dose during the campaign or semester."
+      },
+      "type": "percent",
+      "numerator": { "fr": "Enfants ayant reçu une dose de vitamine A", "en": "Children who received a vitamin A dose" },
+      "denominator": {
+        "fr": "Enfants de 6 à 59 mois de la population cible",
+        "en": "Children aged 6 to 59 months in the target population"
+      },
+      "level": "output",
+      "collection": "routine",
+      "frequency": "semiannual",
+      "breakdowns": ["sex"],
+      "source": "who_100"
+    },
+    {
+      "id": "nutrition.muac_screened",
+      "name": {
+        "fr": "Enfants de 6 à 59 mois dépistés par mesure du périmètre brachial",
+        "en": "Children aged 6 to 59 months screened by mid-upper arm circumference"
+      },
+      "definition": {
+        "fr": "Nombre d'enfants de 6 à 59 mois dont le périmètre brachial a été mesuré et les œdèmes recherchés pendant la période.",
+        "en": "Number of children aged 6 to 59 months whose mid-upper arm circumference was measured and oedema checked during the period."
+      },
+      "type": "count",
+      "aggregation": "sum",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": ["sex"],
+      "source": null
+    }
+  ]
+}

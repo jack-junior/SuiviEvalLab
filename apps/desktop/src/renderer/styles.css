@@ -2356,3 +2356,29 @@ ul.plain {
   background: var(--surface);
   outline: none;
 }
+.lib-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.lib-list li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--ligne);
+}
+.lib-name {
+  text-align: left;
+  font-weight: 500;
+}
+.lib-detail p {
+  margin: 6px 0;
+}
+.lib-benchmark {
+  color: var(--en-cours);
+}
+.btn.small {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 13px;
+}

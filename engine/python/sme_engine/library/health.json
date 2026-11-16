@@ -1,0 +1,367 @@
+{
+  "_licence": "SPDX-License-Identifier: GPL-3.0-or-later. Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou. Definitions written for SuiviEvalLab after the cited public references.",
+  "sector": "health",
+  "name": {
+    "fr": "Santé",
+    "en": "Health"
+  },
+  "indicators": [
+    {
+      "id": "health.dtp3",
+      "name": {
+        "fr": "Couverture vaccinale en DTC3 chez les enfants de moins d'un an",
+        "en": "DTP3 immunization coverage among children under one year"
+      },
+      "definition": {
+        "fr": "Part des enfants de moins d'un an ayant reçu la troisième dose d'un vaccin contenant les valences diphtérie, tétanos et coqueluche (pentavalent compris).",
+        "en": "Share of children under one year who received the third dose of a vaccine containing diphtheria, tetanus and pertussis (pentavalent included)."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Nombre de troisièmes doses de vaccin contenant le DTC administrées aux enfants de moins d'un an pendant la période",
+        "en": "Number of third doses of DTP-containing vaccine given to children under one year during the period"
+      },
+      "denominator": {
+        "fr": "Nombre d'enfants survivants de moins d'un an (population cible de la période)",
+        "en": "Number of surviving infants (target population of the period)"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": [
+        "sex"
+      ],
+      "source": "who_unicef_immunization",
+      "ref": "ODD 3.b.1",
+      "benchmark": {
+        "fr": "Objectif mondial de couverture : 90 % au niveau national.",
+        "en": "Global coverage goal: 90% nationally."
+      }
+    },
+    {
+      "id": "health.mcv1",
+      "name": {
+        "fr": "Couverture vaccinale contre la rougeole, première dose",
+        "en": "Measles immunization coverage, first dose"
+      },
+      "definition": {
+        "fr": "Part des enfants de la tranche d'âge cible ayant reçu la première dose d'un vaccin contenant la valence rougeole.",
+        "en": "Share of children in the target age group who received the first dose of a measles-containing vaccine."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Nombre de premières doses de vaccin contenant la rougeole administrées pendant la période",
+        "en": "Number of first doses of measles-containing vaccine given during the period"
+      },
+      "denominator": {
+        "fr": "Nombre d'enfants de la population cible de la période",
+        "en": "Number of children in the target population of the period"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": [
+        "sex"
+      ],
+      "source": "who_unicef_immunization",
+      "ref": "OMS 100 indicateurs de base"
+    },
+    {
+      "id": "health.fully_immunized",
+      "name": {
+        "fr": "Enfants de 12 à 23 mois complètement vaccinés",
+        "en": "Children aged 12 to 23 months fully immunized"
+      },
+      "definition": {
+        "fr": "Part des enfants de 12 à 23 mois ayant reçu le BCG, trois doses de vaccin contenant le DTC, trois doses de vaccin antipoliomyélitique et une dose de vaccin contre la rougeole, d'après la carte ou la déclaration de la mère.",
+        "en": "Share of children aged 12 to 23 months who received BCG, three doses of DTP-containing vaccine, three doses of polio vaccine and one dose of measles vaccine, from the card or the mother's report."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Enfants de 12 à 23 mois ayant reçu toutes ces doses",
+        "en": "Children aged 12 to 23 months who received all these doses"
+      },
+      "denominator": {
+        "fr": "Enfants de 12 à 23 mois enquêtés",
+        "en": "Children aged 12 to 23 months surveyed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": [
+        "sex",
+        "area"
+      ],
+      "source": "dhs"
+    },
+    {
+      "id": "health.anc4",
+      "name": {
+        "fr": "Femmes ayant eu au moins quatre consultations prénatales",
+        "en": "Women with at least four antenatal care visits"
+      },
+      "definition": {
+        "fr": "Part des femmes ayant accouché d'une naissance vivante qui ont eu au moins quatre consultations prénatales pendant cette grossesse. L'OMS recommande désormais huit contacts ; le seuil de quatre reste le plus suivi.",
+        "en": "Share of women with a live birth who had at least four antenatal care visits during that pregnancy. WHO now recommends eight contacts; the four-visit threshold remains the most tracked."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Femmes ayant eu au moins quatre consultations prénatales",
+        "en": "Women with at least four antenatal visits"
+      },
+      "denominator": {
+        "fr": "Femmes ayant eu une naissance vivante pendant la période de référence",
+        "en": "Women with a live birth in the reference period"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": [
+        "age"
+      ],
+      "source": "who_100"
+    },
+    {
+      "id": "health.skilled_birth",
+      "name": {
+        "fr": "Accouchements assistés par du personnel de santé qualifié",
+        "en": "Births attended by skilled health personnel"
+      },
+      "definition": {
+        "fr": "Part des naissances vivantes assistées par un médecin, une sage-femme ou un infirmier formé aux soins obstétricaux.",
+        "en": "Share of live births attended by a doctor, midwife or nurse trained in obstetric care."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Naissances vivantes assistées par du personnel qualifié",
+        "en": "Live births attended by skilled personnel"
+      },
+      "denominator": {
+        "fr": "Naissances vivantes attendues ou enregistrées",
+        "en": "Expected or recorded live births"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": [
+        "area"
+      ],
+      "source": "sdg",
+      "ref": "ODD 3.1.2"
+    },
+    {
+      "id": "health.pnc48",
+      "name": {
+        "fr": "Mères ayant reçu des soins postnatals dans les deux jours suivant l'accouchement",
+        "en": "Mothers who received postnatal care within two days of birth"
+      },
+      "definition": {
+        "fr": "Part des femmes ayant accouché qui ont eu un contact de soins postnatals avec un prestataire de santé dans les 48 heures.",
+        "en": "Share of women who gave birth and had a postnatal care contact with a health provider within 48 hours."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Femmes vues en soins postnatals dans les 48 heures",
+        "en": "Women seen for postnatal care within 48 hours"
+      },
+      "denominator": {
+        "fr": "Femmes ayant accouché",
+        "en": "Women who gave birth"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": [],
+      "source": "who_100"
+    },
+    {
+      "id": "health.mcpr",
+      "name": {
+        "fr": "Prévalence de la contraception moderne",
+        "en": "Modern contraceptive prevalence"
+      },
+      "definition": {
+        "fr": "Part des femmes de 15 à 49 ans, mariées ou en union, qui utilisent (ou dont le partenaire utilise) une méthode contraceptive moderne.",
+        "en": "Share of women aged 15 to 49, married or in union, who use (or whose partner uses) a modern contraceptive method."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Femmes utilisant une méthode moderne",
+        "en": "Women using a modern method"
+      },
+      "denominator": {
+        "fr": "Femmes de 15 à 49 ans mariées ou en union",
+        "en": "Women aged 15 to 49 married or in union"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": [
+        "age",
+        "area"
+      ],
+      "source": "dhs"
+    },
+    {
+      "id": "health.opd_per_capita",
+      "name": {
+        "fr": "Consultations curatives par habitant et par an",
+        "en": "Outpatient visits per person per year"
+      },
+      "definition": {
+        "fr": "Nombre de nouvelles consultations curatives externes rapporté à la population desservie, ramené à l'année.",
+        "en": "Number of new outpatient curative visits divided by the population served, on a yearly basis."
+      },
+      "type": "ratio",
+      "multiplier": 1,
+      "numerator": {
+        "fr": "Nouvelles consultations curatives externes de la période",
+        "en": "New outpatient curative visits in the period"
+      },
+      "denominator": {
+        "fr": "Population desservie",
+        "en": "Population served"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": [
+        "sex",
+        "age"
+      ],
+      "source": "who_100",
+      "benchmark": {
+        "fr": "Sphère : 1 à 4 consultations par personne et par an dans une population touchée par une crise.",
+        "en": "Sphere: 1 to 4 visits per person per year in a crisis-affected population."
+      }
+    },
+    {
+      "id": "health.malaria_tested",
+      "name": {
+        "fr": "Cas suspects de paludisme ayant bénéficié d'un test de diagnostic",
+        "en": "Suspected malaria cases tested"
+      },
+      "definition": {
+        "fr": "Part des cas suspects de paludisme vus dans les formations sanitaires qui ont été testés par test de diagnostic rapide ou microscopie.",
+        "en": "Share of suspected malaria cases seen in health facilities that were tested by rapid diagnostic test or microscopy."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Cas suspects testés",
+        "en": "Suspected cases tested"
+      },
+      "denominator": {
+        "fr": "Cas suspects de paludisme",
+        "en": "Suspected malaria cases"
+      },
+      "level": "output",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": [
+        "age"
+      ],
+      "source": "who_malaria"
+    },
+    {
+      "id": "health.itn_children",
+      "name": {
+        "fr": "Enfants de moins de cinq ans ayant dormi sous une moustiquaire imprégnée",
+        "en": "Children under five who slept under an insecticide-treated net"
+      },
+      "definition": {
+        "fr": "Part des enfants de moins de cinq ans ayant dormi sous une moustiquaire imprégnée d'insecticide la nuit précédant l'enquête.",
+        "en": "Share of children under five who slept under an insecticide-treated net the night before the survey."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Enfants de moins de cinq ans ayant dormi sous une moustiquaire imprégnée",
+        "en": "Children under five who slept under a treated net"
+      },
+      "denominator": {
+        "fr": "Enfants de moins de cinq ans des ménages enquêtés",
+        "en": "Children under five in surveyed households"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": [
+        "sex",
+        "area"
+      ],
+      "source": "dhs"
+    },
+    {
+      "id": "health.tb_success",
+      "name": {
+        "fr": "Taux de succès du traitement de la tuberculose",
+        "en": "Tuberculosis treatment success rate"
+      },
+      "definition": {
+        "fr": "Part des cas de tuberculose enregistrés dans une cohorte qui sont guéris ou ont terminé leur traitement.",
+        "en": "Share of tuberculosis cases registered in a cohort who were cured or completed treatment."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Cas de la cohorte guéris ou ayant terminé le traitement",
+        "en": "Cases in the cohort cured or with treatment completed"
+      },
+      "denominator": {
+        "fr": "Cas enregistrés dans la cohorte",
+        "en": "Cases registered in the cohort"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": [
+        "sex",
+        "age"
+      ],
+      "source": "who_tb",
+      "benchmark": {
+        "fr": "Cible de la Stratégie pour mettre fin à la tuberculose : 90 %.",
+        "en": "End TB Strategy target: 90%."
+      }
+    },
+    {
+      "id": "health.art_current",
+      "name": {
+        "fr": "Personnes vivant avec le VIH sous traitement antirétroviral",
+        "en": "People living with HIV on antiretroviral therapy"
+      },
+      "definition": {
+        "fr": "Nombre de personnes vivant avec le VIH qui reçoivent un traitement antirétroviral à la fin de la période.",
+        "en": "Number of people living with HIV receiving antiretroviral therapy at the end of the period."
+      },
+      "type": "count",
+      "aggregation": "last",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": [
+        "sex",
+        "age"
+      ],
+      "source": "unaids"
+    },
+    {
+      "id": "health.chw_trained",
+      "name": {
+        "fr": "Agents de santé communautaires formés",
+        "en": "Community health workers trained"
+      },
+      "definition": {
+        "fr": "Nombre d'agents de santé communautaires ayant terminé une formation prévue par le projet pendant la période.",
+        "en": "Number of community health workers who completed a training planned by the project during the period."
+      },
+      "type": "count",
+      "aggregation": "sum",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": [
+        "sex"
+      ],
+      "source": null
+    }
+  ]
+}

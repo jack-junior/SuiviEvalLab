@@ -9,8 +9,8 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
+from . import library, schedule, targets
 from . import places as pl_
-from . import schedule, targets
 from .project import Project, _err
 from .rpc import Server
 
@@ -232,6 +232,36 @@ def register_setup(server: Server, svc: Service) -> None:
     def dis_move(params: dict[str, Any]) -> dict[str, Any]:
         project().move_record("disaggregation", params.get("id"), params.get("direction"))
         return svc.snapshot()
+
+    # Indicator library
+    @server.method("library.sectors")
+    def lib_sectors(_: dict[str, Any]) -> dict[str, Any]:
+        lib = library.load()
+        return {"sectors": lib["sectors"], "total": len(lib["sheets"])}
+
+    @server.method("library.search")
+    def lib_search(params: dict[str, Any]) -> dict[str, Any]:
+        return {"results": library.search(params.get("query"), params.get("sector"))}
+
+    @server.method("library.adopt")
+    def lib_adopt(params: dict[str, Any]) -> dict[str, Any]:
+        """Add an indicator to a result from a library sheet.
+
+        The disaggregations the sheet suggests are added to the project when they
+        are among the presets and still missing.
+        """
+        p = project()
+        lang = params.get("lang") if params.get("lang") in ("fr", "en") else "fr"
+        spec = library.to_indicator(library.sheet(params.get("id")), lang)
+        have = {d["key"] for d in p.records("disaggregation")}
+        for key in spec["breakdowns"]:
+            if key not in have and key in pl_.PRESETS:
+                p.insert_record(
+                    "disaggregation", pl_.validate_disaggregation({"preset": key}, p.records("disaggregation"))
+                )
+                have.add(key)
+        spec["breakdowns"] = [k for k in spec["breakdowns"] if k in have]
+        return svc.save_indicator({"node_id": params.get("node_id"), "indicator": spec})
 
     # Targets by period
     @server.method("target.set")
