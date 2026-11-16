@@ -664,7 +664,11 @@ try {
   await id("share-dashboard").click();
   await id("share-done").waitFor({ timeout: 180_000 });
   const board = readFileSync(path.join(work, "tableau.html"), "utf-8");
-  if (!board.includes("Lecture seule") || !board.includes("<svg"))
+  if (
+    !board.includes("Lecture seule") ||
+    !board.includes("<svg") ||
+    !board.includes("Suivi des indicateurs")
+  )
     throw new Error("Dashboard incomplete");
   notice(
     "E2E share",
