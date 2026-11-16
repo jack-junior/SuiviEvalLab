@@ -22,6 +22,7 @@ import { useI18n } from "../i18n";
 import { cellsOf, defaultPeriod, entryKind, periodLabel, toNumber, todayIso, unitKey, unitName } from "../monitoring";
 import { useProject } from "../state";
 import { Empty, Field, Icon, Notice, Panel } from "../ui";
+import { ConnectionsPanel } from "./Connections";
 
 export function Reception() {
   const { t, lang, day } = useI18n();
@@ -37,6 +38,7 @@ export function Reception() {
     token: string;
   } | null>(null);
   const [applying, setApplying] = useState(false);
+  const [servers, setServers] = useState(false);
 
   // Opened from a task: the submission to look at.
   if (snap && focus && focus !== seenFocus) {
@@ -127,6 +129,9 @@ export function Reception() {
           <p className="lead">{t("rec.lead")}</p>
         </div>
         <div className="row-actions">
+          <button className="btn" onClick={() => setServers(true)} data-testid="rec-servers">
+            {t("cx.open")}
+          </button>
           <button className="btn" onClick={templates} disabled={!entry.length} data-testid="rec-templates">
             <Icon name="download" /> {t("rec.templates")}
           </button>
@@ -307,6 +312,7 @@ export function Reception() {
       {open && period && (
         <EntryPanel period={period} unit={open.unit} id={open.id} indicators={entry} onClose={() => setOpen(null)} />
       )}
+      {servers && <ConnectionsPanel onClose={() => setServers(false)} />}
       {reason && (
         <ReasonDialog
           title={t("rec.unlockTitle")}
@@ -427,6 +433,7 @@ function EntryPanel({
   const [asking, setAsking] = useState<"return" | "reopen" | null>(null);
   const [justifying, setJustifying] = useState<Record<string, string>>({});
   const [subId, setSubId] = useState(id);
+  const [pasting, setPasting] = useState<{ ind: Indicator; key: string } | null>(null);
 
   const load = (d: SubmissionDetail) => {
     setDetail(d);
@@ -620,8 +627,47 @@ function EntryPanel({
           onChange={(e) => set(ind.id, key, "v", e.target.value)}
           data-testid={`cell-${ind.name}-${key || "total"}`}
         />
+        {ind.people === "unique" && !readOnly && (
+          <button
+            className="link small"
+            onClick={() => setPasting({ ind, key })}
+            data-testid={`people-${ind.name}-${key || "total"}`}
+          >
+            {t("rec.pastePeople")}
+          </button>
+        )}
       </td>
     );
+  };
+
+  const savePeople = async (text: string) => {
+    if (!pasting) return;
+    setError(null);
+    try {
+      if (dirty && !(await save())) return;
+      const sid = await ensure();
+      const cats = Object.fromEntries(
+        pasting.key
+          .split(";")
+          .filter(Boolean)
+          .map((p) => p.split("=")),
+      );
+      const ids = text
+        .split(/[\n\r,;\t]+/)
+        .map((x) => x.trim())
+        .filter(Boolean);
+      const r = await call<Snapshot & SubmissionDetail>("people.save", {
+        id: sid,
+        indicator_id: pasting.ind.id,
+        ids,
+        cats,
+      });
+      setSnap(r);
+      load(r);
+      setPasting(null);
+    } catch (e) {
+      setError(describe(e));
+    }
   };
 
   const alerts = detail?.alerts ?? [];
@@ -827,6 +873,65 @@ function EntryPanel({
           }}
         />
       )}
+      {pasting && (
+        <PeopleDialog
+          name={pasting.ind.name}
+          onCancel={() => setPasting(null)}
+          onConfirm={(text) => void savePeople(text)}
+        />
+      )}
+    </Panel>
+  );
+}
+
+/** Identifiers of the people of one cell (card or register numbers), one per line.
+ * They are kept only as pseudonyms, so the same person is counted once. */
+function PeopleDialog({
+  name,
+  onCancel,
+  onConfirm,
+}: {
+  name: string;
+  onCancel: () => void;
+  onConfirm: (text: string) => void;
+}) {
+  const { t } = useI18n();
+  const [text, setText] = useState("");
+  const n = new Set(
+    text
+      .split(/[\n\r,;\t]+/)
+      .map((x) => x.trim().toLowerCase())
+      .filter(Boolean),
+  ).size;
+  return (
+    <Panel
+      title={t("rec.peopleTitle", { name })}
+      onClose={onCancel}
+      testId="people-dialog"
+      footer={
+        <>
+          <button className="btn" onClick={onCancel}>
+            {t("common.cancel")}
+          </button>
+          <button className="btn primary" disabled={!n} onClick={() => onConfirm(text)} data-testid="people-ok">
+            {t("rec.peopleSave", { n })}
+          </button>
+        </>
+      }
+    >
+      <p className="muted small">{t("rec.peopleHint")}</p>
+      <Field label={t("rec.peopleIds")}>
+        {(id) => (
+          <textarea
+            id={id}
+            className="input mono"
+            rows={10}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            data-testid="people-text"
+          />
+        )}
+      </Field>
     </Panel>
   );
 }

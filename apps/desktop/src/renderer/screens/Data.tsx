@@ -8,6 +8,8 @@ import { allColumns, call, Dataset, Design, Inspection, Picked, pick, Round, Rul
 import { useI18n } from "../i18n";
 import { pickLabel, useLabels } from "../labels";
 import { useProject } from "../state";
+import { ConnectionsPanel } from "./Connections";
+import { periodLabel } from "../monitoring";
 import { Confirm, Empty, Field, Icon, IconButton, Notice, Panel } from "../ui";
 import { ADVANCED, AdvancedFields, GROUPS } from "./AdvancedRule";
 import { DataTable } from "./DataTable";
@@ -24,6 +26,7 @@ export function Data() {
   const [importing, setImporting] = useState(false);
   const [merging, setMerging] = useState(false);
   const [stacking, setStacking] = useState(false);
+  const [servers, setServers] = useState(false);
   if (!snap) return null;
   const current = snap.datasets.find((d) => d.id === focus) ?? null;
 
@@ -36,23 +39,28 @@ export function Data() {
           <h1>{t("nav.data")}</h1>
           <p className="lead">{t("data.lead")}</p>
         </div>
-        {snap.datasets.length > 0 && (
-          <div className="row-actions">
-            {snap.datasets.length > 1 && (
-              <>
-                <button className="btn" onClick={() => setStacking(true)} data-testid="stack-data">
-                  {t("stack.open")}
-                </button>
-                <button className="btn" onClick={() => setMerging(true)} data-testid="merge-data">
-                  {t("merge.open")}
-                </button>
-              </>
-            )}
-            <button className="btn primary" onClick={() => setImporting(true)} data-testid="import-data">
-              {t("data.import")}
-            </button>
-          </div>
-        )}
+        <div className="row-actions">
+          <button className="btn" onClick={() => setServers(true)} data-testid="open-servers">
+            {t("cx.open")}
+          </button>
+          {snap.datasets.length > 0 && (
+            <>
+              {snap.datasets.length > 1 && (
+                <>
+                  <button className="btn" onClick={() => setStacking(true)} data-testid="stack-data">
+                    {t("stack.open")}
+                  </button>
+                  <button className="btn" onClick={() => setMerging(true)} data-testid="merge-data">
+                    {t("merge.open")}
+                  </button>
+                </>
+              )}
+              <button className="btn primary" onClick={() => setImporting(true)} data-testid="import-data">
+                {t("data.import")}
+              </button>
+            </>
+          )}
+        </div>
       </div>
       {error && <Notice kind="error">{error}</Notice>}
       {snap.datasets.length === 0 ? (
@@ -91,6 +99,7 @@ export function Data() {
       {importing && <ImportPanel onClose={() => setImporting(false)} />}
       {merging && <MergePanel onClose={() => setMerging(false)} />}
       {stacking && <StackPanel onClose={() => setStacking(false)} />}
+      {servers && <ConnectionsPanel onClose={() => setServers(false)} />}
     </div>
   );
 }
@@ -515,14 +524,15 @@ function StackLine({ ds }: { ds: Dataset }) {
 }
 
 function SettingsPanel({ ds, onClose }: { ds: Dataset; onClose: () => void }) {
-  const { t } = useI18n();
-  const { run } = useProject();
+  const { t, lang } = useI18n();
+  const { run, snap } = useProject();
+  const [period, setPeriod] = useState(ds.period ?? "");
   const [name, setName] = useState(ds.name);
   const [round, setRound] = useState<Round>(ds.round);
   const [design, setDesign] = useState<Design>(ds.design);
   const [idCol, setIdCol] = useState<string | null>(ds.id_column);
   const save = async () => {
-    if (await run("dataset.update", { id: ds.id, name, round, design, id_column: idCol })) onClose();
+    if (await run("dataset.update", { id: ds.id, name, round, period, design, id_column: idCol })) onClose();
   };
   return (
     <Panel
@@ -552,6 +562,26 @@ function SettingsPanel({ ds, onClose }: { ds: Dataset; onClose: () => void }) {
           ))}
         </div>
       </div>
+      {(snap?.periods.length ?? 0) > 0 && (
+        <Field label={t("data.period")} hint={t("data.periodHint")}>
+          {(id) => (
+            <select
+              id={id}
+              className="input"
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+              data-testid="dataset-period"
+            >
+              <option value="">{t("data.periodNone")}</option>
+              {snap!.periods.map((p) => (
+                <option key={p.id} value={p.code}>
+                  {periodLabel(p, lang)}
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
+      )}
       <DesignFields
         columns={allColumns(ds).map((c) => c.name)}
         design={design}

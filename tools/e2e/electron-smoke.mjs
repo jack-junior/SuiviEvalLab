@@ -25,6 +25,7 @@ import {
   rmSync,
   statSync,
 } from "node:fs";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -68,6 +69,68 @@ const dialogs = [
   path.join(work, "exemple.sme"),
 ];
 
+// A local server answering like KoboToolbox, for the server synchronisation.
+const KOBO_TOKEN = "e2e-token";
+const kobo = createServer((req, res) => {
+  const send = (code, body) => {
+    res.writeHead(code, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(body));
+  };
+  if (req.headers.authorization !== `Token ${KOBO_TOKEN}`)
+    return send(401, { detail: "bad token" });
+  const url = new URL(req.url, "http://127.0.0.1");
+  if (url.pathname === "/api/v2/assets/")
+    return send(200, {
+      next: null,
+      results: [
+        {
+          uid: "aE2E",
+          name: "Suivi des ménages",
+          asset_type: "survey",
+          has_deployment: true,
+          deployment__submission_count: 3,
+        },
+      ],
+    });
+  if (url.pathname === "/api/v2/assets/aE2E/")
+    return send(200, {
+      content: {
+        translations: [null],
+        survey: [
+          { type: "integer", name: "taille", label: ["Taille du ménage"] },
+          {
+            type: "select_one",
+            select_from_list_name: "yn",
+            name: "ecole",
+            label: ["École à 2 km"],
+          },
+        ],
+        choices: [
+          { list_name: "yn", name: "oui", label: ["Oui"] },
+          { list_name: "yn", name: "non", label: ["Non"] },
+        ],
+      },
+    });
+  if (url.pathname === "/api/v2/assets/aE2E/data/")
+    return send(200, {
+      next: null,
+      results: [
+        { _id: 1, taille: "5", ecole: "oui", _submission_time: "2026-02-01" },
+        { _id: 2, taille: "3", ecole: "non", _submission_time: "2026-02-02" },
+        { _id: 3, taille: "8", ecole: "oui", _submission_time: "2026-02-03" },
+      ],
+    });
+  send(404, {});
+});
+await new Promise((ok) => kobo.listen(0, "127.0.0.1", ok));
+const koboUrl = `http://127.0.0.1:${kobo.address().port}`;
+const env = {
+  ...process.env,
+  SME_E2E_DIALOGS: dialogs.join("|"),
+  NO_PROXY: "127.0.0.1,localhost",
+  no_proxy: "127.0.0.1,localhost",
+};
+
 const app = await electron.launch(
   local
     ? {
@@ -76,12 +139,12 @@ const app = await electron.launch(
           "node_modules/electron/dist/electron",
         ),
         args: ["--no-sandbox", target],
-        env: { ...process.env, SME_E2E_DIALOGS: dialogs.join("|") },
+        env,
         timeout: 60_000,
       }
     : {
         executablePath: target,
-        env: { ...process.env, SME_E2E_DIALOGS: dialogs.join("|") },
+        env,
         timeout: 60_000,
       },
 );
@@ -557,6 +620,34 @@ try {
   await id("framework-tab-matrix").click();
   await shot("logframe-matrix");
 
+  // Server: a KoboToolbox form becomes a dataset of the example.
+  await id("nav-data").click();
+  const cards = await id("dataset-card").count();
+  await id("open-servers").click();
+  await id("cx-add").click();
+  await id("cx-kind-kobo").click();
+  await id("cx-name").fill("Kobo test");
+  await id("cx-url").fill(koboUrl);
+  await id("cx-secret").fill(KOBO_TOKEN);
+  await id("cx-save").click();
+  await id("cx-Kobo test").waitFor({ timeout: 30_000 });
+  await id("cx-form").click();
+  await id("cx-form-item").first().click({ timeout: 60_000 });
+  await id("cx-sync").click();
+  await id("cx-sync-run").click();
+  await page
+    .locator('[data-testid="cx-sync-panel"] .notice')
+    .first()
+    .waitFor({ timeout: 120_000 });
+  const synced = await id("cx-sync-panel").innerText();
+  notice("E2E Kobo", synced.replace(/\s+/g, " ").slice(0, 160));
+  if (!/3/.test(synced)) throw new Error(`Unexpected sync: ${synced}`);
+  await shot("servers");
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape");
+  if ((await id("dataset-card").count()) !== cards + 1)
+    throw new Error("Kobo dataset not created");
+
   // 3. Language
   await id("lang-en").click();
   const label = await id("nav-overview").innerText();
@@ -590,9 +681,17 @@ try {
   notice("E2E updates", await id("update-status").innerText());
   notice(
     "E2E",
-    "Full path verified: project sheet, framework, import, cleaning, indicator, monitoring plan, periodic entry, reception and validation, tracking, gap comment, project today, agenda, analysis, report, SPSS, quality, merge, dashboard, checks, plan export, workspace today, workspace, sample size, example, test, logframe matrix, languages, indicator library",
+    "Full path verified: project sheet, framework, import, cleaning, indicator, monitoring plan, periodic entry, reception and validation, tracking, gap comment, project today, agenda, analysis, report, SPSS, quality, merge, dashboard, checks, plan export, workspace today, workspace, sample size, example, test, logframe matrix, Kobo server sync, languages, indicator library",
   );
+} catch (e) {
+  // The screen at the moment of failure, kept with the other screenshots.
+  const win = await app.firstWindow().catch(() => null);
+  await win
+    ?.screenshot({ path: path.join(shots, "failure.png") })
+    .catch(() => undefined);
+  throw e;
 } finally {
   await app.close();
-  rmSync(work, { recursive: true, force: true });
+  kobo.close();
+  if (!process.env.E2E_KEEP) rmSync(work, { recursive: true, force: true });
 }

@@ -54,12 +54,14 @@ export function Tracking() {
 
   const groups = useMemo(() => {
     if (!snap) return [];
-    const entry = snap.indicators.filter(isEntry);
+    // Survey indicators come with their estimates when the table is not filtered.
+    const surveyRows = new Set((rows ?? []).filter((r) => r.kind === "survey").map((r) => r.indicator_id));
+    const shown = snap.indicators.filter((i) => isEntry(i) || surveyRows.has(i.id));
     return snap.framework
       .filter((n) => levels.carries(n.level))
-      .map((node) => ({ node, list: entry.filter((i) => i.node_id === node.id) }))
+      .map((node) => ({ node, list: shown.filter((i) => i.node_id === node.id) }))
       .filter((g) => g.list.length);
-  }, [snap, levels]);
+  }, [snap, levels, rows]);
 
   if (!snap) return null;
   const per = snap.periods.find((p) => p.code === f.period);
@@ -67,7 +69,13 @@ export function Tracking() {
   const gapOf = (indId: string) => snap.gap_comments[indId]?.find((g) => g.period === f.period);
   const rate = (v: number | null) => (v === null ? "" : percent(v, 0));
   const trend = (x: TrackRow["trend"]) => (x === "up" ? "↗" : x === "down" ? "↘" : x === "flat" ? "→" : "");
-  const surveys = snap.indicators.filter((i) => !isEntry(i));
+  const ciText = (r: TrackRow | undefined) => {
+    const p = r?.series.find((x) => x.period === r.period);
+    const ind = r && snap.indicators.find((i) => i.id === r.indicator_id);
+    if (!p?.ci || !ind || p.ci[0] === null || p.ci[1] === null) return undefined;
+    return t("trk.ci", { low: format(p.ci[0], ind.unit), high: format(p.ci[1], ind.unit) });
+  };
+  const surveys = snap.indicators.filter((i) => !isEntry(i) && !byId.has(i.id));
 
   const markReported = async () => {
     if (!per) return;
@@ -102,7 +110,7 @@ export function Tracking() {
           <button
             className="btn"
             onClick={() => setCrossing(true)}
-            disabled={!groups.length}
+            disabled={!groups.some((g) => g.list.some(isEntry))}
             data-testid="trk-crosstab"
           >
             {t("xt.open")}
@@ -232,11 +240,17 @@ export function Tracking() {
                               {t(`indicators.unit_${ind.unit}`)},{" "}
                               {t(`indicators.agg_${r?.mode ?? "sum"}`).toLowerCase()}
                               {r?.provisional && <span className="tag">{t("trk.provisionalTag")}</span>}
+                              {r?.kind === "survey" && <span className="tag">{t("trk.surveyTag")}</span>}
+                              {r?.duplicates_possible && (
+                                <span className="tag" title={t("trk.duplicatesHint")}>
+                                  {t("trk.duplicatesTag")}
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td className="num muted">{ms ? "" : v(r?.baseline)}</td>
                           <td className="num">{ms ? "" : v(r?.target_period)}</td>
-                          <td className="num" data-testid="trk-value">
+                          <td className="num" data-testid="trk-value" title={ciText(r)}>
                             {ms
                               ? r?.value_period === 1
                                 ? t("rec.done")
@@ -308,7 +322,7 @@ export function Tracking() {
       {gap && f.period && <GapPanel ind={gap} period={f.period} onClose={() => setGap(null)} />}
       {crossing && (
         <CrosstabPanel
-          indicators={groups.flatMap((g) => g.list)}
+          indicators={groups.flatMap((g) => g.list).filter(isEntry)}
           period={f.period}
           provisional={f.provisional}
           onClose={() => setCrossing(false)}

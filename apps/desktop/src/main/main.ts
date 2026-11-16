@@ -8,11 +8,13 @@ import { randomUUID } from "node:crypto";
 import { readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { EngineClient, EngineError, EngineLaunch } from "./engine";
+import { getSecret, hasSecret, setSecret } from "./secrets";
 import { Updates } from "./updates";
 
 // Engine methods the interface is allowed to call (allowlist). Methods that read or
 // write files never receive a path from the interface: they receive a `file_token`
 // obtained from a file dialog, which the main process swaps for the real path.
+const SECRET_METHODS = new Set(["connection.forms", "connection.sync", "dhis2.search", "dhis2.import"]);
 const ALLOWED = new Set([
   "system.ping",
   "system.versions",
@@ -123,6 +125,13 @@ const ALLOWED = new Set([
   "tracking.crosstab",
   "quality.save",
   "quality.delete",
+  "connection.save",
+  "connection.delete",
+  "connection.forms",
+  "connection.sync",
+  "dhis2.search",
+  "dhis2.import",
+  "people.save",
 ]);
 
 // Paths chosen by the user in a dialog, by token. Tokens live for the session.
@@ -351,8 +360,23 @@ app.whenReady().then(() => {
       args.path = file;
       delete args.file_token;
     }
+    // A secret typed for a server goes to the encrypted store, not to the engine;
+    // the calls to that server receive it from there.
+    const typedSecret = method === "connection.save" && typeof args.secret === "string" ? args.secret : null;
+    delete args.secret;
+    if (SECRET_METHODS.has(method) && typeof args.connection_id === "string") {
+      const secret = getSecret(args.connection_id);
+      if (secret) args.secret = secret;
+    }
     try {
       const result = await engine!.call(method, args);
+      if (typedSecret !== null && result) {
+        const id = (args.id as string) || (result as { created?: string }).created;
+        if (id) setSecret(id, typedSecret);
+      }
+      // Whether each server connection has its secret stored, for the interface.
+      const snap = result as { connections?: { id: string; has_secret?: boolean }[] } | null;
+      if (snap && Array.isArray(snap.connections)) for (const c of snap.connections) c.has_secret = hasSecret(c.id);
       if ((method === "project.create" || method === "project.open" || method === "project.rename") && result) {
         const info = (result as { project?: { path: string; name: string } }).project;
         if (info) {

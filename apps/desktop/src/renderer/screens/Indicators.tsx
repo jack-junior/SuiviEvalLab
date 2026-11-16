@@ -9,6 +9,7 @@ import { useI18n } from "../i18n";
 import { useLabels } from "../labels";
 import { useProject } from "../state";
 import { Confirm, Empty, Field, IconButton, Notice, Panel, useValueFormat } from "../ui";
+import { Dhis2Picker } from "./Connections";
 import { IndicatorRule } from "./IndicatorRule";
 import { LibraryPanel } from "./Library";
 import { useLevels } from "../frameworks";
@@ -294,7 +295,7 @@ export function Indicators() {
           <div className="field">
             <span className="label">{t("indicators.sourceType")}</span>
             <div className="kind-grid">
-              {(["routine", "survey", "secondary"] as const).map((k) => (
+              {(["routine", "survey", "secondary", "dhis2"] as const).map((k) => (
                 <button
                   key={k}
                   className="kind"
@@ -373,6 +374,28 @@ export function Indicators() {
                 </div>
                 <div className="field-hint">{t("indicators.aggregationHint")}</div>
               </div>
+              {draft.source_type === "dhis2" && (
+                <Dhis2Picker value={draft.dhis2_id ?? ""} onChange={(v) => setDraft({ ...draft, dhis2_id: v })} />
+              )}
+              {draft.unit === "count" && draft.source_type !== "dhis2" && (
+                <div className="field">
+                  <span className="label">{t("indicators.people")}</span>
+                  <div className="chips">
+                    {(["contacts", "unique"] as const).map((m) => (
+                      <button
+                        key={m}
+                        className="chip"
+                        aria-pressed={(draft.people ?? "contacts") === m}
+                        onClick={() => setDraft({ ...draft, people: m })}
+                        data-testid={`people-${m}`}
+                      >
+                        {t(`indicators.people_${m}`)}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="field-hint">{t("indicators.peopleHint")}</div>
+                </div>
+              )}
               {draft.unit === "rate" && (
                 <div className="field">
                   <span className="label">{t("indicators.rateBase")}</span>

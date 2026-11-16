@@ -152,9 +152,10 @@ export const ENTRY_UNITS: Unit[] = [
   "milestone",
   "scale",
 ];
-export type SourceType = "survey" | "routine" | "secondary";
+export type SourceType = "survey" | "routine" | "secondary" | "dhis2";
+/** Indicators whose values are entered or imported period by period. */
 export const isEntry = (i: { source_type?: SourceType }) =>
-  i.source_type === "routine" || i.source_type === "secondary";
+  i.source_type === "routine" || i.source_type === "secondary" || i.source_type === "dhis2";
 export interface Condition {
   column: string;
   values: string[];
@@ -188,6 +189,10 @@ export interface Indicator {
   /** survey: computed from imported data; routine: entered period by period; secondary: from another source. */
   source_type?: SourceType;
   aggregation?: "sum" | "last" | "mean" | "max";
+  /** DHIS2 data element or indicator the values are read from. */
+  dhis2_id?: string;
+  /** For a count of people: unique people (identifiers) or contacts. */
+  people?: "" | "unique" | "contacts";
   /** Plausible range of a value entered. */
   bounds?: { min?: number; max?: number };
   categories?: string[];
@@ -418,6 +423,8 @@ export interface Dataset {
   /** Columns created by the cleaning rules. */
   derived_columns?: ColumnInfo[];
   rules: Rule[];
+  /** Reporting period of the collection: its estimates enter the tracking table there. */
+  period?: string;
 }
 
 export interface StackStats {
@@ -494,6 +501,20 @@ export interface Snapshot {
   tasks: Task[];
   events: AgendaEvent[];
   quality_reviews: Record<string, QualityReview[]>;
+  connections: Connection[];
+}
+
+export interface Connection {
+  id: string;
+  kind: "kobo" | "odk" | "dhis2";
+  name: string;
+  url: string;
+  username: string;
+  form: { uid?: string; project_id?: string; form_id?: string; name?: string };
+  dataset_id: string;
+  syncs: { at: string; rows: number }[];
+  /** Added by the application: whether the token or password is stored on this computer. */
+  has_secret?: boolean;
 }
 
 export type QualityScore = "met" | "partly" | "not_met" | "";
@@ -582,10 +603,12 @@ export interface TrackPoint {
   rate_to_date: number | null;
   status: TrackStatus;
   trend: "up" | "down" | "flat" | null;
+  ci?: [number | null, number | null] | null;
+  round?: string | null;
 }
 export interface TrackRow {
   indicator_id: string;
-  kind: "count" | "fraction" | "mean" | "level" | "milestone";
+  kind: "count" | "fraction" | "mean" | "level" | "milestone" | "survey";
   mode: "sum" | "last" | "mean" | "max";
   baseline: number | null;
   target: number | null;
@@ -602,6 +625,7 @@ export interface TrackRow {
   provisional: boolean;
   reason: string | null;
   series: TrackPoint[];
+  duplicates_possible?: boolean;
 }
 export interface Task {
   id: string;
