@@ -26,11 +26,11 @@ from . import frameworks
 from .rpc import INVALID_PARAMS, RpcError
 
 APPLICATION_ID = 0x534D4531  # "SME1": marks a file as a SuiviEvalLab project
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 EXTENSION = ".sme"
 
-# Framework levels, from the top. The interface translates them; projects store keys.
-LEVELS = ("impact", "outcome", "output", "activity")
+# Framework levels, from the top. They mark the depth; the model of the project names them.
+LEVELS = frameworks.KEYS
 
 _SCHEMA = """
 CREATE TABLE meta (
@@ -40,7 +40,7 @@ CREATE TABLE meta (
 CREATE TABLE framework_node (
     id          TEXT PRIMARY KEY,
     parent_id   TEXT REFERENCES framework_node(id) ON DELETE CASCADE,
-    level       TEXT NOT NULL CHECK (level IN ('impact', 'outcome', 'output', 'activity')),
+    level       TEXT NOT NULL CHECK (level IN ('impact', 'outcome', 'output', 'activity', 'detail')),
     title       TEXT NOT NULL,
     description TEXT NOT NULL DEFAULT '',
     assumptions TEXT NOT NULL DEFAULT '',  -- logframe column: assumptions and risks
@@ -79,6 +79,37 @@ CREATE TABLE analysis (
     id          TEXT PRIMARY KEY,
     position    INTEGER NOT NULL,
     spec        TEXT NOT NULL            -- JSON, see analyses.py
+);
+
+CREATE TABLE period (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL            -- JSON, see schedule.py
+);
+
+CREATE TABLE place (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL            -- JSON, see places.py: name, code, level, parent
+);
+
+CREATE TABLE partner (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL            -- JSON, see places.py: name, acronym, role, places
+);
+
+CREATE TABLE disaggregation (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL            -- JSON, see places.py: name, categories
+);
+
+CREATE TABLE target (
+    id           TEXT PRIMARY KEY,
+    indicator_id TEXT NOT NULL REFERENCES indicator(id) ON DELETE CASCADE,
+    position     INTEGER NOT NULL,
+    spec         TEXT NOT NULL           -- JSON, see targets.py: period, value, history
 );
 
 CREATE TABLE cleaning_rule (
@@ -193,7 +224,64 @@ class Project:
                     "CREATE TABLE IF NOT EXISTS analysis "
                     "(id TEXT PRIMARY KEY, position INTEGER NOT NULL, spec TEXT NOT NULL)"
                 )
+            if version < 5:
+                # 1.0: a fifth framework level, project calendar, places, partners,
+                # disaggregations and targets by period.
+                Project._migrate_v5(conn)
             conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+
+    _V5_TABLES = ("period", "place", "partner", "disaggregation")
+
+    @staticmethod
+    def _migrate_v5(conn: sqlite3.Connection) -> None:
+        sql = conn.execute("SELECT sql FROM sqlite_master WHERE name = 'framework_node'").fetchone()[0]
+        if "'detail'" not in sql:
+            # SQLite cannot change a CHECK constraint: rebuild the table. The foreign keys
+            # are off while the rows move, so the cascade does not empty the indicators.
+            conn.commit()
+            conn.execute("PRAGMA foreign_keys = OFF")
+            try:
+                with conn:
+                    # A new table renamed into place: renaming the old one would make SQLite
+                    # rewrite the references of the indicators to follow it.
+                    conn.execute(
+                        "CREATE TABLE framework_node_v5 (id TEXT PRIMARY KEY, parent_id TEXT REFERENCES "
+                        "framework_node(id) ON DELETE CASCADE, level TEXT NOT NULL CHECK (level IN "
+                        "('impact', 'outcome', 'output', 'activity', 'detail')), title TEXT NOT NULL, "
+                        "description TEXT NOT NULL DEFAULT '', assumptions TEXT NOT NULL DEFAULT '', "
+                        "position INTEGER NOT NULL)"
+                    )
+                    conn.execute(
+                        "INSERT INTO framework_node_v5(id, parent_id, level, title, description, assumptions, "
+                        "position) SELECT id, parent_id, level, title, description, assumptions, position "
+                        "FROM framework_node"
+                    )
+                    conn.execute("DROP TABLE framework_node")
+                    conn.execute("ALTER TABLE framework_node_v5 RENAME TO framework_node")
+                    conn.execute("DROP INDEX IF EXISTS framework_node_parent")
+                    conn.execute("CREATE INDEX framework_node_parent ON framework_node(parent_id, position)")
+            finally:
+                conn.execute("PRAGMA foreign_keys = ON")
+        for table in Project._V5_TABLES:
+            conn.execute(
+                f"CREATE TABLE IF NOT EXISTS {table} "
+                "(id TEXT PRIMARY KEY, position INTEGER NOT NULL, spec TEXT NOT NULL)"
+            )
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS target (id TEXT PRIMARY KEY, indicator_id TEXT NOT NULL "
+            "REFERENCES indicator(id) ON DELETE CASCADE, position INTEGER NOT NULL, spec TEXT NOT NULL)"
+        )
+        # The World Bank model of 0.4 and 0.5 had two levels; 1.0 adds components and
+        # activities. Projects made with it keep their own two levels as a custom model.
+        row = conn.execute("SELECT value FROM meta WHERE key = 'framework_model'").fetchone()
+        if row:
+            try:
+                old = json.loads(row[0])
+            except ValueError:
+                old = {}
+            if isinstance(old, dict) and old.get("id") == "worldbank":
+                custom = {"id": "custom", "levels": [dict(x) for x in frameworks.WORLDBANK_V04]}
+                conn.execute("UPDATE meta SET value = ? WHERE key = 'framework_model'", (json.dumps(custom),))
 
     @staticmethod
     def _connect(path: Path) -> sqlite3.Connection:
@@ -374,6 +462,11 @@ class Project:
         "saved_test": None,
         "routine_value": "indicator_id",
         "analysis": None,
+        "period": None,
+        "place": None,
+        "partner": None,
+        "disaggregation": None,
+        "target": "indicator_id",
     }
 
     def records(self, table: str, scope: str | None = None) -> list[dict[str, Any]]:

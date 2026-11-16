@@ -61,9 +61,12 @@ def test_usaid_and_world_bank_projects(call, tmp_path):
     do = call("framework.add", {"parent_id": goal, "title": "DO 1"})["created"]
     ir = call("framework.add", {"parent_id": do, "title": "IR 1.1"})["created"]
     sub = call("framework.add", {"parent_id": ir, "title": "Sub-IR 1.1.1"})["created"]
+    act = call("framework.add", {"parent_id": sub, "title": "Activity 1.1.1.1"})["created"]
+    assert call("project.get")["framework"][-1]["level"] == "detail"
     with pytest.raises(RuntimeError, match="node_no_children"):
-        call("framework.add", {"parent_id": sub, "title": "Too deep"})
-    # USAID: indicators on every level, including the fourth.
+        call("framework.add", {"parent_id": act, "title": "Too deep"})
+    call("framework.delete", {"id": act})
+    # USAID: indicators on the four levels of results.
     call("indicator.save", {"node_id": sub, "indicator": {"name": "Ind", "unit": "count", "source_type": "routine"}})
     fw = call("project.get")["framework"]
     assert fw[0]["assumptions"] == "Stabilité politique"
@@ -71,9 +74,12 @@ def test_usaid_and_world_bank_projects(call, tmp_path):
     # Back to the standard model: the fourth level then carries no indicator, so it is refused.
     with pytest.raises(RuntimeError, match="framework_model_indicators"):
         call("framework.set_model", {"model": {"id": "standard"}})
-    # The World Bank model has two levels only: refused while four are used.
-    with pytest.raises(RuntimeError, match="framework_model_too_shallow"):
+    # The World Bank model: the fourth level holds activities, without indicators.
+    with pytest.raises(RuntimeError, match="framework_model_indicators"):
         call("framework.set_model", {"model": {"id": "worldbank"}})
+    # A model with two levels only: refused while four are used.
+    with pytest.raises(RuntimeError, match="framework_model_too_shallow"):
+        call("framework.set_model", {"model": {"id": "custom", "levels": [{"fr": "A"}, {"fr": "B"}]}})
     snap = call(
         "framework.set_model",
         {"model": {"id": "custom", "levels": [{"fr": "A"}, {"fr": "B"}, {"fr": "C"}, {"fr": "D"}]}},
@@ -187,7 +193,7 @@ def test_routine_indicator_through_report_plan_and_dashboard(call, tmp_path):
     text = "\n".join(p.text for p in Document(report).paragraphs)
     cells = [c.text for t in Document(report).tables for r in t.rows for c in r.cells]
     assert "870 en cumul au terme de la période 2026-T2" in text
-    assert "Produit" in text  # the EU name of the level, not "Extrant"
+    assert "Produit" in text  # the name of the level in the model
     assert "2026-T1" in cells and "Prévu à date" in cells
     assert "Indicateur de suivi de routine" in text
 

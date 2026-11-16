@@ -29,6 +29,8 @@ from . import (
     frameworks,
     indicators,
     merge,
+    places,
+    project_setup,
     quality,
     r_user,
     report_content,
@@ -116,6 +118,7 @@ class Service:
             ],
             "untrusted_scripts": self.untrusted_scripts(ds_list),
             "report_content": report_content.load(p),
+            **project_setup.state(p),
         }
 
     def untrusted_scripts(self, ds_list: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
@@ -919,6 +922,14 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
         name = _text(params, "name", max_len=200)
         model = frameworks.validate(params["model"]) if params.get("model") else None
         opened(Project.create(path, name, model))
+        if isinstance(params.get("profile"), dict):
+            project_setup.apply_profile(svc.project, params["profile"])
+            if svc.project.records("period") == [] and params["profile"].get("start") and params["profile"].get("end"):
+                project_setup.generate_periods(svc.project)
+        for key in params.get("disaggregations") or []:
+            svc.project.insert_record(
+                "disaggregation", places.validate_disaggregation({"preset": key}, svc.project.records("disaggregation"))
+            )
         if params.get("example") is True:
             from .example import fill_example
 
@@ -1339,4 +1350,5 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
         svc.project.set_meta("report_template_name", None)
         return svc.snapshot()
 
+    project_setup.register_setup(server, svc)
     return svc

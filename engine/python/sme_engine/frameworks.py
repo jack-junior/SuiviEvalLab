@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
 
-"""Results framework models: the levels of the chain and their names, by donor.
+"""Logical framework models: the levels of the results chain and their names, by donor.
 
-Projects keep four internal level keys (impact, outcome, output, activity), from
-the top. A model says how many of them are used, what each is called in French
+Projects keep five internal level keys, from the top: impact, outcome, output,
+activity, detail. They only mark the depth: what each level is called comes from
+the model. A model says how many levels are used (2 to 5), their names in French
 and English, and which levels carry indicators. The model of a project is kept
 in its metadata, so the interface, the Word report, the monitoring plan and the
 dashboard all use the donor's own words.
@@ -19,7 +20,7 @@ from typing import Any
 
 from .rpc import INVALID_PARAMS, RpcError
 
-KEYS = ("impact", "outcome", "output", "activity")
+KEYS = ("impact", "outcome", "output", "activity", "detail")
 
 
 def _lv(fr: str, en: str, indicators: bool = True) -> dict[str, Any]:
@@ -31,7 +32,7 @@ MODELS: dict[str, list[dict[str, Any]]] = {
     "standard": [
         _lv("Impact", "Impact"),
         _lv("Effet", "Outcome"),
-        _lv("Extrant", "Output"),
+        _lv("Produit", "Output"),
         _lv("Activité", "Activity", False),
     ],
     # European Union logical framework (results chain of the 2020s guidelines).
@@ -41,12 +42,13 @@ MODELS: dict[str, list[dict[str, Any]]] = {
         _lv("Produit", "Output"),
         _lv("Activité", "Activity", False),
     ],
-    # USAID results framework.
+    # USAID results framework, with the activities of the work plan below it.
     "usaid": [
         _lv("But", "Goal"),
         _lv("Objectif de développement", "Development objective"),
         _lv("Résultat intermédiaire", "Intermediate result"),
         _lv("Sous-résultat intermédiaire", "Sub-intermediate result"),
+        _lv("Activité", "Activity", False),
     ],
     # United Nations results-based management.
     "un": [
@@ -55,12 +57,28 @@ MODELS: dict[str, list[dict[str, Any]]] = {
         _lv("Produit", "Output"),
         _lv("Activité", "Activity", False),
     ],
-    # World Bank results framework.
+    # World Bank results framework: indicators of the project development objective,
+    # and intermediate results indicators grouped by component. Activities serve the
+    # work plan; they are not part of the Bank's results framework.
     "worldbank": [
         _lv("Objectif de développement du projet", "Project development objective"),
+        _lv("Composante", "Component", False),
         _lv("Résultat intermédiaire", "Intermediate result"),
+        _lv("Activité", "Activity", False),
+    ],
+    # International Federation of Red Cross and Red Crescent Societies logframe.
+    "ifrc": [
+        _lv("Objectif global", "Goal"),
+        _lv("Résultat", "Outcome"),
+        _lv("Produit", "Output"),
+        _lv("Activité", "Activity", False),
     ],
 }
+# Two-level World Bank model of versions 0.4 and 0.5, kept for the projects made with it.
+WORLDBANK_V04 = [
+    _lv("Objectif de développement du projet", "Project development objective"),
+    _lv("Résultat intermédiaire", "Intermediate result"),
+]
 DEFAULT = "standard"
 
 
@@ -69,7 +87,7 @@ def _err(message: str) -> RpcError:
 
 
 def validate(spec: Any) -> dict[str, Any]:
-    """A model chosen in the list, or a custom one with 2 to 4 named levels."""
+    """A model chosen in the list, or a custom one with 2 to 5 named levels."""
     if not isinstance(spec, dict):
         raise _err("The framework model must be an object")
     model_id = spec.get("id")
@@ -79,7 +97,7 @@ def validate(spec: Any) -> dict[str, Any]:
         raise _err(f"Unknown framework model: {model_id}")
     levels = spec.get("levels")
     if not isinstance(levels, list) or not 2 <= len(levels) <= len(KEYS):
-        raise _err("A custom framework has 2 to 4 levels")
+        raise _err("A custom framework has 2 to 5 levels")
     out = []
     for lv in levels:
         if not isinstance(lv, dict):
