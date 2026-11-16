@@ -49,7 +49,17 @@ P = {
             "Statut",
         ],
         "fw_cols": ["Code", "Niveau", "Intitulé", "Description", "Hypothèses et risques", "Indicateurs"],
-        "units": {"percent": "Pourcentage", "mean": "Moyenne", "count": "Effectif", "ratio": "Ratio"},
+        "units": {
+            "percent": "Pourcentage",
+            "mean": "Moyenne",
+            "count": "Effectif",
+            "ratio": "Ratio",
+            "rate": "Taux",
+            "median": "Médiane",
+            "score": "Score ou indice",
+            "milestone": "Jalon",
+            "scale": "Échelle",
+        },
         "freq": {
             "": "",
             "monthly": "Mensuelle",
@@ -70,8 +80,13 @@ P = {
         "and": " et ",
         "or": " ou ",
         "incomplete": "Règle de calcul à compléter",
-        "routine": "Suivi de routine : valeurs relevées par période, {how}",
-        "how": {"sum": "cumulées", "last": "dernière valeur", "mean": "moyenne des périodes"},
+        "routine": "Saisie périodique : valeurs reçues par période, {how}",
+        "how": {
+            "sum": "cumulées",
+            "last": "dernière valeur",
+            "mean": "moyenne des périodes",
+            "max": "valeur la plus haute",
+        },
         "generated": "Généré le {date} avec SuiviEvalLab",
     },
     "en": {
@@ -102,7 +117,17 @@ P = {
             "Status",
         ],
         "fw_cols": ["Code", "Level", "Title", "Description", "Assumptions and risks", "Indicators"],
-        "units": {"percent": "Percentage", "mean": "Mean", "count": "Count", "ratio": "Ratio"},
+        "units": {
+            "percent": "Percentage",
+            "mean": "Mean",
+            "count": "Count",
+            "ratio": "Ratio",
+            "rate": "Rate",
+            "median": "Median",
+            "score": "Score or index",
+            "milestone": "Milestone",
+            "scale": "Scale",
+        },
         "freq": {
             "": "",
             "monthly": "Monthly",
@@ -123,8 +148,13 @@ P = {
         "and": " and ",
         "or": " or ",
         "incomplete": "Calculation rule to complete",
-        "routine": "Routine monitoring: values recorded per period, {how}",
-        "how": {"sum": "cumulative", "last": "latest value", "mean": "mean of the periods"},
+        "routine": "Periodic entry: values received per period, {how}",
+        "how": {
+            "sum": "cumulative",
+            "last": "latest value",
+            "mean": "mean of the periods",
+            "max": "highest value",
+        },
         "generated": "Generated on {date} with SuiviEvalLab",
     },
 }
@@ -133,7 +163,7 @@ P = {
 def calculation(ind: dict[str, Any], lang: str, label: Any, f: Fmt) -> str:
     """The calculation rule of an indicator, in words, with readable labels."""
     p = P[lang]
-    if ind.get("source_type") == "routine":
+    if ind.get("source_type") in ("routine", "secondary"):
         return p["routine"].format(how=p["how"][ind.get("aggregation") or "sum"])
     conds = ind.get("conditions") or (
         [{"column": ind["column"], "values": ind.get("success_values") or []}] if ind.get("column") else []

@@ -218,7 +218,12 @@ def parse_paste(text: str, categories: list[str]) -> list[dict[str, Any]]:
 
 TEXT = {
     "fr": {
-        "how": {"sum": "en cumul", "last": "à la dernière période", "mean": "en moyenne sur les périodes"},
+        "how": {
+            "sum": "en cumul",
+            "last": "à la dernière période",
+            "mean": "en moyenne sur les périodes",
+            "max": "au plus haut des périodes",
+        },
         "value": "{name} : {value} {how} au terme de la période {period}.",
         "target": "Cela représente {rate} de la cible de {target}.",
         "reached": "La cible de {target} est atteinte.",
@@ -236,7 +241,12 @@ TEXT = {
         ),
     },
     "en": {
-        "how": {"sum": "cumulatively", "last": "in the latest period", "mean": "on average over the periods"},
+        "how": {
+            "sum": "cumulatively",
+            "last": "in the latest period",
+            "mean": "on average over the periods",
+            "max": "at the highest of the periods",
+        },
         "value": "{name}: {value} {how} at the end of period {period}.",
         "target": "This is {rate} of the target of {target}.",
         "reached": "The target of {target} is reached.",

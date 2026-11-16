@@ -33,8 +33,9 @@ from . import (
     project_setup,
     quality,
     r_user,
+    reception,
+    reception_rpc,
     report_content,
-    routine,
     rscript,
     stattests,
     trust,
@@ -119,6 +120,7 @@ class Service:
             "untrusted_scripts": self.untrusted_scripts(ds_list),
             "report_content": report_content.load(p),
             **project_setup.state(p),
+            **reception_rpc.state(p),
         }
 
     def untrusted_scripts(self, ds_list: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
@@ -810,31 +812,14 @@ class Service:
         w = df[col].cast(pl.Float64, strict=False).drop_nulls()
         return float(w.mean()) if w.len() and w.mean() and w.mean() > 0 else None  # type: ignore[operator]
 
-    def routine_values(self, indicator_id: str) -> list[dict[str, Any]]:
-        recs = self.project.records("routine_value", indicator_id)
-        return [{k: v for k, v in r.items() if k not in ("id", "indicator_id")} for r in recs]
-
-    def save_routine(self, params: dict[str, Any]) -> dict[str, Any]:
-        """Replace all the period values of a routine indicator (the grid is saved as a whole)."""
-        ind = self.project.record("indicator", params.get("indicator_id"))
-        if ind.get("source_type") != "routine":
-            raise _err("This indicator is computed from survey data", "routine_not_routine")
-        rows = routine.validate_values(params.get("values"), ind.get("categories") or [], ind["unit"] == "percent")
-        with self.project.conn:
-            self.project.conn.execute("DELETE FROM routine_value WHERE indicator_id = ?", (ind["id"],))
-        for row in rows:
-            self.project.insert_record("routine_value", row, scope=ind["id"])
-        self._results.clear()
-        return {**self.snapshot(), "analysis": self.indicator_analysis(ind["id"]), "saved": len(rows)}
-
     def indicator_analysis(self, indicator_id: Any) -> dict[str, Any]:
         ind = self.project.record("indicator", indicator_id)
-        if ind.get("source_type") == "routine":
+        if ind.get("source_type") in ("routine", "secondary"):
             return {
                 "indicator": ind,
                 "rounds": [],
                 "comparison": None,
-                **routine.analyse(ind, self.routine_values(ind["id"])),
+                **reception.compat(reception.View(self.project), ind),
             }
         rounds = []
         for ds in self._ordered_datasets():
@@ -893,9 +878,10 @@ class Service:
     def overview(self) -> dict[str, Any]:
         rows = []
         ordered = self._ordered_datasets()
+        view = reception.View(self.project)
         for ind in self.ordered_indicators():
-            if ind.get("source_type") == "routine":
-                an = routine.analyse(ind, self.routine_values(ind["id"]))
+            if ind.get("source_type") in ("routine", "secondary"):
+                an = reception.compat(view, ind)
                 keys = ("baseline", "baseline_source", "current", "current_round", "target", "achievement", "status")
                 rows.append({"indicator_id": ind["id"], "node_id": ind["node_id"], **{k: an[k] for k in keys}})
                 continue
@@ -1047,25 +1033,6 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
             _text(params, "assumptions", required=False) if "assumptions" in params else None,
         )
         return svc.snapshot()
-
-    @server.method("routine.get")
-    def routine_get(params: dict[str, Any]) -> dict[str, Any]:
-        return svc.indicator_analysis(params.get("indicator_id"))
-
-    @server.method("routine.save")
-    def routine_save(params: dict[str, Any]) -> dict[str, Any]:
-        return svc.save_routine(params)
-
-    @server.method("routine.parse")
-    def routine_parse(params: dict[str, Any]) -> dict[str, Any]:
-        """Rows pasted from Excel, read but not saved: the grid shows them for checking first."""
-        ind = svc.project.record("indicator", params.get("indicator_id"))
-        text = params.get("text")
-        if not isinstance(text, str) or len(text) > 200_000:
-            raise _err("Nothing to read", "routine_invalid")
-        cats = ind.get("categories") or []
-        rows = routine.validate_values(routine.parse_paste(text, cats), cats, ind["unit"] == "percent")
-        return {"values": rows}
 
     @server.method("framework.models")
     def fw_models(_: dict[str, Any]) -> dict[str, Any]:
@@ -1351,4 +1318,5 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
         return svc.snapshot()
 
     project_setup.register_setup(server, svc)
+    reception_rpc.register_reception(server, svc)
     return svc

@@ -262,18 +262,6 @@ def fill_example(svc: Any, lang: str = "fr") -> None:
             },
         }
     )["saved"]
-    ends = ["2019-12-31", "2020-03-31", "2020-06-30", "2020-09-30"]
-    figures = [(5, 4, ""), (10, 9, ""), (10, 6, t["q_note"]), (10, None, "")]
-    svc.save_routine(
-        {
-            "indicator_id": routine_id,
-            "values": [
-                {"period": q, "end": e, "planned": pl, "achieved": ac, "note": n}
-                for q, e, (pl, ac, n) in zip(t["q"], ends, figures, strict=True)
-            ],
-        }
-    )
-
     # Project sheet: dates and quarterly calendar matching the routine values above,
     # the disaggregations, a few places, and the quarterly targets of the works.
     from . import places, project_setup
@@ -301,6 +289,16 @@ def fill_example(svc: Any, lang: str = "fr") -> None:
     codes = [x["code"] for x in p.records("period")]
     for code, value in zip(codes, (5, 10, 10, 10, 5), strict=False):
         p.insert_record("target", {"period": code, "value": value, "history": []}, scope=routine_id)
+    # Works reports received and validated for the first three quarters; the
+    # lockdown quarter fell short, with its explanation.
+    from . import reception
+
+    for code, achieved in zip(codes, (4, 9, 6), strict=False):
+        sub = reception.open_submission(p, code)
+        reception.save_values(p, sub, [{"indicator_id": routine_id, "value": achieved}])
+        reception.act(p, sub, "submit")
+        reception.act(p, sub, "validate")
+    p.insert_record("gap_comment", {"period": codes[2], "text": t["q_note"], "at": reception.now()}, scope=routine_id)
 
     design = {"weights": "weights", "strata": ["population_group", "governorate_mcna"], "cluster": None}
     for file, name, round_, id_col, round_label in (

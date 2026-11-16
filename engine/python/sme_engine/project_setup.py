@@ -59,11 +59,11 @@ def generate_periods(p: Project) -> None:
             f"{len(lost)} periods hold targets or are locked and would disappear",
             "periods_in_use",
         )
-    states = {x["code"]: x["state"] for x in old}
+    kept = {x["code"]: {k: x[k] for k in ("state", "history", "reported_at") if k in x} for x in old}
     for x in old:
         p.delete_record("period", x["id"])
     for x in new:
-        p.insert_record("period", {**x, "state": states.get(x["code"], "open")})
+        p.insert_record("period", {**x, **kept.get(x["code"], {})})
 
 
 def save_period(p: Project, params: dict[str, Any]) -> str:
@@ -75,7 +75,12 @@ def save_period(p: Project, params: dict[str, Any]) -> str:
             raise _err("This period holds targets: its code cannot change", "period_in_use")
     schedule.check_overlaps([*others, spec])
     if params.get("id"):
-        p.update_record("period", params["id"], spec)
+        current = p.record("period", params["id"])
+        if current["state"] == "locked":
+            raise _err("This period is locked", "period_locked")
+        # The state, the history and the report date change only through their own actions.
+        keep = {k: current[k] for k in ("state", "history", "reported_at") if k in current}
+        p.update_record("period", params["id"], {**spec, **keep})
         record_id = params["id"]
     else:
         record_id = p.insert_record("period", spec)
@@ -123,12 +128,27 @@ def register_setup(server: Server, svc: Service) -> None:
 
     @server.method("period.set_state")
     def period_set_state(params: dict[str, Any]) -> dict[str, Any]:
+        """Lock a period once its submissions are validated, or reopen it with a reason."""
+        from . import reception
+
         p = project()
         period = p.record("period", params.get("id"))
         new_state = params.get("state")
         if new_state not in schedule.STATES:
             raise _err("Unknown period state", "invalid_params")
-        p.update_record("period", period["id"], {**period, "state": new_state})
+        if new_state != period["state"]:
+            reception.lock_period(p, period, new_state == "locked", str(params.get("reason") or ""))
+        return svc.snapshot()
+
+    @server.method("period.mark_reported")
+    def period_mark_reported(params: dict[str, Any]) -> dict[str, Any]:
+        """The report of the period has been sent (or not, with done false)."""
+        from .reception import now
+
+        p = project()
+        period = p.record("period", params.get("id"))
+        period["reported_at"] = now() if params.get("done", True) else None
+        p.update_record("period", period["id"], period)
         return svc.snapshot()
 
     # Places

@@ -163,7 +163,17 @@ def test_paste_from_excel():
 
 @needs_r
 def test_routine_indicator_through_report_plan_and_dashboard(call, tmp_path):
-    call("project.create", {"path": str(tmp_path / "r.sme"), "name": "Formation", "model": {"id": "eu"}})
+    profile = {"start": "2026-01-01", "end": "2026-12-31", "frequency": "quarterly"}
+    call(
+        "project.create",
+        {
+            "path": str(tmp_path / "r.sme"),
+            "name": "Formation",
+            "model": {"id": "eu"},
+            "profile": profile,
+            "disaggregations": ["sex"],
+        },
+    )
     root = call("framework.add", {"title": "Objectif global"})["created"]
     so = call("framework.add", {"parent_id": root, "title": "Objectif spécifique"})["created"]
     out = call("framework.add", {"parent_id": so, "title": "Les agents de santé sont formés"})["created"]
@@ -172,18 +182,24 @@ def test_routine_indicator_through_report_plan_and_dashboard(call, tmp_path):
         "unit": "count",
         "source_type": "routine",
         "aggregation": "sum",
-        "categories": ["Femmes", "Hommes"],
+        "breakdowns": ["sex"],
         "target": 1500,
         "frequency": "quarterly",
     }
     ind = call("indicator.save", {"node_id": out, "indicator": spec})["saved"]
-    values = [
-        {"period": "2026-T1", "end": "2026-03-31", "by": {"Femmes": 180, "Hommes": 140}, "planned": 300},
-        {"period": "2026-T2", "end": "2026-06-30", "by": {"Femmes": 300, "Hommes": 250}, "planned": 400},
-    ]
-    res = call("routine.save", {"indicator_id": ind, "values": values})
-    an = res["analysis"]
-    assert res["saved"] == 2 and an["current"] == 870 and an["status"] == "on_track" and res["project"]
+    call("target.set", {"indicator_id": ind, "period": "T1-2026", "value": 300})
+    call("target.set", {"indicator_id": ind, "period": "T2-2026", "value": 400})
+    for period, (f, m) in (("T1-2026", (180, 140)), ("T2-2026", (300, 250))):
+        sub = call("submission.open", {"period": period})["created"]
+        cells = [
+            {"indicator_id": ind, "cats": {"sex": "f"}, "value": f},
+            {"indicator_id": ind, "cats": {"sex": "m"}, "value": m},
+        ]
+        call("submission.save", {"id": sub, "values": cells})
+        call("submission.act", {"id": sub, "action": "validate"})
+    an = call("analysis.indicator", {"id": ind})
+    assert an["current"] == 870 and an["status"] == "on_track"
+    assert an["by_total"] == {"Femme": 480, "Homme": 390}
     row = call("analysis.overview")["rows"][0]
     assert row["current"] == 870 and row["status"] == "on_track"
     assert not [i for i in call("report.checks")["items"] if i["severity"] == "warning"]
@@ -192,9 +208,9 @@ def test_routine_indicator_through_report_plan_and_dashboard(call, tmp_path):
     call("report.generate", {"path": str(report), "lang": "fr"})
     text = "\n".join(p.text for p in Document(report).paragraphs)
     cells = [c.text for t in Document(report).tables for r in t.rows for c in r.cells]
-    assert "870 en cumul au terme de la période 2026-T2" in text
+    assert "870 en cumul au terme de la période T2 2026" in text
     assert "Produit" in text  # the name of the level in the model
-    assert "2026-T1" in cells and "Prévu à date" in cells
+    assert "T1 2026" in cells and "Prévu à date" in cells
     assert "Indicateur de suivi de routine" in text
 
     plan = call("report.plan", {"path": str(tmp_path / "p.xlsx"), "lang": "fr"})
@@ -202,8 +218,8 @@ def test_routine_indicator_through_report_plan_and_dashboard(call, tmp_path):
 
     sheet = pl.read_excel(plan["path"], sheet_name="Plan de suivi", read_options={"header_row": 3})
     first = sheet.row(0, named=True)
-    assert first["Niveau"] == "Produit" and first["Mode de calcul"].startswith("Suivi de routine")
+    assert first["Niveau"] == "Produit" and first["Mode de calcul"].startswith("Saisie périodique")
 
     board = call("report.share", {"path": str(tmp_path / "b.html"), "lang": "fr"})
     html = open(board["path"], encoding="utf-8").read()
-    assert "2026-T2" in html and "Produit" in html
+    assert "T2 2026" in html and "Produit" in html

@@ -40,7 +40,7 @@ def run(svc: Any) -> dict[str, Any]:
 
     for ind in snap["indicators"]:
         name = ind["name"]
-        if ind.get("source_type") == "routine":
+        if ind.get("source_type") in ("routine", "secondary"):
             an = svc.indicator_analysis(ind["id"])
             if an["current"] is None:
                 add("routine_no_values", "warning", "analysis", ind["id"], name)

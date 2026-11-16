@@ -573,7 +573,7 @@ def _routine_section(doc: Any, svc: Any, ind: dict[str, Any], an: dict[str, Any]
         },
     )
     doc.add_picture(str(png), width=Cm(15))
-    cats = ind.get("categories") or []
+    cats: list[str] = []  # breakdowns are shown by the tracking report (J5)
     header = [
         rt["col_period"],
         rt["col_achieved"],

@@ -22,11 +22,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from . import frameworks
+from . import frameworks, monitoring
 from .rpc import INVALID_PARAMS, RpcError
 
 APPLICATION_ID = 0x534D4531  # "SME1": marks a file as a SuiviEvalLab project
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 EXTENSION = ".sme"
 
 # Framework levels, from the top. They mark the depth; the model of the project names them.
@@ -120,6 +120,39 @@ CREATE TABLE cleaning_rule (
 );
 """
 
+# Version 6: monitoring. JSON records, plus the value table of monitoring.py.
+_V6_SCHEMA = (
+    """
+CREATE TABLE IF NOT EXISTS submission (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL            -- JSON, see reception.py
+);
+CREATE TABLE IF NOT EXISTS gap_comment (
+    id           TEXT PRIMARY KEY,
+    indicator_id TEXT NOT NULL REFERENCES indicator(id) ON DELETE CASCADE,
+    position     INTEGER NOT NULL,
+    spec         TEXT NOT NULL           -- JSON: period, text, at
+);
+CREATE TABLE IF NOT EXISTS justification (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL            -- JSON: key of the alert, text, at
+);
+CREATE TABLE IF NOT EXISTS task (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL            -- JSON, see agenda.py
+);
+CREATE TABLE IF NOT EXISTS event (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL            -- JSON, see agenda.py
+);
+"""
+    + monitoring.SCHEMA
+)
+
 
 def _now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
@@ -164,6 +197,7 @@ class Project:
             conn.execute(f"PRAGMA application_id = {APPLICATION_ID}")
             conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
             conn.executescript(_SCHEMA)
+            conn.executescript(_V6_SCHEMA)
             now = _now()
             conn.executemany(
                 "INSERT INTO meta(key, value) VALUES (?, ?)",
@@ -228,6 +262,13 @@ class Project:
                 # 1.0: a fifth framework level, project calendar, places, partners,
                 # disaggregations and targets by period.
                 Project._migrate_v5(conn)
+            if version < 6:
+                # 1.0: submissions and their values, gap comments, justifications,
+                # tasks and events. Routine values of 0.4 and 0.5 move into submissions.
+                conn.executescript(_V6_SCHEMA)
+                from .reception import migrate_routine
+
+                migrate_routine(conn)
             conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
     _V5_TABLES = ("period", "place", "partner", "disaggregation")
@@ -467,6 +508,11 @@ class Project:
         "partner": None,
         "disaggregation": None,
         "target": "indicator_id",
+        "submission": None,
+        "gap_comment": "indicator_id",
+        "justification": None,
+        "task": None,
+        "event": None,
     }
 
     def records(self, table: str, scope: str | None = None) -> list[dict[str, Any]]:

@@ -101,6 +101,12 @@ def default_profile() -> dict[str, Any]:
         "manager": "",
         "color": "#2f6f6a",
         "place_levels": ["Région", "District", "Commune", "Village"],
+        # Who reports each period: the whole project, each partner, each place of a
+        # level, or each partner in each of its places (monitoring.units).
+        "reporting_by": "project",
+        "reporting_level": 0,
+        # Share of the target to date from which an indicator is on track.
+        "on_track": 0.9,
     }
 
 
@@ -141,6 +147,14 @@ def validate_profile(spec: Any) -> dict[str, Any]:
     out["color"] = color if COLOR.match(color) else "#2f6f6a"
     levels = _strings(spec.get("place_levels"), 6)
     out["place_levels"] = levels or default_profile()["place_levels"]
+    how = spec.get("reporting_by", "project")
+    out["reporting_by"] = how if how in ("project", "partner", "place", "partner_place") else "project"
+    out["reporting_level"] = _int(spec.get("reporting_level"), 0, len(out["place_levels"]) - 1, 0)
+    try:
+        share = float(spec.get("on_track", 0.9))
+    except (TypeError, ValueError):
+        share = 0.9
+    out["on_track"] = min(max(share, 0.5), 1.0)
     return out
 
 

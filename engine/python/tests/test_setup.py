@@ -266,7 +266,7 @@ def test_migration_from_version_4(call, tmp_path):
     assert len(snap["indicators"]) == 1 and len(snap["framework"]) == 2
     assert snap["periods"] == [] and snap["targets"] == {}
     conn = sqlite3.connect(path)
-    assert conn.execute("PRAGMA user_version").fetchone()[0] == 5
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == 6
     assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
     sql = conn.execute("SELECT sql FROM sqlite_master WHERE name = 'indicator'").fetchone()[0]
     assert "REFERENCES framework_node(id)" in sql
