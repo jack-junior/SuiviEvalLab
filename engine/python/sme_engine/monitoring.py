@@ -54,7 +54,7 @@ KIND = {
 TIME_MODES = ("sum", "last", "mean", "max")
 STATUSES = ("draft", "submitted", "review", "returned", "validated", "locked")
 EDITABLE = ("draft", "submitted", "review", "returned")
-CHANNELS = ("entry", "excel", "import", "secondary", "migrated")
+CHANNELS = ("entry", "excel", "import", "secondary", "migrated", "dhis2")
 REPORTING = ("project", "partner", "place", "partner_place")
 ON_TRACK = 0.9
 
@@ -100,6 +100,19 @@ CREATE TABLE IF NOT EXISTS value (
 CREATE INDEX IF NOT EXISTS value_indicator ON value(indicator_id, period);
 CREATE INDEX IF NOT EXISTS value_submission ON value(submission_id);
 CREATE INDEX IF NOT EXISTS value_period ON value(period);
+-- People counted by a submission, under a pseudonym (section 6.4): the original
+-- identifier is never stored, only a keyed hash of it.
+CREATE TABLE IF NOT EXISTS person (
+    indicator_id  TEXT NOT NULL REFERENCES indicator(id) ON DELETE CASCADE,
+    submission_id TEXT NOT NULL,
+    period        TEXT NOT NULL,
+    place_id      TEXT NOT NULL DEFAULT '',
+    partner_id    TEXT NOT NULL DEFAULT '',
+    cats          TEXT NOT NULL DEFAULT '',
+    pid           TEXT NOT NULL,
+    UNIQUE (submission_id, indicator_id, cats, pid)
+);
+CREATE INDEX IF NOT EXISTS person_indicator ON person(indicator_id, period);
 -- Measures of one period, kept until a submission of that period changes.
 CREATE TABLE IF NOT EXISTS measure_cache (
     scope   TEXT NOT NULL,

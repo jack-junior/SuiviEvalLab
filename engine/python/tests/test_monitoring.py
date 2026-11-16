@@ -700,3 +700,66 @@ def test_quality_review_reminder_and_changes_since_last_opening(call, tmp_path):
     call("project.open", {"path": path})
     changes = call("today.project", {})["changes"]
     assert [c["action"] for c in changes] == ["submit"] and changes[0]["label"] == "T1 2026"
+
+
+# ----- unique people (section 6.4) ----------------------------------------------------------------
+
+
+def test_unique_people_are_counted_once(call, tmp_path):
+    node = _project(call, tmp_path, reporting_by="partner")
+    a = call("partner.save", {"partner": {"name": "A"}})["created"]
+    b = call("partner.save", {"partner": {"name": "B"}})["created"]
+    ind = call(
+        "indicator.save",
+        {
+            "node_id": node,
+            "indicator": {
+                "name": "Personnes formées",
+                "unit": "count",
+                "source_type": "routine",
+                "people": "unique",
+                "target": 10,
+            },
+        },
+    )["saved"]
+    contacts = call(
+        "indicator.save",
+        {
+            "node_id": node,
+            "indicator": {
+                "name": "Séances",
+                "unit": "count",
+                "source_type": "routine",
+                "people": "unique",
+                "target": 10,
+            },
+        },
+    )["saved"]
+
+    def send(period, partner, ids):
+        sid = call("submission.open", {"period": period, "partner_id": partner})["created"]
+        res = call("people.save", {"id": sid, "indicator_id": ind, "ids": ids})
+        call("submission.save", {"id": sid, "values": [{"indicator_id": contacts, "value": 4}]})
+        call("submission.act", {"id": sid, "action": "validate"})
+        return res
+
+    res = send("T1-2026", a, ["TG-001", "TG-002", " tg-001 ", "TG-003"])
+    assert res["people"] == 3 and res["cells"][ind][""][0] == 3  # the same card typed twice
+    send("T1-2026", b, ["TG-003", "TG-004"])  # TG-003 also trained by partner B
+    send("T2-2026", a, ["TG-001", "TG-005"])  # TG-001 trained again
+    rows = {r["indicator_id"]: r for r in call("tracking.table", {"period": "T2-2026", "today": "2026-07-15"})["rows"]}
+    row = rows[ind]
+    assert [s["value"] for s in row["series"][:2]] == [4, 2]
+    assert [s["to_date"] for s in row["series"][:2]] == [4, 5]  # not 4 + 2
+    assert row["to_date"] == 5 and row["duplicates_possible"] is False
+    # Counted without identifiers: duplicates possible, said so.
+    assert rows[contacts]["duplicates_possible"] is True and rows[contacts]["to_date"] == 12
+    # The identifiers never reach the project file.
+    raw = open(call("project.get")["project"]["path"], "rb").read()
+    assert b"TG-001" not in raw and b"tg-001" not in raw
+    with pytest.raises(RuntimeError, match="people_not_unique"):
+        other = call(
+            "indicator.save", {"node_id": node, "indicator": {"name": "x", "unit": "count", "source_type": "routine"}}
+        )["saved"]
+        sid = call("submission.open", {"period": "T3-2026", "partner_id": a})["created"]
+        call("people.save", {"id": sid, "indicator_id": other, "ids": ["1"]})

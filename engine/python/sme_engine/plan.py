@@ -17,7 +17,7 @@ from typing import Any
 
 import xlsxwriter
 
-from . import frameworks
+from . import frameworks, indicators
 from .report import Fmt, T
 
 P = {
@@ -163,7 +163,7 @@ P = {
 def calculation(ind: dict[str, Any], lang: str, label: Any, f: Fmt) -> str:
     """The calculation rule of an indicator, in words, with readable labels."""
     p = P[lang]
-    if ind.get("source_type") in ("routine", "secondary"):
+    if ind.get("source_type") in indicators.ENTRY_SOURCES:
         return p["routine"].format(how=p["how"][ind.get("aggregation") or "sum"])
     conds = ind.get("conditions") or (
         [{"column": ind["column"], "values": ind.get("success_values") or []}] if ind.get("column") else []

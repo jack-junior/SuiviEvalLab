@@ -1717,6 +1717,8 @@ export const fr = {
   "agenda.byAssignee": "Regrouper par responsable",
   "agenda.noAssignee": "Sans responsable",
   "agenda.suggested": "Proposée",
+  "checks.routine_no_values": "« {name} » n'a encore aucune valeur validée.",
+  "checks.people_duplicates_possible": "« {name} » compte des personnes uniques, mais des valeurs sont arrivées sans identifiants : ce sont des contacts, avec des doublons possibles.",
 };
 
 export type MessageKey = keyof typeof fr;
@@ -3404,4 +3406,6 @@ export const en: Record<MessageKey, string> = {
   "agenda.byAssignee": "Group by assignee",
   "agenda.noAssignee": "No assignee",
   "agenda.suggested": "Suggested",
+  "checks.routine_no_values": "\"{name}\" has no validated value yet.",
+  "checks.people_duplicates_possible": "\"{name}\" counts unique people, but some values came without identifiers: they are contacts, with possible duplicates.",
 };

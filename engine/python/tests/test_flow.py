@@ -72,6 +72,15 @@ def test_example_project_analysis_and_report(engine, tmp_path):
     assert primary["current"] == pytest.approx(expected_end, abs=1e-9)
     assert primary["status"] in ("achieved", "on_track", "late")
 
+    # Survey estimates in the tracking table, at the periods of their collections.
+    rows = engine("tracking.table", {"period": snap["periods"][-1]["code"]})["rows"]
+    survey = next(r for r in rows if r["indicator_id"] == primary["indicator_id"])
+    assert survey["kind"] == "survey"
+    values = [p["value"] for p in survey["series"]]
+    assert values[0] == pytest.approx(expected_base, abs=1e-9) and values[3] == pytest.approx(expected_end, abs=1e-9)
+    assert survey["to_date"] == pytest.approx(expected_end, abs=1e-9)
+    assert survey["series"][3]["ci"][0] < values[3] < survey["series"][3]["ci"][1]
+
     dropout_id = next(i["id"] for i in snap["indicators"] if i.get("column") == "child_dropout_school")
     dropout = engine("analysis.indicator", {"id": dropout_id})
     comp = dropout["comparison"]

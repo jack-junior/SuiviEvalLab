@@ -91,6 +91,14 @@ def register_reception(server: Server, svc: Service) -> None:
         changed()
         return svc.snapshot()
 
+    @server.method("people.save")
+    def people_save(params: dict[str, Any]) -> dict[str, Any]:
+        n = rc.save_people(
+            project(), params.get("id"), params.get("indicator_id"), params.get("ids"), params.get("cats")
+        )
+        changed()
+        return {**svc.snapshot(), **submission_detail(project(), params.get("id")), "people": n}
+
     @server.method("alert.justify")
     def alert_justify(params: dict[str, Any]) -> dict[str, Any]:
         p = project()
@@ -109,7 +117,11 @@ def register_reception(server: Server, svc: Service) -> None:
     @server.method("tracking.table")
     def tracking_table(params: dict[str, Any]) -> dict[str, Any]:
         view = rc.View(project(), svc.ordered_indicators())
-        return rc.track_all(view, params)
+        out = rc.track_all(view, params)
+        # Survey estimates, unless the view is narrowed to a place, a partner or a category.
+        if not (params.get("place_id") or params.get("partner_id") or params.get("cats")):
+            out = {**out, "rows": [*out["rows"], *svc.survey_track(params)]}
+        return out
 
     @server.method("tracking.breakdown")
     def tracking_breakdown(params: dict[str, Any]) -> dict[str, Any]:

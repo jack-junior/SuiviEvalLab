@@ -100,7 +100,50 @@ def parse(path: Path, survey_sheet: str, choices_sheet: str | None, data_columns
         choices = _read(path, choices_sheet) if choices_sheet else None
     except Exception as exc:  # noqa: BLE001
         raise _err(f"Cannot read the questionnaire: {exc}", "form_unreadable") from None
+    return parse_frames(survey, choices, data_columns)
 
+
+def from_kobo_content(content: dict[str, Any]) -> tuple[pl.DataFrame, pl.DataFrame | None]:
+    """The survey and choices of a form as Kobo's API gives them, as XLSForm sheets.
+
+    Kobo returns rows like {"type": "select_one", "select_from_list_name": "yn",
+    "name": "q1", "label": ["Oui", "Yes"]} with the translations listed apart
+    (["French (fr)", "English (en)"]); they become the columns "label::French (fr)"...
+    """
+    translations = content.get("translations") or [None]
+    heads = [f"label::{t}" if t else "label" for t in translations]
+
+    def frame(rows: list[dict[str, Any]], kind: str) -> pl.DataFrame:
+        out = []
+        for row in rows:
+            labels = row.get("label") or []
+            if isinstance(labels, str):
+                labels = [labels]
+            item = {h: (labels[i] if i < len(labels) else None) for i, h in enumerate(heads)}
+            if kind == "survey":
+                qtype = str(row.get("type") or "")
+                if row.get("select_from_list_name"):
+                    qtype = f"{qtype} {row['select_from_list_name']}"
+                item["type"] = qtype
+                item["name"] = row.get("name") or row.get("$autoname") or ""
+            else:
+                item["list_name"] = row.get("list_name") or ""
+                item["name"] = row.get("name") or row.get("$autovalue") or ""
+            out.append(item)
+        cols = (["type", "name"] if kind == "survey" else ["list_name", "name"]) + heads
+        return (
+            pl.DataFrame(out, schema={c: pl.String for c in cols})
+            if out
+            else pl.DataFrame(schema={c: pl.String for c in cols})
+        )
+
+    survey = frame(content.get("survey") or [], "survey")
+    choices = frame(content.get("choices") or [], "choices") if content.get("choices") else None
+    return survey, choices
+
+
+def parse_frames(survey: pl.DataFrame, choices: pl.DataFrame | None, data_columns: list[str]) -> dict[str, Any]:
+    """parse, from the survey and choices sheets already read."""
     s_cols = _columns_lower(survey)
     if "type" not in s_cols or "name" not in s_cols:
         raise _err("The survey sheet has no type and name columns", "form_invalid")

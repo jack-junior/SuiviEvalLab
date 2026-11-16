@@ -24,6 +24,7 @@ from . import (
     cleaning,
     cleaning_free,
     cleaning_more,
+    connectors_rpc,
     datasets,
     formula,
     frameworks,
@@ -121,6 +122,7 @@ class Service:
             "report_content": report_content.load(p),
             **project_setup.state(p),
             **reception_rpc.state(p),
+            "connections": p.records("connection"),
         }
 
     def untrusted_scripts(self, ds_list: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
@@ -271,6 +273,12 @@ class Service:
             spec["design"] = datasets.validate_design(params["design"], names)
         if "attribution" in params:
             spec["attribution"] = _text(params, "attribution", required=False, max_len=500)
+        if "period" in params:
+            # The reporting period of the collection: its estimates enter the tracking table there.
+            code = params["period"] or ""
+            if code and code not in {x["code"] for x in self.project.records("period")}:
+                raise _err("Unknown period", "period_not_found")
+            spec["period"] = code
         if "id_column" in params:
             col = params["id_column"] or None
             if col is not None and col not in names:
@@ -814,7 +822,7 @@ class Service:
 
     def indicator_analysis(self, indicator_id: Any) -> dict[str, Any]:
         ind = self.project.record("indicator", indicator_id)
-        if ind.get("source_type") in ("routine", "secondary"):
+        if ind.get("source_type") in indicators.ENTRY_SOURCES:
             return {
                 "indicator": ind,
                 "rounds": [],
@@ -835,6 +843,86 @@ class Service:
             b = self.dataset_spec(later[-1]["dataset_id"])
             comparison = self.compare(ind, a, b)
         return {"indicator": ind, "rounds": rounds, "comparison": comparison, **self._summary(ind, usable)}
+
+    def survey_track(self, params: dict[str, Any]) -> list[dict[str, Any]]:
+        """Rows of the tracking table for indicators computed from survey data: each
+        estimate counts for the reporting period its collection is placed in."""
+        from . import monitoring
+
+        view = reception.View(self.project)
+        periods = view.periods
+        if not periods:
+            return []
+        day = params.get("today") or reception.today()
+        upto = monitoring.selected_period(periods, params.get("period"), day)
+        period_of = {d["id"]: d.get("period") or "" for d in self.project.records("dataset")}
+        rows = []
+        for ind in self.ordered_indicators():
+            if ind.get("source_type") in indicators.ENTRY_SOURCES:
+                continue
+            an = self.indicator_analysis(ind["id"])
+            usable = [r for r in an["rounds"] if "error_key" not in r["result"]]
+            by_period: dict[str, dict[str, Any]] = {}
+            for r in usable:
+                code = period_of.get(r["dataset_id"])
+                if code:
+                    by_period[code] = r
+            targets = view.targets.get(ind["id"], {})
+            base = an.get("baseline")
+            series = []
+            last = None
+            for i, p in enumerate(periods):
+                r = by_period.get(p["code"])
+                if r is not None:
+                    last = r
+                spec = {**ind, "baseline_manual": base, "aggregation": "last"}
+                t_now, interp = monitoring.target_to_date(
+                    spec, periods, i, targets, view.profile.get("start"), view.profile.get("end")
+                )
+                value = last["result"]["estimate"] if last else None
+                series.append(
+                    {
+                        "period": p["code"],
+                        "value": r["result"]["estimate"] if r else None,
+                        "numerator": None,
+                        "denominator": None,
+                        "reason": None,
+                        "provisional": False,
+                        "target": targets.get(p["code"]),
+                        "to_date": value,
+                        "target_to_date": t_now,
+                        "interpolated": interp,
+                        "rate_to_date": monitoring.rate(spec, value, t_now),
+                        "status": monitoring.status(spec, value, t_now, p["end"] < day),
+                        "trend": None,
+                        "ci": [r["result"].get("ci_low"), r["result"].get("ci_high")] if r else None,
+                        "round": r["round"] if r else None,
+                    }
+                )
+            sel = series[upto]
+            rows.append(
+                {
+                    "indicator_id": ind["id"],
+                    "kind": "survey",
+                    "mode": "last",
+                    "baseline": base,
+                    "target": ind.get("target"),
+                    "period": sel["period"],
+                    "value_period": sel["value"],
+                    "target_period": sel["target"],
+                    "rate_period": None,
+                    "to_date": sel["to_date"],
+                    "target_to_date": sel["target_to_date"],
+                    "interpolated": sel["interpolated"],
+                    "rate_to_date": sel["rate_to_date"],
+                    "status": sel["status"],
+                    "trend": None,
+                    "provisional": False,
+                    "reason": "survey_undated" if usable and not by_period else None,
+                    "series": series,
+                }
+            )
+        return rows
 
     def _summary(self, ind: dict[str, Any], usable: list[dict[str, Any]]) -> dict[str, Any]:
         base = next((r for r in usable if r["round"] == "baseline"), None)
@@ -880,7 +968,7 @@ class Service:
         ordered = self._ordered_datasets()
         view = reception.View(self.project)
         for ind in self.ordered_indicators():
-            if ind.get("source_type") in ("routine", "secondary"):
+            if ind.get("source_type") in indicators.ENTRY_SOURCES:
                 an = reception.compat(view, ind)
                 keys = ("baseline", "baseline_source", "current", "current_round", "target", "achievement", "status")
                 rows.append({"indicator_id": ind["id"], "node_id": ind["node_id"], **{k: an[k] for k in keys}})
@@ -1321,4 +1409,5 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
     reception_rpc.register_reception(server, svc)
     reception_rpc.register_agenda(server, svc)
     reception_rpc.register_canevas(server, svc)
+    connectors_rpc.register_connectors(server, svc)
     return svc

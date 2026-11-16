@@ -24,13 +24,13 @@ import uuid
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
-from . import intake_checks, monitoring, schedule
+from . import indicators, intake_checks, monitoring, schedule
 from . import targets as targets_
 from .monitoring import Scope
 from .project import Project
 from .rpc import INVALID_PARAMS, RpcError
 
-ENTRY_SOURCES = ("routine", "secondary")
+ENTRY_SOURCES = indicators.ENTRY_SOURCES
 
 
 def _err(message: str, key: str, **info: Any) -> RpcError:
@@ -384,6 +384,32 @@ def _track_all(view: View, params: dict[str, Any]) -> dict[str, Any]:
                 threshold(view),
                 measures.get(ind["id"], {}),
             )
+        )
+    # Unique people: distinct identifiers, never a sum of the periods (section 6.4).
+    for row, ind in zip(rows, view.entry, strict=True):
+        if ind.get("people") != "unique":
+            continue
+        per, to_date, duplicates = unique_counts(view, ind, scope)
+        if not per:
+            row["duplicates_possible"] = True
+            continue
+        ends = {p["code"]: p["end"] for p in view.periods}
+        for point in row["series"]:
+            if point["period"] in per:
+                point["value"] = per[point["period"]]
+            if to_date.get(point["period"]):
+                point["to_date"] = to_date[point["period"]]
+                point["rate_to_date"] = monitoring.rate(ind, point["to_date"], point["target_to_date"])
+                point["status"] = monitoring.status(
+                    ind, point["to_date"], point["target_to_date"], ends[point["period"]] < day, threshold(view)
+                )
+        sel = row["series"][upto]
+        row.update(
+            value_period=sel["value"],
+            to_date=sel["to_date"],
+            rate_to_date=sel["rate_to_date"],
+            status=sel["status"],
+            duplicates_possible=duplicates,
         )
     return {"period": view.periods[upto]["code"], "rows": rows}
 
@@ -768,3 +794,97 @@ def changes_since(view: View, since: str) -> list[dict[str, Any]]:
                     }
                 )
     return sorted(out, key=lambda c: c["at"], reverse=True)[:50]
+
+
+# ----- unique people (section 6.4) --------------------------------------------------------------
+
+
+def person_key(p: Project) -> bytes:
+    """The project's own key for pseudonyms. It stays in the project and is never exported."""
+    import secrets
+
+    key = p.meta().get("person_key")
+    if not key:
+        key = secrets.token_hex(32)
+        with p.conn:
+            p.conn.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('person_key', ?)", (key,))
+    return bytes.fromhex(key)
+
+
+def pseudonym(key: bytes, identifier: str) -> str:
+    import hashlib
+    import hmac
+
+    norm = " ".join(str(identifier).split()).casefold()
+    return hmac.new(key, norm.encode(), hashlib.sha256).hexdigest()[:24]
+
+
+def save_people(p: Project, sub_id: Any, indicator_id: Any, ids: Any, cats: Any = None) -> int:
+    """The people of one cell of a submission, by their identifiers (card number,
+    register number...). The cell's value becomes the number of distinct people."""
+    sub = p.record("submission", sub_id)
+    _editable(p, sub)
+    ind = p.record("indicator", indicator_id)
+    if ind.get("people") != "unique":
+        raise _err("This indicator does not count unique people", "people_not_unique")
+    if not isinstance(ids, list) or len(ids) > 500_000:
+        raise _err("ids must be a list", "invalid_params")
+    key_cats = monitoring.cats_key(cats if isinstance(cats, dict) else {})
+    secret = person_key(p)
+    pids = sorted({pseudonym(secret, i) for i in ids if str(i).strip()})
+    with p.conn:
+        p.conn.execute(
+            "DELETE FROM person WHERE submission_id = ? AND indicator_id = ? AND cats = ?",
+            (sub["id"], ind["id"], key_cats),
+        )
+        p.conn.executemany(
+            "INSERT INTO person(indicator_id, submission_id, period, place_id, partner_id, cats, pid) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [
+                (ind["id"], sub["id"], sub["period"], sub.get("place_id", ""), sub.get("partner_id", ""), key_cats, x)
+                for x in pids
+            ],
+        )
+    save_values(p, sub["id"], [{"indicator_id": ind["id"], "cats": cats or {}, "value": len(pids)}])
+    return len(pids)
+
+
+def unique_counts(view: View, ind: dict[str, Any], scope: Scope) -> tuple[dict[str, int], dict[str, int], bool]:
+    """({period: distinct people in the period}, {period: distinct people up to it},
+    whether some counted cells have no identifiers, so duplicates are possible)."""
+    counted_subs = [
+        sid
+        for sid, s in view.subs.items()
+        if monitoring.counted(s, scope)
+        and (scope.partner_id is None or s.get("partner_id", "") == scope.partner_id)
+        and (scope.place_ids is None or s.get("place_id", "") in scope.place_ids)
+    ]
+    if not counted_subs:
+        return {}, {}, False
+    where = "indicator_id = ? AND submission_id IN (SELECT value FROM json_each(?))"
+    args: list[Any] = [ind["id"], json.dumps(counted_subs)]
+    for k, v in scope.cats.items():
+        where += " AND (';' || cats || ';') LIKE ?"
+        args.append(f"%;{k}={v};%")
+    per = dict(
+        view.p.conn.execute(f"SELECT period, COUNT(DISTINCT pid) FROM person WHERE {where} GROUP BY period", args)
+    )
+    to_date: dict[str, int] = {}
+    codes: list[str] = []
+    for p in view.periods:
+        codes.append(p["code"])
+        n = view.p.conn.execute(
+            f"SELECT COUNT(DISTINCT pid) FROM person WHERE {where} AND period IN (SELECT value FROM json_each(?))",
+            [*args, json.dumps(codes)],
+        ).fetchone()[0]
+        to_date[p["code"]] = n
+    # Cells with a value but no identifiers: their people may be counted twice.
+    without = view.p.conn.execute(
+        "SELECT COUNT(*) FROM value v WHERE v.indicator_id = ? AND v.value > 0 "
+        "AND v.submission_id IN (SELECT value FROM json_each(?)) AND NOT EXISTS (SELECT 1 FROM person x "
+        "WHERE x.submission_id = v.submission_id AND x.indicator_id = v.indicator_id AND x.cats = v.cats) "
+        "AND (v.cats <> '' OR NOT EXISTS (SELECT 1 FROM person y WHERE y.submission_id = v.submission_id "
+        "AND y.indicator_id = v.indicator_id))",
+        (ind["id"], json.dumps(counted_subs)),
+    ).fetchone()[0]
+    return per, to_date, without > 0

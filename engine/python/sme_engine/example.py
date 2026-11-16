@@ -304,9 +304,11 @@ def fill_example(svc: Any, lang: str = "fr") -> None:
         p.update_record("period", period["id"], {**period, "reported_at": reception.now()})
 
     design = {"weights": "weights", "strata": ["population_group", "governorate_mcna"], "cluster": None}
-    for file, name, round_, id_col, round_label in (
-        ("mcna_irak_2019.xlsx", t["d2019"], "baseline", "X_uuid", "VII (2019)"),
-        ("mcna_irak_2020.xlsx", t["d2020"], "endline", "hh_id", "VIII (2020)"),
+    # Collections placed in the calendar: the 2019 round as the baseline of the first
+    # quarter, the 2020 round (collected in August and September) in the third quarter of 2020.
+    for file, name, round_, id_col, round_label, period in (
+        ("mcna_irak_2019.xlsx", t["d2019"], "baseline", "X_uuid", "VII (2019)", codes[0]),
+        ("mcna_irak_2020.xlsx", t["d2020"], "endline", "hh_id", "VIII (2020)", codes[3]),
     ):
         created = svc.import_dataset(
             {
@@ -319,6 +321,7 @@ def fill_example(svc: Any, lang: str = "fr") -> None:
                 "attribution": t["attribution"].format(round=round_label),
             }
         )["created"]
+        svc.update_dataset({"id": created, "period": period})
         rules = [
             {"kind": "duplicates", "columns": [id_col], "note": ""},
             {

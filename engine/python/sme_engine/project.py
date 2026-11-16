@@ -144,6 +144,11 @@ CREATE TABLE IF NOT EXISTS task (
     position    INTEGER NOT NULL,
     spec        TEXT NOT NULL            -- JSON, see agenda.py
 );
+CREATE TABLE IF NOT EXISTS connection (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL            -- JSON, see connectors.py; never the secret
+);
 CREATE TABLE IF NOT EXISTS quality_review (
     id           TEXT PRIMARY KEY,
     indicator_id TEXT NOT NULL REFERENCES indicator(id) ON DELETE CASCADE,
@@ -243,6 +248,7 @@ class Project:
         except (OSError, sqlite3.Error):
             pass  # a copy that cannot be written must not stop the user from working
         cls._migrate(conn, version)
+        conn.executescript(_V6_SCHEMA)  # tables added during 1.0 work, all "IF NOT EXISTS"
         # When the project was last opened, for "what changed since"; not a change of the project.
         with conn:
             row = conn.execute("SELECT value FROM meta WHERE key = 'opened_at'").fetchone()
@@ -442,6 +448,16 @@ class Project:
             raise _err(f"Unknown framework node: {node_id}", "node_not_found")
         return row
 
+    def replace_raw(self, dataset_id: str, blob: bytes) -> None:
+        """New data for a dataset synchronised with a server (Kobo, ODK). Imported
+        files are never changed; a synchronised dataset is the server's latest
+        state, and each synchronisation is listed in its spec."""
+        with self.conn:
+            cur = self.conn.execute("UPDATE dataset SET raw = ? WHERE id = ?", (blob, dataset_id))
+            if cur.rowcount != 1:
+                raise _err("Unknown dataset", "dataset_not_found")
+        self._touch()
+
     def add_node(
         self, parent_id: str | None, title: str, description: str = "", assumptions: str = ""
     ) -> dict[str, Any]:
@@ -535,6 +551,7 @@ class Project:
         "task": None,
         "event": None,
         "quality_review": "indicator_id",
+        "connection": None,
     }
 
     def records(self, table: str, scope: str | None = None) -> list[dict[str, Any]]:

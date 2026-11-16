@@ -33,6 +33,9 @@ def run(svc: Any) -> dict[str, Any]:
         elif not (ds.get("design") or {}).get("weights"):
             add("dataset_unweighted", "info", "data", ds["id"], ds["name"])
 
+    from . import reception
+
+    tracking = reception.track_all(reception.View(svc.project), {}) if snap.get("periods") else {"rows": []}
     with_ind = {i["node_id"] for i in snap["indicators"]}
     for node in snap["framework"]:
         if node["level"] in ("outcome", "output") and node["id"] not in with_ind:
@@ -40,7 +43,7 @@ def run(svc: Any) -> dict[str, Any]:
 
     for ind in snap["indicators"]:
         name = ind["name"]
-        if ind.get("source_type") in ("routine", "secondary"):
+        if ind.get("source_type") in indicators.ENTRY_SOURCES:
             an = svc.indicator_analysis(ind["id"])
             if an["current"] is None:
                 add("routine_no_values", "warning", "analysis", ind["id"], name)
@@ -48,6 +51,10 @@ def run(svc: Any) -> dict[str, Any]:
                 add("indicator_no_target", "warning", "indicators", ind["node_id"], name)
             if not (ind.get("definition") or "").strip():
                 add("indicator_no_definition", "info", "indicators", ind["node_id"], name)
+            if ind.get("people") == "unique":
+                row = next((r for r in tracking["rows"] if r["indicator_id"] == ind["id"]), None)
+                if row and row.get("duplicates_possible"):
+                    add("people_duplicates_possible", "warning", "reception", ind["id"], name)
             continue
         if not indicators.ready(ind):
             add("indicator_incomplete", "warning", "indicators", ind["node_id"], name)

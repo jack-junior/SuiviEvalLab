@@ -27,7 +27,10 @@ SURVEY_UNITS = ("percent", "mean", "count", "ratio")
 DIRECTIONS = ("increase", "decrease")
 # survey: computed from imported data; routine: entered period by period;
 # secondary: taken from another source (statistics, report), with its reference.
-SOURCES = ("survey", "routine", "secondary")
+# dhis2: read from a DHIS2 server, then checked and validated like entered values.
+SOURCES = ("survey", "routine", "secondary", "dhis2")
+# Values received period by period, rather than computed from imported data.
+ENTRY_SOURCES = ("routine", "secondary", "dhis2")
 FREQUENCIES = ("", "monthly", "quarterly", "semiannual", "annual", "rounds", "other")
 
 
@@ -153,6 +156,11 @@ def validate(spec: dict[str, Any]) -> dict[str, Any]:
         "target_date": _text(spec, "target_date", max_len=40),
         # Reference sheet of the library the indicator was taken from, and its citation.
         "library_id": _text(spec, "library_id", max_len=80),
+        # For a count of people: "unique" people (identifiers given, each counted once
+        # across periods, places and partners) or "contacts" (each service counted).
+        "people": spec.get("people") if spec.get("people") in ("unique", "contacts") and unit == "count" else "",
+        # Data element or indicator of DHIS2 the values are read from.
+        "dhis2_id": _text(spec, "dhis2_id", max_len=40),
         "library_ref": _text(spec, "library_ref", max_len=500),
         # Disaggregations of the project the results are reported by (their keys).
         "breakdowns": [str(k)[:30] for k in (spec.get("breakdowns") or [])[:6] if isinstance(k, str) and k.strip()],
@@ -170,7 +178,7 @@ def validate(spec: dict[str, Any]) -> dict[str, Any]:
 
 def ready(ind: dict[str, Any]) -> bool:
     """True when the calculation rule is complete enough to compute."""
-    if ind.get("source_type") in ("routine", "secondary"):
+    if ind.get("source_type") in ENTRY_SOURCES:
         return False  # no dataset calculation: values are typed (routine.py)
     unit = ind["unit"]
     if unit == "percent":
