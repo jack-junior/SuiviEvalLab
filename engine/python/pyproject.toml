@@ -25,3 +25,5 @@ select = ["E", "F", "W", "I", "B", "UP"]
 # Text catalogues (report wording, example project) keep one sentence per line.
 "sme_engine/report.py" = ["E501"]
 "sme_engine/example.py" = ["E501"]
+"sme_engine/portfolio.py" = ["E501"]
+"sme_engine/reports.py" = ["E501"]

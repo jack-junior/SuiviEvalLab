@@ -3097,3 +3097,15 @@ ul.plain {
 .report-sections li > .row-between {
   margin-bottom: 6px;
 }
+.pf-on_track {
+  background: var(--action-teinte);
+  color: var(--atteint);
+}
+.pf-watch {
+  background: var(--en-cours-fond);
+  color: var(--en-cours);
+}
+.pf-difficulty {
+  background: var(--retard-fond);
+  color: var(--retard);
+}

@@ -8,6 +8,8 @@ import { useEffect, useState } from "react";
 import {
   call,
   FrameworkModel,
+  archiveProject,
+  duplicateProject,
   forgetProject,
   pick,
   Recent,
@@ -36,7 +38,9 @@ function readReopen(): boolean {
 
 export function Home({ enginesReady }: { enginesReady: boolean }) {
   const { t, tn, lang } = useI18n();
-  const { run, busy, error, go } = useProject();
+  const { run, busy, error, go, describe } = useProject();
+  const [archivedShown, setArchivedShown] = useState(false);
+  const [dupError, setDupError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [list, setList] = useState<Recent[] | null>(null);
   const [creating, setCreating] = useState(false);
@@ -108,10 +112,24 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
     );
   };
 
+  const archivedCount = (list ?? []).filter((r) => r.archived).length;
   const shown = (list ?? []).filter((r) => {
     const q = query.trim().toLowerCase();
+    if (!!r.archived !== archivedShown) return false;
     return !q || r.name.toLowerCase().includes(q) || r.path.toLowerCase().includes(q);
   });
+
+  // A project as the model of a new one: its design, none of its data.
+  const duplicate = async (r: Recent) => {
+    setDupError(null);
+    const file = await pick("project-save", `${t("home.modelOf")} ${r.name}.sme`);
+    if (!file) return;
+    try {
+      setList(await duplicateProject(r.path, file.token, file.name.replace(/\.sme$/i, "")));
+    } catch (e) {
+      setDupError(describe(e));
+    }
+  };
 
   return (
     <div className="inner wide">
@@ -176,6 +194,14 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
           )}
         </div>
         {list && list.length === 0 && <p className="muted">{t("home.noProjects")}</p>}
+        {dupError && <Notice kind="error">{dupError}</Notice>}
+        {(archivedCount > 0 || archivedShown) && (
+          <div>
+            <button className="link small" onClick={() => setArchivedShown(!archivedShown)} data-testid="show-archived">
+              {archivedShown ? t("home.showActive") : t("home.showArchived", { n: archivedCount })}
+            </button>
+          </div>
+        )}
         {shown.length > 0 && (
           <div className="ws-grid">
             {shown.map((r) => (
@@ -211,6 +237,20 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
                     {r.exists && (
                       <IconButton icon="folder" label={t("home.reveal")} onClick={() => void revealProject(r.path)} />
                     )}
+                    {r.exists && (
+                      <IconButton
+                        icon="plus"
+                        label={t("home.duplicate")}
+                        onClick={() => void duplicate(r)}
+                        testId="project-duplicate"
+                      />
+                    )}
+                    <IconButton
+                      icon="lock"
+                      label={r.archived ? t("home.unarchive") : t("home.archive")}
+                      onClick={() => archiveProject(r.path, !r.archived).then(setList)}
+                      testId="project-archive"
+                    />
                     <IconButton
                       icon="close"
                       label={t("home.forget")}

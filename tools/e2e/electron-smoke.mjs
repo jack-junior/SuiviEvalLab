@@ -68,6 +68,7 @@ const dialogs = [
   path.join(work, "nettoyage.R"),
   path.join(work, "tableau.html"),
   path.join(work, "plan.xlsx"),
+  path.join(work, "portefeuille.docx"),
   path.join(work, "exemple.sme"),
 ];
 
@@ -709,6 +710,20 @@ try {
   );
   await shot("workspace");
 
+  // Portfolio dashboard: the project with its three progress measures, and the note.
+  await id("nav-ws_dashboard").click();
+  await id("dash-row").first().waitFor({ timeout: 60_000 });
+  notice(
+    "E2E dashboard",
+    (await id("dash-table").innerText()).replace(/\s+/g, " ").slice(0, 200),
+  );
+  await shot("dashboard");
+  await id("dash-note").click();
+  await id("dash-done").waitFor({ timeout: 60_000 });
+  if (!existsSync(path.join(work, "portefeuille.docx")))
+    throw new Error("Portfolio note missing");
+  await id("nav-overview").click();
+
   // Sample size, from the home screen without a project.
   await id("open-sample").click();
   await id("ss-goal-compare_prop").click();
@@ -827,7 +842,7 @@ try {
   notice("E2E updates", await id("update-status").innerText());
   notice(
     "E2E",
-    "Full path verified: project sheet, framework, import, cleaning, indicator, monitoring plan, periodic entry, reception and validation, tracking, gap comment, project today, agenda, work plan and budget, feedback, recommendations, risks, meetings, evaluation with coded notes, periodic report in a donor format, tracking export, analysis, report, SPSS, quality, merge, dashboard, checks, plan export, workspace today, workspace, sample size, example, test, logframe matrix, Kobo server sync, languages, indicator library",
+    "Full path verified: project sheet, framework, import, cleaning, indicator, monitoring plan, periodic entry, reception and validation, tracking, gap comment, project today, agenda, work plan and budget, feedback, recommendations, risks, meetings, evaluation with coded notes, periodic report in a donor format, tracking export, analysis, report, SPSS, quality, merge, dashboard, checks, plan export, workspace today, workspace, portfolio dashboard and note, sample size, example, test, logframe matrix, Kobo server sync, languages, indicator library",
   );
 } catch (e) {
   // The screen at the moment of failure, kept with the other screenshots.

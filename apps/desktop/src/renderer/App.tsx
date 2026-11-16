@@ -10,6 +10,7 @@ import logo from "./logo.svg";
 import { Accountability } from "./screens/Accountability";
 import { Agenda } from "./screens/Agenda";
 import { Analysis } from "./screens/Analysis";
+import { Dashboard } from "./screens/Dashboard";
 import { Data } from "./screens/Data";
 import { Engines, EngineStatus } from "./screens/Engines";
 import { Evaluations } from "./screens/Evaluations";
@@ -77,6 +78,7 @@ const NAV: { group?: string; items: { view: View; icon: string }[] }[] = [
 
 const WS_NAV: { view: View; icon: string; label: string }[] = [
   { view: "ws_today", icon: "home", label: "nav.today" },
+  { view: "ws_dashboard", icon: "gauge", label: "nav.dashboard" },
   { view: "overview", icon: "folder", label: "nav.projects" },
   { view: "ws_agenda", icon: "calendar", label: "nav.agenda" },
 ];
@@ -303,6 +305,8 @@ export function App() {
               <WorkspaceToday />
             ) : view === "ws_agenda" ? (
               <Agenda scope="workspace" />
+            ) : view === "ws_dashboard" ? (
+              <Dashboard />
             ) : (
               <Home enginesReady={ready} />
             )

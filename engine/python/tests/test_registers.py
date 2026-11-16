@@ -439,3 +439,80 @@ def test_exports_tracking_values_and_data_pack(call, tmp_path):
         bad = tmp_path / "x.smepack"
         bad.write_text("nope")
         exports.read_pack(bad)
+
+
+def _routine_project(call, path, name, achieved):
+    call(
+        "project.create",
+        {
+            "path": str(path),
+            "name": name,
+            "profile": {"start": "2026-01-01", "end": "2026-12-31", "frequency": "quarterly"},
+        },
+    )
+    node = call("framework.add", {"title": "Effet"})["created"]
+    ind = call(
+        "indicator.save",
+        {
+            "node_id": node,
+            "indicator": {
+                "name": "Personnes formées",
+                "unit": "count",
+                "source_type": "routine",
+                "target": 100,
+                "library_id": "x.trained",
+            },
+        },
+    )["saved"]
+    call("target.set", {"indicator_id": ind, "period": "T1-2026", "value": 25})
+    sub = call("submission.open", {"period": "T1-2026"})["created"]
+    call("submission.save", {"id": sub, "values": [{"indicator_id": ind, "value": achieved}]})
+    call("submission.act", {"id": sub, "action": "submit"})
+    call("submission.act", {"id": sub, "action": "validate"})
+    call("activity.save", {"activity": {"title": "Atelier", "start": "2026-01-10", "end": "2026-02-10"}})
+    call("project.close", {})
+
+
+def test_portfolio_dashboard_common_indicators_packs_and_models(call, tmp_path):
+    from docx import Document
+
+    a, b = tmp_path / "a.sme", tmp_path / "b.sme"
+    _routine_project(call, a, "Projet A", 30)
+    _routine_project(call, b, "Projet B", 5)
+    day = "2026-05-01"
+    dash = call("portfolio.dashboard", {"paths": [str(a), str(b)], "today": day})
+    cards = {c["name"]: c for c in dash["cards"]}
+    assert cards["Projet A"]["indicators_on_track"] == 1 and cards["Projet B"]["indicators_on_track"] == 0
+    assert cards["Projet B"]["status"] == "difficulty" and "indicators_low" in cards["Projet B"]["reasons"]
+    assert cards["Projet A"]["late_activities"] == 1
+    common = dash["common"][0]
+    assert common["total"] == 35 and common["target"] == 200 and common["double_count_possible"]
+    # Archived projects leave the dashboard.
+    assert len(call("portfolio.dashboard", {"paths": [str(a), str(b)], "archived": [str(b)]})["cards"]) == 1
+    # Thresholds of the organisation.
+    with pytest.raises(RuntimeError, match="number_out_of_range"):
+        call("portfolio.settings", {"settings": {"indicators_on_track": 2}})
+    # Exports: note and page.
+    note = call(
+        "portfolio.export",
+        {"kind": "note", "target": str(tmp_path / "note.docx"), "paths": [str(a), str(b)], "today": day},
+    )
+    text = "\n".join(p.text for p in Document(note["path"]).paragraphs)
+    assert "2 projets" in text and "Projet B" in text
+    page = call("portfolio.export", {"kind": "html", "target": str(tmp_path / "tdb"), "paths": [str(a)], "today": day})
+    assert "Projet A" in open(page["path"], encoding="utf-8").read()
+    # A pack from another office joins the dashboard; the project's own file wins over its pack.
+    call("project.open", {"path": str(b)})
+    call("export.pack", {"path": str(tmp_path / "b.smepack")})
+    call("project.close", {})
+    call("portfolio.import_pack", {"path": str(tmp_path / "b.smepack")})
+    names = [c["name"] for c in call("portfolio.dashboard", {"paths": [str(a)], "today": day})["cards"]]
+    assert sorted(names) == ["Projet A", "Projet B"]
+    assert len(call("portfolio.dashboard", {"paths": [str(a), str(b)], "today": day})["cards"]) == 2
+    # A project as the model of a new one: the design stays, the data go.
+    model = tmp_path / "c.sme"
+    call("project.duplicate_model", {"source": str(a), "target": str(model), "name": "Projet C"})
+    snap = call("project.open", {"path": str(model)})
+    assert snap["project"]["name"] == "Projet C" and len(snap["indicators"]) == 1
+    assert snap["submissions"] == [] and snap["activities"][0]["status"] == "not_started"
+    assert snap["targets"]

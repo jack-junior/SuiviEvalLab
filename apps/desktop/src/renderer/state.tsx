@@ -19,6 +19,7 @@ export type View =
   | "evaluations"
   | "ws_today"
   | "ws_agenda"
+  | "ws_dashboard"
   | "overview"
   | "setup"
   | "framework"

@@ -271,6 +271,67 @@ def register_setup(server: Server, svc: Service) -> None:
         lang = "en" if params.get("lang") == "en" else "fr"
         return workspace.agenda_all(params.get("paths"), start, end, lang, params.get("today"))
 
+    # Portfolio (M13, M14): the paths come from the application's own list.
+    @server.method("portfolio.dashboard")
+    def pf_dashboard(params: dict[str, Any]) -> dict[str, Any]:
+        from . import portfolio
+
+        return portfolio.dashboard(params.get("paths"), params.get("today"), params.get("archived"))
+
+    @server.method("portfolio.export")
+    def pf_export(params: dict[str, Any]) -> dict[str, Any]:
+        from pathlib import Path
+
+        from . import portfolio
+
+        lang = "en" if params.get("lang") == "en" else "fr"
+        target = params.get("target")
+        if not isinstance(target, str) or not target:
+            raise portfolio._err("No file chosen", "invalid_params")
+        data = portfolio.dashboard(params.get("paths"), params.get("today"), params.get("archived"))
+        if params.get("kind") == "note":
+            return portfolio.note_docx(data, Path(target), lang)
+        return portfolio.html(data, Path(target), lang)
+
+    @server.method("portfolio.settings")
+    def pf_settings(params: dict[str, Any]) -> dict[str, Any]:
+        from . import portfolio
+
+        if "settings" in params:
+            return {"settings": portfolio.save_settings(params["settings"])}
+        return {"settings": portfolio.settings(), "defaults": portfolio.DEFAULT_SETTINGS}
+
+    @server.method("portfolio.import_pack")
+    def pf_import(params: dict[str, Any]) -> dict[str, Any]:
+        from pathlib import Path
+
+        from . import portfolio
+
+        path = params.get("path")
+        if not isinstance(path, str) or not Path(path).is_file():
+            raise portfolio._err("No file chosen", "invalid_params")
+        return portfolio.import_pack(Path(path))
+
+    @server.method("portfolio.remove_pack")
+    def pf_remove(params: dict[str, Any]) -> dict[str, Any]:
+        from . import portfolio
+
+        portfolio.remove_pack(params.get("uid"))
+        return {"removed": True}
+
+    @server.method("project.duplicate_model")
+    def pf_duplicate(params: dict[str, Any]) -> dict[str, Any]:
+        from pathlib import Path
+
+        from . import portfolio
+
+        source, target = params.get("source"), params.get("target")
+        if not isinstance(source, str) or not isinstance(target, str) or not Path(source).is_file():
+            raise portfolio._err("No file chosen", "invalid_params")
+        name = str(params.get("name") or Path(target).stem)[:200]
+        portfolio.duplicate_as_model(Path(source), Path(target), name)
+        return {"path": target, "name": name}
+
     @server.method("personal.get")
     def personal_get(_: dict[str, Any]) -> dict[str, Any]:
         from . import workspace

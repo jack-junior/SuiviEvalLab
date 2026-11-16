@@ -15,6 +15,11 @@ contextBridge.exposeInMainWorld("sme", {
   reveal: (file: string) => ipcRenderer.invoke("project:reveal", file),
   saveSummary: (file: string, summary: Record<string, number>) => ipcRenderer.invoke("project:summary", file, summary),
   openFile: (token: string) => ipcRenderer.invoke("file:reveal", token),
+  portfolio: () => ipcRenderer.invoke("portfolio:dashboard"),
+  portfolioExport: (kind: string, token: string, lang: string) =>
+    ipcRenderer.invoke("portfolio:export", kind, token, lang),
+  archive: (file: string, archived: boolean) => ipcRenderer.invoke("project:archive", file, archived),
+  duplicate: (file: string, token: string, name: string) => ipcRenderer.invoke("project:duplicate", file, token, name),
   workspaceAgenda: (range: { start: string; end: string; lang: string }) =>
     ipcRenderer.invoke("workspace:agenda", range),
   updates: {

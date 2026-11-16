@@ -5,7 +5,7 @@
 
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
 import { randomUUID } from "node:crypto";
-import { readFileSync, statSync, writeFileSync } from "node:fs";
+import { readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { EngineClient, EngineError, EngineLaunch } from "./engine";
 import { getSecret, hasSecret, setSecret } from "./secrets";
@@ -174,6 +174,9 @@ const ALLOWED = new Set([
   "export.tracking",
   "export.values",
   "export.pack",
+  "portfolio.settings",
+  "portfolio.import_pack",
+  "portfolio.remove_pack",
 ]);
 
 // Paths chosen by the user in a dialog, by token. Tokens live for the session.
@@ -193,6 +196,7 @@ type DialogKind =
   | "xlsx-open"
   | "pack-save"
   | "pack-open"
+  | "pdf-save"
   | "folder"
   | "template-open";
 
@@ -213,7 +217,8 @@ async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token
       kind === "xlsx-save" ||
       kind === "r-save" ||
       kind === "ics-save" ||
-      kind === "pack-save"
+      kind === "pack-save" ||
+      kind === "pdf-save"
     ) {
       const filter = {
         "project-save": { name: "SuiviEvalLab", extensions: ["sme"], file: "Projet.sme" },
@@ -224,6 +229,7 @@ async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token
         "r-save": { name: "R", extensions: ["R"], file: "Nettoyage.R" },
         "ics-save": { name: "iCalendar", extensions: ["ics"], file: "Agenda.ics" },
         "pack-save": { name: "SuiviEvalLab", extensions: ["smepack"], file: "Paquet.smepack" },
+        "pdf-save": { name: "PDF", extensions: ["pdf"], file: "Portefeuille.pdf" },
       }[kind];
       const res = await dialog.showSaveDialog(win, {
         defaultPath: path.join(docs, defaultName ?? filter.file),
@@ -272,6 +278,7 @@ interface KnownProject {
   name: string;
   opened_at: string;
   summary?: ProjectSummary;
+  archived?: boolean;
 }
 const recentFile = () => path.join(app.getPath("userData"), "recent-projects.json");
 
@@ -296,7 +303,7 @@ function rememberProject(file: string, name: string): void {
   const list = readRecents();
   const old = list.find((r) => r.path === file);
   writeRecents([
-    { path: file, name, opened_at: new Date().toISOString(), summary: old?.summary },
+    { path: file, name, opened_at: new Date().toISOString(), summary: old?.summary, archived: old?.archived },
     ...list.filter((r) => r.path !== file),
   ]);
 }
@@ -453,6 +460,7 @@ app.whenReady().then(() => {
       "xlsx-open",
       "pack-save",
       "pack-open",
+      "pdf-save",
       "folder",
       "template-open",
     ];
@@ -486,6 +494,71 @@ app.whenReady().then(() => {
       end: r.end,
       lang: r.lang === "en" ? "en" : "fr",
     });
+  });
+  // Portfolio dashboard (M14): the projects of this computer that are not archived,
+  // and the packs received from other offices.
+  const portfolioArgs = () => {
+    const list = listProjects().filter((p) => p.exists);
+    return { paths: list.map((p) => p.path), archived: list.filter((p) => p.archived).map((p) => p.path) };
+  };
+  ipcMain.handle("portfolio:dashboard", async () => {
+    try {
+      return { ok: true, result: await engine!.call("portfolio.dashboard", portfolioArgs()) };
+    } catch (err) {
+      const e = err as EngineError;
+      return { ok: false, error: e.message, key: e.key ?? "unknown" };
+    }
+  });
+  ipcMain.handle("portfolio:export", async (_e, kind: unknown, token: unknown, lang: unknown) => {
+    const target = typeof token === "string" ? pickedFiles.get(token) : undefined;
+    if (!target || (kind !== "note" && kind !== "html" && kind !== "pdf")) return { ok: false, key: "file_token" };
+    const language = lang === "en" ? "en" : "fr";
+    try {
+      if (kind !== "pdf") {
+        await engine!.call("portfolio.export", { ...portfolioArgs(), kind, target, lang: language });
+        return { ok: true };
+      }
+      // The PDF is the HTML page printed by a hidden window.
+      const page = path.join(app.getPath("temp"), `portefeuille-${randomUUID()}.html`);
+      await engine!.call("portfolio.export", { ...portfolioArgs(), kind: "html", target: page, lang: language });
+      const printer = new BrowserWindow({ show: false, webPreferences: { javascript: false } });
+      try {
+        await printer.loadFile(page);
+        const pdf = await printer.webContents.printToPDF({ pageSize: "A4", landscape: true, printBackground: true });
+        writeFileSync(target, pdf);
+      } finally {
+        printer.destroy();
+        try {
+          unlinkSync(page);
+        } catch {
+          /* a temporary file */
+        }
+      }
+      return { ok: true };
+    } catch (err) {
+      const e = err as EngineError;
+      return { ok: false, error: e.message, key: e.key ?? "unknown" };
+    }
+  });
+  ipcMain.handle("project:archive", (_e, file: unknown, archived: unknown) => {
+    if (typeof file === "string")
+      writeRecents(readRecents().map((r) => (r.path === file ? { ...r, archived: archived === true } : r)));
+    return workspaceList();
+  });
+  // A known project as the model of a new one: same design, no data.
+  ipcMain.handle("project:duplicate", async (_e, file: unknown, token: unknown, name: unknown) => {
+    const target = typeof token === "string" ? pickedFiles.get(token) : undefined;
+    if (typeof file !== "string" || !readRecents().some((r) => r.path === file) || !target)
+      return { ok: false, key: "file_token" };
+    const title = typeof name === "string" && name.trim() ? name.trim().slice(0, 200) : path.parse(target).name;
+    try {
+      await engine!.call("project.duplicate_model", { source: file, target, name: title });
+      rememberProject(target, title);
+      return { ok: true, result: await workspaceList() };
+    } catch (err) {
+      const e = err as EngineError;
+      return { ok: false, error: e.message, key: e.key ?? "unknown" };
+    }
   });
   ipcMain.handle("project:forget", (_e, file: unknown) => {
     if (typeof file === "string") writeRecents(readRecents().filter((r) => r.path !== file));

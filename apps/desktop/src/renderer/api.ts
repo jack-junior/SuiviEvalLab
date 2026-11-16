@@ -31,6 +31,14 @@ interface SmeBridge {
   saveSummary?: (file: string, summary: Record<string, number>) => Promise<void>;
   openFile?: (token: string) => Promise<boolean>;
   workspaceAgenda?: (range: { start: string; end: string; lang: string }) => Promise<AgendaData>;
+  portfolio?: () => Promise<CallResult<Dashboard>>;
+  portfolioExport?: (
+    kind: string,
+    token: string,
+    lang: string,
+  ) => Promise<{ ok: boolean; error?: string; key?: string }>;
+  archive?: (file: string, archived: boolean) => Promise<Recent[]>;
+  duplicate?: (file: string, token: string, name: string) => Promise<CallResult<Recent[]>>;
   updates?: UpdatesBridge;
 }
 
@@ -72,6 +80,7 @@ export type PickKind =
   | "xlsx-open"
   | "pack-save"
   | "pack-open"
+  | "pdf-save"
   | "folder"
   | "template-open";
 export interface Picked {
@@ -84,6 +93,7 @@ export interface Recent {
   opened_at: string;
   modified: string | null;
   exists: boolean;
+  archived?: boolean;
   summary?: { indicators: number; achieved: number; on_track: number; late: number; unknown: number; datasets: number };
   /** What the engine reads of the file without opening it. */
   card?: ProjectCard | null;
@@ -1282,6 +1292,94 @@ export const appInfo = () => bridge.info();
 export const pick = (kind: PickKind, defaultName?: string) => bridge.pick?.(kind, defaultName) ?? Promise.resolve(null);
 export const recents = () => bridge.recents?.() ?? Promise.resolve([]);
 export const recentToken = (file: string) => bridge.recentToken?.(file) ?? Promise.resolve(null);
+export const archiveProject = (file: string, archived: boolean) =>
+  bridge.archive?.(file, archived) ?? Promise.resolve([] as Recent[]);
+export async function duplicateProject(file: string, token: string, name: string): Promise<Recent[]> {
+  const res = (await bridge.duplicate?.(file, token, name)) as CallResult<Recent[]> | undefined;
+  if (!res) return [];
+  if (!res.ok) throw new EngineCallError(res.error, res.key, {});
+  return res.result;
+}
+export async function portfolioDashboard(): Promise<Dashboard> {
+  const res = (await bridge.portfolio?.()) as CallResult<Dashboard> | undefined;
+  if (!res) throw new EngineCallError("Not available", "not_available", {});
+  if (!res.ok) throw new EngineCallError(res.error, res.key, {});
+  return res.result;
+}
+export async function portfolioExport(kind: "note" | "html" | "pdf", token: string, lang: string): Promise<void> {
+  const res = await bridge.portfolioExport?.(kind, token, lang);
+  if (res && !res.ok) throw new EngineCallError(res.error ?? "", res.key ?? "unknown", {});
+}
+
+export type PortfolioStatus = "on_track" | "watch" | "difficulty" | "unknown";
+export interface PortfolioCard {
+  source: "file" | "pack";
+  path: string;
+  uid: string;
+  name: string;
+  profile: {
+    code?: string;
+    start?: string;
+    end?: string;
+    donors?: { name: string }[];
+    countries?: string[];
+    sectors?: string[];
+    currency?: string;
+    manager?: string;
+    color?: string;
+  };
+  exported_at: string | null;
+  time: number | null;
+  indicators: number;
+  indicators_judged: number;
+  indicators_on_track: number | null;
+  late_indicators: string[];
+  physical: number | null;
+  expected: number | null;
+  financial: number | null;
+  planned: number | null;
+  spent: number | null;
+  activities: number;
+  late_activities: number;
+  feedback_overdue: number;
+  next_deadline: { kind: "data" | "report"; date: string; label_fr: string; label_en: string } | null;
+  deadlines_30: number;
+  status: PortfolioStatus;
+  reasons: string[];
+}
+export interface CommonIndicator {
+  library_id: string;
+  name: string;
+  unit: string;
+  projects: { name: string; to_date: number | null; target: number | null }[];
+  total: number | null;
+  target: number | null;
+  double_count_possible: boolean;
+  not_additive: boolean;
+}
+export interface PortfolioSettings {
+  indicators_on_track: number;
+  indicators_difficulty: number;
+  financial_margin: number;
+  late_activities: number;
+}
+export interface Dashboard {
+  day: string;
+  settings: PortfolioSettings;
+  cards: PortfolioCard[];
+  overview: {
+    projects: number;
+    by_status: Partial<Record<PortfolioStatus, number>>;
+    late_activities: number;
+    late_indicators: number;
+    feedback_overdue: number;
+    deadlines_30: number;
+    planned: number;
+    spent: number;
+  };
+  distribution: { donor: Record<string, number>; country: Record<string, number>; sector: Record<string, number> };
+  common: CommonIndicator[];
+}
 export const forgetProject = (file: string) => bridge.forget?.(file) ?? Promise.resolve([]);
 export const revealProject = (file: string) => bridge.reveal?.(file) ?? Promise.resolve();
 export const saveSummary = (file: string, summary: Record<string, number>) =>
