@@ -120,6 +120,9 @@ const ALLOWED = new Set([
   "personal.get",
   "personal.task_save",
   "personal.event_save",
+  "tracking.crosstab",
+  "quality.save",
+  "quality.delete",
 ]);
 
 // Paths chosen by the user in a dialog, by token. Tokens live for the session.

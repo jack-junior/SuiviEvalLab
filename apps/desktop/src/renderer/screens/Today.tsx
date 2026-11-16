@@ -109,7 +109,13 @@ export function ProjectTodayScreen() {
     }
   };
   const nothing =
-    data && !data.tasks.length && !data.deadlines.length && !data.alerts && !data.late.length && !data.events.length;
+    data &&
+    !data.tasks.length &&
+    !data.deadlines.length &&
+    !data.alerts &&
+    !data.late.length &&
+    !data.events.length &&
+    !data.changes.length;
 
   return (
     <div className="inner wide" data-testid="project-today">
@@ -180,6 +186,24 @@ export function ProjectTodayScreen() {
                     ))}
                   </ul>
                 )}
+              </section>
+            )}
+            {data.changes.length > 0 && (
+              <section className="box stack" data-testid="today-changes">
+                <h2>{t("today.changes")}</h2>
+                <ul className="plain small">
+                  {data.changes.slice(0, 10).map((c) => (
+                    <li key={`${c.submission_id}${c.at}`}>
+                      <button className="link" onClick={() => go("reception", c.submission_id)}>
+                        {t(`today.change_${c.action}`, {
+                          unit: c.unit_name || t("rec.wholeProject"),
+                          period: c.label,
+                        })}
+                      </button>{" "}
+                      <span className="muted">{when(c.at)}</span>
+                    </li>
+                  ))}
+                </ul>
               </section>
             )}
             {data.events.length > 0 && (

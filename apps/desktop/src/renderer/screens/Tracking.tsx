@@ -10,6 +10,7 @@ import { useLevels } from "../frameworks";
 import { useI18n } from "../i18n";
 import { defaultPeriod, periodLabel } from "../monitoring";
 import { useProject } from "../state";
+import { CrosstabPanel } from "./Crosstab";
 import { Empty, Field, Notice, Panel, useValueFormat } from "../ui";
 
 interface Filters {
@@ -30,6 +31,7 @@ export function Tracking() {
   const [error, setError] = useState<string | null>(null);
   const [gap, setGap] = useState<Indicator | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const [crossing, setCrossing] = useState(false);
 
   // Recomputed when the filters or the project data change.
   const stamp = snap ? `${snap.submissions.map((s) => s.status).join()}|${snap.indicators.length}` : "";
@@ -96,11 +98,21 @@ export function Tracking() {
           <h1>{t("nav.tracking")}</h1>
           <p className="lead">{t("trk.lead")}</p>
         </div>
-        {per && per.end < new Date().toISOString().slice(0, 10) && (
-          <button className="btn" onClick={markReported} data-testid="trk-reported">
-            {per.reported_at ? t("trk.reportedUndo") : t("trk.reported")}
+        <div className="row-actions">
+          <button
+            className="btn"
+            onClick={() => setCrossing(true)}
+            disabled={!groups.length}
+            data-testid="trk-crosstab"
+          >
+            {t("xt.open")}
           </button>
-        )}
+          {per && per.end < new Date().toISOString().slice(0, 10) && (
+            <button className="btn" onClick={markReported} data-testid="trk-reported">
+              {per.reported_at ? t("trk.reportedUndo") : t("trk.reported")}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="filters">
@@ -294,6 +306,14 @@ export function Tracking() {
       )}
 
       {gap && f.period && <GapPanel ind={gap} period={f.period} onClose={() => setGap(null)} />}
+      {crossing && (
+        <CrosstabPanel
+          indicators={groups.flatMap((g) => g.list)}
+          period={f.period}
+          provisional={f.provisional}
+          onClose={() => setCrossing(false)}
+        />
+      )}
     </div>
   );
 }

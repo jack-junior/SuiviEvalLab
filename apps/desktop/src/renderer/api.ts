@@ -493,6 +493,35 @@ export interface Snapshot {
   gap_comments: Record<string, GapComment[]>;
   tasks: Task[];
   events: AgendaEvent[];
+  quality_reviews: Record<string, QualityReview[]>;
+}
+
+export type QualityScore = "met" | "partly" | "not_met" | "";
+export const QUALITY_CRITERIA = ["validity", "reliability", "timeliness", "precision", "integrity"] as const;
+export interface QualityReview {
+  id: string;
+  indicator_id: string;
+  date: string;
+  scores: Record<(typeof QUALITY_CRITERIA)[number], QualityScore>;
+  reviewer: string;
+  conclusions: string;
+  actions: string;
+}
+export interface Crosstab {
+  rows: { key: string; label: string; values: (number | null)[]; total: number | null }[];
+  cols: { key: string; label: string }[];
+  col_totals: (number | null)[];
+  total: number | null;
+  period: string | null;
+}
+export interface Change {
+  submission_id: string;
+  period: string;
+  label: string;
+  unit_name: string;
+  action: string;
+  at: string;
+  channel: string;
 }
 
 // ----- monitoring (1.0, milestone J2) -----
@@ -636,6 +665,8 @@ export interface ProjectToday {
   tasks: AgendaItem[];
   alerts: number;
   late: { indicator_id: string; indicator: string; period: string; rate: number | null }[];
+  since: string;
+  changes: Change[];
 }
 
 export type PeriodFrequency = "monthly" | "quarterly" | "semiannual" | "annual";

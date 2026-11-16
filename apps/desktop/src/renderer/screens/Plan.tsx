@@ -5,7 +5,19 @@
 // the indicator reference sheet (source, method, frequency, who, breakdowns).
 
 import { useMemo, useState } from "react";
-import { call, EngineCallError, Frequency, Indicator, openFile, pick, Snapshot, Target } from "../api";
+import {
+  call,
+  EngineCallError,
+  Frequency,
+  Indicator,
+  isEntry,
+  openFile,
+  pick,
+  QUALITY_CRITERIA,
+  QualityReview,
+  Snapshot,
+  Target,
+} from "../api";
 import { useLevels } from "../frameworks";
 import { useI18n } from "../i18n";
 import { useProject } from "../state";
@@ -37,6 +49,7 @@ export function Plan() {
   const [pending, setPending] = useState<Pending | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [exported, setExported] = useState<{ token: string; name: string } | null>(null);
+  const [tab, setTab] = useState<"targets" | "collection">("targets");
 
   const groups = useMemo(() => {
     if (!snap) return [];
@@ -103,7 +116,25 @@ export function Plan() {
           </button>
         </Notice>
       )}
-      {groups.length === 0 ? (
+      {groups.length > 0 && (
+        <div className="tabs" role="tablist">
+          {(["targets", "collection"] as const).map((k) => (
+            <button
+              key={k}
+              role="tab"
+              aria-selected={tab === k}
+              className="tab"
+              onClick={() => setTab(k)}
+              data-testid={`plan-tab-${k}`}
+            >
+              {t(`mplan.tab_${k}`)}
+            </button>
+          ))}
+        </div>
+      )}
+      {groups.length > 0 && tab === "collection" ? (
+        <CollectionCalendar />
+      ) : groups.length === 0 ? (
         <Empty
           icon="target"
           title={t("mplan.noIndicators")}
@@ -442,6 +473,7 @@ function SheetPanel({ indicator, onClose }: { indicator: Indicator; onClose: () 
           </label>
         ))}
       </fieldset>
+      <QualityReviews indicator={indicator} />
       {history.length > 0 && (
         <>
           <h3 className="panel-section">{t("mplan.history")}</h3>
@@ -460,5 +492,181 @@ function SheetPanel({ indicator, onClose }: { indicator: Indicator; onClose: () 
         </>
       )}
     </Panel>
+  );
+}
+
+const FREQ_MONTHS: Record<string, number> = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12 };
+
+/** Whether an indicator is collected in a period, from its frequency (same rule as the engine). */
+export function expectedIn(ind: Indicator, end: string, fiscalStart: number): boolean {
+  const months = FREQ_MONTHS[ind.frequency ?? ""];
+  if (!months) return true;
+  return (Number(end.slice(5, 7)) - fiscalStart + 1) % months === 0;
+}
+
+function CollectionCalendar() {
+  const { t, lang, day } = useI18n();
+  const { snap } = useProject();
+  if (!snap) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  const entry = snap.indicators.filter(isEntry);
+  const fiscal = snap.profile.fiscal_start_month;
+  return (
+    <div className="stack" data-testid="collection-calendar">
+      <p className="muted small">{t("mplan.collectionLead")}</p>
+      <table className="table">
+        <thead>
+          <tr>
+            <th>{t("setup.period")}</th>
+            <th>{t("setup.dataDueCol")}</th>
+            <th>{t("mplan.toCollect")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {snap.periods.map((p) => {
+            const due = entry.filter((i) => expectedIn(i, p.end, fiscal));
+            return (
+              <tr key={p.id} className={p.start <= today && today <= p.end ? "current" : undefined}>
+                <td>
+                  <strong>{lang === "en" ? p.label_en : p.label_fr}</strong>
+                </td>
+                <td>{day(p.data_due)}</td>
+                <td className="small">
+                  {due.map((i) => (
+                    <div key={i.id}>
+                      {i.name}
+                      {i.responsible && <span className="muted">, {i.responsible}</span>}
+                    </div>
+                  ))}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function QualityReviews({ indicator }: { indicator: Indicator }) {
+  const { t, day } = useI18n();
+  const { snap, run } = useProject();
+  const reviews = snap?.quality_reviews?.[indicator.id] ?? [];
+  const blank = {
+    date: new Date().toISOString().slice(0, 10),
+    scores: Object.fromEntries(QUALITY_CRITERIA.map((c) => [c, ""])) as QualityReview["scores"],
+    reviewer: "",
+    conclusions: "",
+    actions: "",
+  };
+  const [draft, setDraft] = useState<typeof blank | null>(null);
+  const save = async () => {
+    if (!draft) return;
+    if (await run("quality.save", { indicator_id: indicator.id, review: draft })) setDraft(null);
+  };
+  return (
+    <>
+      <h3 className="panel-section">{t("dqa.title")}</h3>
+      <p className="muted small">{t("dqa.lead")}</p>
+      {reviews.map((r) => (
+        <div key={r.id} className="box small stack" data-testid="dqa-review">
+          <div className="row-between">
+            <strong>{day(r.date)}</strong>
+            <button className="link" onClick={() => run("quality.delete", { id: r.id })}>
+              {t("common.delete")}
+            </button>
+          </div>
+          <div className="chips">
+            {QUALITY_CRITERIA.map((c) => (
+              <span key={c} className={`sub-status dqa-${r.scores[c] || "none"}`}>
+                {t(`dqa.crit_${c}`)} : {r.scores[c] ? t(`dqa.score_${r.scores[c]}`) : "-"}
+              </span>
+            ))}
+          </div>
+          {r.conclusions && <div>{r.conclusions}</div>}
+          {r.actions && <div className="muted">{t("dqa.actionsWere", { text: r.actions })}</div>}
+        </div>
+      ))}
+      {draft ? (
+        <div className="box stack">
+          <Field label={t("dqa.date")}>
+            {(id) => (
+              <input
+                id={id}
+                type="date"
+                className="input"
+                value={draft.date}
+                onChange={(e) => setDraft({ ...draft, date: e.target.value })}
+              />
+            )}
+          </Field>
+          {QUALITY_CRITERIA.map((c) => (
+            <div key={c} className="field">
+              <span className="label">{t(`dqa.crit_${c}`)}</span>
+              <span className="field-hint">{t(`dqa.hint_${c}`)}</span>
+              <div className="chips">
+                {(["met", "partly", "not_met"] as const).map((v) => (
+                  <button
+                    key={v}
+                    className="chip small"
+                    aria-pressed={draft.scores[c] === v}
+                    onClick={() => setDraft({ ...draft, scores: { ...draft.scores, [c]: v } })}
+                    data-testid={`dqa-${c}-${v}`}
+                  >
+                    {t(`dqa.score_${v}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+          <Field label={t("dqa.reviewer")}>
+            {(id) => (
+              <input
+                id={id}
+                className="input"
+                value={draft.reviewer}
+                onChange={(e) => setDraft({ ...draft, reviewer: e.target.value })}
+              />
+            )}
+          </Field>
+          <Field label={t("dqa.conclusions")}>
+            {(id) => (
+              <textarea
+                id={id}
+                className="input"
+                rows={3}
+                value={draft.conclusions}
+                onChange={(e) => setDraft({ ...draft, conclusions: e.target.value })}
+              />
+            )}
+          </Field>
+          <Field label={t("dqa.actions")}>
+            {(id) => (
+              <textarea
+                id={id}
+                className="input"
+                rows={2}
+                value={draft.actions}
+                onChange={(e) => setDraft({ ...draft, actions: e.target.value })}
+              />
+            )}
+          </Field>
+          <div className="row-actions start">
+            <button className="btn primary" onClick={save} data-testid="dqa-save">
+              {t("common.save")}
+            </button>
+            <button className="btn" onClick={() => setDraft(null)}>
+              {t("common.cancel")}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <button className="btn small" onClick={() => setDraft(blank)} data-testid="dqa-add">
+            {t("dqa.add")}
+          </button>
+        </div>
+      )}
+    </>
   );
 }

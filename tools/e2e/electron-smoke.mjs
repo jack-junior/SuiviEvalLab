@@ -269,6 +269,15 @@ try {
   await id("gap-text").fill("Formateurs disponibles à partir de mars");
   await id("gap-save").click();
   await shot("tracking");
+  await id("trk-crosstab").click();
+  await id("xt-rows").selectOption("period");
+  await id("xt-cols").selectOption("sex");
+  await page
+    .locator('[data-testid="xt-table"] td', { hasText: "12" })
+    .first()
+    .waitFor({ timeout: 30_000 });
+  await shot("crosstab");
+  await page.keyboard.press("Escape");
 
   // Today and agenda of the project.
   await id("nav-today").click();
@@ -292,6 +301,9 @@ try {
     .first()
     .waitFor({ timeout: 30_000 });
   await shot("agenda");
+  await id("agenda-mode-board").click();
+  await id("board-todo").waitFor();
+  await shot("task-board");
 
   await id("nav-analysis").click();
   await id("comparison").waitFor({ timeout: 120_000 });

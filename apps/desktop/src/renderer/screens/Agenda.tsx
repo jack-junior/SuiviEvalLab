@@ -61,6 +61,7 @@ export function Agenda({ scope }: { scope: "project" | "workspace" }) {
   const [selected, setSelected] = useState(todayIso());
   const [editing, setEditing] = useState<{ kind: "event" | "task"; item: AgendaItem | null } | null>(null);
   const [note, setNote] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const [mode, setMode] = useState<"month" | "board">("month");
 
   const grid = weeks(cursor.y, cursor.m);
   const start = iso(grid[0][0]);
@@ -154,91 +155,115 @@ export function Agenda({ scope }: { scope: "project" | "workspace" }) {
       </div>
       {note && <Notice kind={note.kind}>{note.text}</Notice>}
 
-      <div className="cal-head">
-        <IconButton icon="up" label={t("agenda.previous")} onClick={() => move(-1)} />
-        <h2 className="cal-title">{monthName}</h2>
-        <IconButton icon="down" label={t("agenda.next")} onClick={() => move(1)} />
-        <button
-          className="btn small"
-          onClick={() => {
-            setCursor({ y: now.getFullYear(), m: now.getMonth() });
-            setSelected(today);
-          }}
-        >
-          {t("ws.today")}
-        </button>
-      </div>
-      <div className="cal-layout">
-        <table className="calendar" data-testid="calendar">
-          <thead>
-            <tr>
-              {dayNames.map((d) => (
-                <th key={d}>{d}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {grid.map((week, i) => (
-              <tr key={i}>
-                {week.map((d) => {
-                  const key = iso(d);
-                  const items = onDay(key);
-                  return (
-                    <td
-                      key={key}
-                      className={[
-                        d.getMonth() !== cursor.m ? "out" : "",
-                        key === today ? "today" : "",
-                        key === selected ? "selected" : "",
-                      ].join(" ")}
-                    >
-                      <button className="cal-day" onClick={() => setSelected(key)} data-testid={`day-${key}`}>
-                        <span className="cal-num">{d.getDate()}</span>
-                        {items.slice(0, 3).map((x) => (
-                          <span
-                            key={`${x.id}${x.path ?? ""}`}
-                            className={`cal-item k-${x.kind}${x.done ? " done" : ""}`}
-                            style={x.color ? { borderLeftColor: x.color } : undefined}
-                          >
-                            {title(x)}
-                          </span>
-                        ))}
-                        {items.length > 3 && <span className="cal-more">+{items.length - 3}</span>}
-                      </button>
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <aside className="cal-side">
-          <h3>{day(selected)}</h3>
-          {list.length === 0 && <p className="muted small">{t("agenda.nothing")}</p>}
-          <ul className="plain">
-            {list.map((x) => (
-              <li key={`${x.id}${x.path ?? ""}`} className="cal-entry">
-                <span className={`cal-dot k-${x.kind}`} style={x.color ? { background: x.color } : undefined} />
-                <div>
-                  <div>{title(x)}</div>
-                  <div className="muted small">
-                    {[x.project, x.start && x.start.includes("T") ? x.start.slice(11, 16) : "", x.place]
-                      .filter(Boolean)
-                      .join(", ")}
-                  </div>
-                </div>
-                {!x.auto && (scope === "project" ? !x.project : x.personal) && (
-                  <IconButton
-                    icon="edit"
-                    label={t("common.edit")}
-                    onClick={() => setEditing({ kind: x.due !== undefined && !x.start ? "task" : "event", item: x })}
-                  />
-                )}
-              </li>
-            ))}
-          </ul>
-        </aside>
-      </div>
+      {scope === "project" && (
+        <div className="tabs" role="tablist">
+          {(["month", "board"] as const).map((k) => (
+            <button
+              key={k}
+              role="tab"
+              aria-selected={mode === k}
+              className="tab"
+              onClick={() => setMode(k)}
+              data-testid={`agenda-mode-${k}`}
+            >
+              {t(`agenda.mode_${k}`)}
+            </button>
+          ))}
+        </div>
+      )}
+      {mode === "board" ? (
+        <TaskBoard onEdit={(task) => setEditing({ kind: "task", item: task as unknown as AgendaItem })} />
+      ) : (
+        <>
+          <div className="cal-head">
+            <IconButton icon="up" label={t("agenda.previous")} onClick={() => move(-1)} />
+            <h2 className="cal-title">{monthName}</h2>
+            <IconButton icon="down" label={t("agenda.next")} onClick={() => move(1)} />
+            <button
+              className="btn small"
+              onClick={() => {
+                setCursor({ y: now.getFullYear(), m: now.getMonth() });
+                setSelected(today);
+              }}
+            >
+              {t("ws.today")}
+            </button>
+          </div>
+          <div className="cal-layout">
+            <table className="calendar" data-testid="calendar">
+              <thead>
+                <tr>
+                  {dayNames.map((d) => (
+                    <th key={d}>{d}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {grid.map((week, i) => (
+                  <tr key={i}>
+                    {week.map((d) => {
+                      const key = iso(d);
+                      const items = onDay(key);
+                      return (
+                        <td
+                          key={key}
+                          className={[
+                            d.getMonth() !== cursor.m ? "out" : "",
+                            key === today ? "today" : "",
+                            key === selected ? "selected" : "",
+                          ].join(" ")}
+                        >
+                          <button className="cal-day" onClick={() => setSelected(key)} data-testid={`day-${key}`}>
+                            <span className="cal-num">{d.getDate()}</span>
+                            {items.slice(0, 3).map((x) => (
+                              <span
+                                key={`${x.id}${x.path ?? ""}`}
+                                className={`cal-item k-${x.kind}${x.done ? " done" : ""}`}
+                                style={x.color ? { borderLeftColor: x.color } : undefined}
+                              >
+                                {title(x)}
+                              </span>
+                            ))}
+                            {items.length > 3 && <span className="cal-more">+{items.length - 3}</span>}
+                          </button>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <aside className="cal-side">
+              <h3>{day(selected)}</h3>
+              {list.length === 0 && <p className="muted small">{t("agenda.nothing")}</p>}
+              <ul className="plain">
+                {list.map((x) => (
+                  <li key={`${x.id}${x.path ?? ""}`} className="cal-entry">
+                    <span className={`cal-dot k-${x.kind}`} style={x.color ? { background: x.color } : undefined} />
+                    <div>
+                      <div>{title(x)}</div>
+                      <div className="muted small">
+                        {[x.project, x.start && x.start.includes("T") ? x.start.slice(11, 16) : "", x.place]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </div>
+                    </div>
+                    {!x.auto && (scope === "project" ? !x.project : x.personal) && (
+                      <IconButton
+                        icon="edit"
+                        label={t("common.edit")}
+                        onClick={() =>
+                          setEditing({ kind: x.due !== undefined && !x.start ? "task" : "event", item: x })
+                        }
+                      />
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </aside>
+          </div>
+        </>
+      )}
 
       {editing?.kind === "event" && (
         <EventPanel scope={scope} item={editing.item} day={selected} onClose={() => setEditing(null)} onSaved={load} />
@@ -526,5 +551,98 @@ export function TaskPanel({
         )}
       </Field>
     </Panel>
+  );
+}
+
+/** Tasks of the project in columns by status, the generated ones with what is to do. */
+function TaskBoard({ onEdit }: { onEdit: (t: Task) => void }) {
+  const { t, lang, day } = useI18n();
+  const { snap, setSnap, describe } = useProject();
+  const title = useItemTitle();
+  const [auto, setAuto] = useState<AgendaItem[]>([]);
+  const [byPerson, setByPerson] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const stamp = snap ? `${snap.submissions.map((s) => s.status).join()}|${snap.tasks.length}` : "";
+  useEffect(() => {
+    call<{ tasks: AgendaItem[] }>("today.project", { lang })
+      .then((r) => setAuto(r.tasks.filter((x) => x.auto)))
+      .catch((e) => setError(describe(e)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stamp, lang]);
+  if (!snap) return null;
+  const move = async (task: Task, status: Task["status"]) => {
+    try {
+      setSnap(await call<Snapshot>("task.save", { id: task.id, task: { ...task, status } }));
+    } catch (e) {
+      setError(describe(e));
+    }
+  };
+  const columns = (["todo", "doing", "waiting", "done"] as const).map((st) => ({
+    key: st,
+    items: snap.tasks.filter((x) => x.status === st),
+  }));
+  const people = [...new Set(snap.tasks.filter((x) => x.status !== "done").map((x) => x.assignee || ""))].sort();
+  return (
+    <div className="stack" data-testid="task-board">
+      {error && <Notice kind="error">{error}</Notice>}
+      <label className="check">
+        <input type="checkbox" checked={byPerson} onChange={(e) => setByPerson(e.target.checked)} />{" "}
+        {t("agenda.byAssignee")}
+      </label>
+      {byPerson ? (
+        <div className="board">
+          {people.map((who) => (
+            <div key={who || "none"} className="board-col">
+              <h3>{who || t("agenda.noAssignee")}</h3>
+              {snap.tasks
+                .filter((x) => x.status !== "done" && (x.assignee || "") === who)
+                .map((x) => (
+                  <button key={x.id} className="board-card" onClick={() => onEdit(x)}>
+                    {x.title}
+                    <span className="muted small">{x.due ? day(x.due) : ""}</span>
+                  </button>
+                ))}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="board">
+          {columns.map((c) => (
+            <div key={c.key} className="board-col" data-testid={`board-${c.key}`}>
+              <h3>{t(`agenda.status_${c.key}`)}</h3>
+              {c.key === "todo" &&
+                auto.map((x) => (
+                  <div key={x.id} className="board-card auto">
+                    {title(x)}
+                    <span className="muted small">{x.due ? day(x.due) : t("agenda.suggested")}</span>
+                  </div>
+                ))}
+              {c.items.map((x) => (
+                <div key={x.id} className="board-card">
+                  <button className="link" onClick={() => onEdit(x)}>
+                    {x.title}
+                  </button>
+                  <span className="muted small">
+                    {[x.due ? day(x.due) : "", x.assignee].filter(Boolean).join(", ")}
+                  </span>
+                  <select
+                    className="input small"
+                    value={x.status}
+                    aria-label={t("setup.state")}
+                    onChange={(e) => move(x, e.target.value as Task["status"])}
+                  >
+                    {(["todo", "doing", "waiting", "done"] as const).map((st) => (
+                      <option key={st} value={st}>
+                        {t(`agenda.status_${st}`)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

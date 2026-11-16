@@ -31,7 +31,12 @@ export function Reception() {
   const [open, setOpen] = useState<{ unit: ReportingUnit; id: string | null } | null>(null);
   const [note, setNote] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [reason, setReason] = useState<"unlock" | null>(null);
-  const [revision, setRevision] = useState<{ changes: number; name: string } | null>(null);
+  const [revision, setRevision] = useState<{
+    changes: { indicator_id: string; cats: Record<string, string>; before: Cell; after: Cell }[];
+    name: string;
+    token: string;
+  } | null>(null);
+  const [applying, setApplying] = useState(false);
 
   // Opened from a task: the submission to look at.
   if (snap && focus && focus !== seenFocus) {
@@ -77,14 +82,18 @@ export function Reception() {
     const file = await pick("xlsx-open");
     if (!file) return;
     const r = await safe(() =>
-      call<Snapshot & { revision: boolean; changes: unknown[]; applied: boolean; submission_id: string }>(
-        "canevas.receive",
-        { file_token: file.token },
-      ),
+      call<
+        Snapshot & {
+          revision: boolean;
+          changes: { indicator_id: string; cats: Record<string, string>; before: Cell; after: Cell }[];
+          applied: boolean;
+          submission_id: string;
+        }
+      >("canevas.receive", { file_token: file.token }),
     );
     if (!r) return;
     setSnap(r);
-    if (r.revision) setRevision({ changes: r.changes.length, name: file.name });
+    if (r.revision) setRevision({ changes: r.changes, name: file.name, token: file.token });
     else {
       const sub = r.submissions.find((s) => s.id === r.submission_id);
       if (sub) setPeriod(sub.period);
@@ -129,12 +138,76 @@ export function Reception() {
 
       {note && <Notice kind={note.kind}>{note.text}</Notice>}
       {revision && (
-        <Notice>
-          {t("rec.revision", { name: revision.name, n: revision.changes })}{" "}
-          <button className="link" onClick={() => setRevision(null)}>
-            {t("common.close")}
-          </button>
-        </Notice>
+        <section className="box stack" data-testid="rec-revision">
+          <p>{t("rec.revision", { name: revision.name, n: revision.changes.length })}</p>
+          {revision.changes.length > 0 && (
+            <table className="table compact">
+              <thead>
+                <tr>
+                  <th>{t("mplan.indicator")}</th>
+                  <th>{t("rec.category")}</th>
+                  <th>{t("rec.before")}</th>
+                  <th>{t("rec.after")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {revision.changes.map((c, i) => {
+                  const ind = snap.indicators.find((x) => x.id === c.indicator_id);
+                  const cell = (x: Cell) =>
+                    x[1] !== null
+                      ? `${x[1]} / ${x[2] ?? ""}`
+                      : x[0] === null
+                        ? ""
+                        : String(+(ind?.unit === "percent" ? x[0] * 100 : x[0]).toFixed(4));
+                  const cat = Object.entries(c.cats)
+                    .map(([k, code]) => {
+                      const d = snap.disaggregations.find((x) => x.key === k);
+                      const found = d?.categories.find((x) => x.code === code);
+                      return found ? (lang === "en" ? found.en : found.fr) : t("setup.unspecified");
+                    })
+                    .join(", ");
+                  return (
+                    <tr key={i}>
+                      <td>{ind?.name}</td>
+                      <td>{cat || t("rec.total")}</td>
+                      <td className="num">{cell(c.before)}</td>
+                      <td className="num">
+                        <strong>{cell(c.after)}</strong>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+          <div className="row-actions start">
+            {revision.changes.length > 0 && (
+              <button className="btn primary" onClick={() => setApplying(true)} data-testid="rec-apply-revision">
+                {t("rec.applyRevision")}
+              </button>
+            )}
+            <button className="btn" onClick={() => setRevision(null)}>
+              {t("common.close")}
+            </button>
+          </div>
+        </section>
+      )}
+      {applying && revision && (
+        <ReasonDialog
+          title={t("rec.applyRevision")}
+          onCancel={() => setApplying(false)}
+          onConfirm={async (why) => {
+            setApplying(false);
+            const r = await safe(() =>
+              call<Snapshot>("canevas.receive", { file_token: revision.token, apply: true, reason: why }),
+            );
+            if (r) {
+              setSnap(r);
+              setRevision(null);
+              setNote({ kind: "ok", text: t("rec.revisionApplied") });
+            }
+          }}
+        />
       )}
       {!entry.length && (
         <Empty
