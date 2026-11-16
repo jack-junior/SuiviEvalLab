@@ -1,0 +1,200 @@
+{
+  "_licence": "SPDX-License-Identifier: GPL-3.0-or-later. Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou. Definitions written for SuiviEvalLab after the cited public references.",
+  "sector": "environment",
+  "name": {
+    "fr": "Environnement, climat, énergie",
+    "en": "Environment, climate, energy"
+  },
+  "indicators": [
+    {
+      "id": "env.electricity",
+      "name": {
+        "fr": "Population ayant accès à l'électricité",
+        "en": "Population with access to electricity"
+      },
+      "definition": {
+        "fr": "Part de la population vivant dans un ménage ayant accès à l'électricité (réseau, mini-réseau ou système solaire).",
+        "en": "Share of the population living in a household with access to electricity (grid, mini-grid or solar system)."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes dans un ménage ayant l'électricité",
+        "en": "People in a household with electricity"
+      },
+      "denominator": {
+        "fr": "Population enquêtée",
+        "en": "Population surveyed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["area"],
+      "source": "sdg",
+      "ref": "ODD 7.1.1"
+    },
+    {
+      "id": "env.clean_cooking",
+      "name": {
+        "fr": "Population utilisant des combustibles et technologies propres pour cuisiner",
+        "en": "Population relying on clean fuels and technology for cooking"
+      },
+      "definition": {
+        "fr": "Part de la population vivant dans un ménage qui utilise principalement des combustibles et technologies propres pour la cuisson (électricité, gaz, biogaz, solaire, éthanol).",
+        "en": "Share of the population living in a household that mainly uses clean fuels and technology for cooking (electricity, gas, biogas, solar, ethanol)."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes dans un ménage cuisinant proprement",
+        "en": "People in a household cooking cleanly"
+      },
+      "denominator": {
+        "fr": "Population enquêtée",
+        "en": "Population surveyed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["area"],
+      "source": "sdg",
+      "ref": "ODD 7.1.2"
+    },
+    {
+      "id": "env.solar_households",
+      "name": {
+        "fr": "Ménages équipés d'un système solaire",
+        "en": "Households equipped with a solar system"
+      },
+      "definition": {
+        "fr": "Nombre de ménages ayant reçu ou acquis avec l'appui du projet un système solaire domestique ou une lampe solaire fonctionnelle.",
+        "en": "Number of households that received or bought with the project's support a working solar home system or solar lamp."
+      },
+      "type": "count",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": [],
+      "source": "sdg",
+      "ref": "ODD 7.1"
+    },
+    {
+      "id": "env.cookstoves",
+      "name": {
+        "fr": "Foyers améliorés distribués",
+        "en": "Improved cookstoves distributed"
+      },
+      "definition": {
+        "fr": "Nombre de foyers améliorés économes en bois ou en charbon remis ou vendus aux ménages.",
+        "en": "Number of fuel-efficient improved cookstoves given or sold to households."
+      },
+      "type": "count",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": [],
+      "source": "sdg",
+      "ref": "ODD 7.1.2"
+    },
+    {
+      "id": "env.land_restored",
+      "name": {
+        "fr": "Superficie de terres restaurées ou sous gestion durable",
+        "en": "Area of land restored or under sustainable management"
+      },
+      "definition": {
+        "fr": "Superficie en hectares de terres dégradées restaurées ou passées sous des pratiques de gestion durable avec l'appui du projet.",
+        "en": "Area in hectares of degraded land restored or brought under sustainable management practices with the project's support."
+      },
+      "type": "count",
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "annual",
+      "breakdowns": [],
+      "source": "sdg",
+      "ref": "ODD 15.3",
+      "unit_label": {
+        "fr": "ha",
+        "en": "ha"
+      }
+    },
+    {
+      "id": "env.seedling_survival",
+      "name": {
+        "fr": "Plants survivants un an après la plantation",
+        "en": "Seedlings surviving one year after planting"
+      },
+      "definition": {
+        "fr": "Part des plants mis en terre qui sont vivants douze mois après la plantation, d'après un comptage sur des parcelles échantillons.",
+        "en": "Share of seedlings planted that are alive twelve months after planting, from a count on sample plots."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Plants vivants comptés",
+        "en": "Live seedlings counted"
+      },
+      "denominator": {
+        "fr": "Plants mis en terre sur les parcelles échantillons",
+        "en": "Seedlings planted on the sample plots"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": [],
+      "source": null
+    },
+    {
+      "id": "env.adaptation_practices",
+      "name": {
+        "fr": "Producteurs appliquant des pratiques d'adaptation au climat",
+        "en": "Producers applying climate adaptation practices"
+      },
+      "definition": {
+        "fr": "Nombre de producteurs appliquant au moins une pratique ou technologie d'adaptation au changement climatique promue par le projet (variétés tolérantes, gestion de l'eau, agroforesterie).",
+        "en": "Number of producers applying at least one climate change adaptation practice or technology promoted by the project (tolerant varieties, water management, agroforestry)."
+      },
+      "type": "count",
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "age"],
+      "source": "ftf"
+    },
+    {
+      "id": "env.drr_plans",
+      "name": {
+        "fr": "Communautés dotées d'un plan de réduction des risques de catastrophe",
+        "en": "Communities with a disaster risk reduction plan"
+      },
+      "definition": {
+        "fr": "Nombre de communautés appuyées disposant d'un plan local de réduction des risques de catastrophe validé et mis à jour dans les 12 derniers mois.",
+        "en": "Number of supported communities with a local disaster risk reduction plan validated and updated in the past 12 months."
+      },
+      "type": "count",
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "annual",
+      "breakdowns": [],
+      "source": "sendai",
+      "ref": "Sendai E-2",
+      "aggregation": "last"
+    },
+    {
+      "id": "env.early_warning",
+      "name": {
+        "fr": "Ménages couverts par un système d'alerte précoce",
+        "en": "Households covered by an early warning system"
+      },
+      "definition": {
+        "fr": "Nombre de ménages qui reçoivent les alertes d'un système d'alerte précoce fonctionnel (inondations, sécheresse, épidémies).",
+        "en": "Number of households that receive the alerts of a working early warning system (floods, drought, epidemics)."
+      },
+      "type": "count",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "annual",
+      "breakdowns": [],
+      "source": "sendai",
+      "ref": "Sendai G",
+      "aggregation": "last"
+    }
+  ]
+}

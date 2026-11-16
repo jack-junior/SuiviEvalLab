@@ -113,5 +113,53 @@
     "publisher": "CHS Alliance, Groupe URD, Association Sphère",
     "year": 2024,
     "url": "https://www.corehumanitarianstandard.org"
+  },
+  "global_fund_mf": {
+    "title": "Modular Framework Handbook",
+    "publisher": "Fonds mondial de lutte contre le sida, la tuberculose et le paludisme",
+    "year": 2023,
+    "url": "https://www.theglobalfund.org"
+  },
+  "mics": {
+    "title": "Multiple Indicator Cluster Surveys (MICS6): indicators and definitions",
+    "publisher": "UNICEF",
+    "year": 2019,
+    "url": "https://mics.unicef.org"
+  },
+  "ftf": {
+    "title": "Feed the Future Indicator Handbook",
+    "publisher": "Feed the Future",
+    "year": 2023,
+    "url": "https://www.feedthefuture.gov"
+  },
+  "calp": {
+    "title": "Programme Quality Toolbox and monitoring guidance for cash and voucher assistance",
+    "publisher": "CALP Network",
+    "year": 2023,
+    "url": "https://www.calpnetwork.org"
+  },
+  "ilo": {
+    "title": "ILOSTAT indicator descriptions",
+    "publisher": "Organisation internationale du Travail",
+    "year": 2024,
+    "url": "https://ilostat.ilo.org"
+  },
+  "findex": {
+    "title": "The Global Findex Database",
+    "publisher": "Banque mondiale",
+    "year": 2021,
+    "url": "https://www.worldbank.org/en/publication/globalfindex"
+  },
+  "iasc_ir": {
+    "title": "Humanitarian Indicator Registry",
+    "publisher": "Comité permanent interorganisations (CPI) et OCHA",
+    "year": 2016,
+    "url": "https://ir.humanitarianresponse.info"
+  },
+  "sendai": {
+    "title": "Indicateurs du Cadre de Sendai pour la réduction des risques de catastrophe 2015-2030",
+    "publisher": "Bureau des Nations unies pour la réduction des risques de catastrophe (UNDRR)",
+    "year": 2017,
+    "url": "https://www.undrr.org"
   }
 }

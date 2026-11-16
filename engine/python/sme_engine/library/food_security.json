@@ -1,7 +1,10 @@
 {
   "_licence": "SPDX-License-Identifier: GPL-3.0-or-later. Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou. Definitions written for SuiviEvalLab after the cited public references.",
   "sector": "food_security",
-  "name": { "fr": "Sécurité alimentaire et moyens d'existence", "en": "Food security and livelihoods" },
+  "name": {
+    "fr": "Sécurité alimentaire et moyens d'existence",
+    "en": "Food security and livelihoods"
+  },
   "indicators": [
     {
       "id": "food.fcs_acceptable",
@@ -14,8 +17,14 @@
         "en": "Share of households whose food consumption score, computed over the past seven days from the weighted consumption frequency of eight food groups, is above the acceptable threshold (35, or 42 where sugar and oil are eaten almost daily)."
       },
       "type": "percent",
-      "numerator": { "fr": "Ménages au profil acceptable", "en": "Households with acceptable profile" },
-      "denominator": { "fr": "Ménages enquêtés", "en": "Households surveyed" },
+      "numerator": {
+        "fr": "Ménages au profil acceptable",
+        "en": "Households with acceptable profile"
+      },
+      "denominator": {
+        "fr": "Ménages enquêtés",
+        "en": "Households surveyed"
+      },
       "level": "outcome",
       "collection": "survey",
       "frequency": "rounds",
@@ -51,8 +60,14 @@
         "en": "Share of households that used at least one emergency strategy in the past 30 days (selling last female animals, selling house or land, begging...)."
       },
       "type": "percent",
-      "numerator": { "fr": "Ménages ayant utilisé une stratégie d'urgence", "en": "Households using an emergency strategy" },
-      "denominator": { "fr": "Ménages enquêtés", "en": "Households surveyed" },
+      "numerator": {
+        "fr": "Ménages ayant utilisé une stratégie d'urgence",
+        "en": "Households using an emergency strategy"
+      },
+      "denominator": {
+        "fr": "Ménages enquêtés",
+        "en": "Households surveyed"
+      },
       "direction": "decrease",
       "level": "outcome",
       "collection": "survey",
@@ -88,8 +103,14 @@
         "en": "Share of women aged 15 to 49 who ate foods from at least five of the ten defined groups in the past 24 hours."
       },
       "type": "percent",
-      "numerator": { "fr": "Femmes ayant consommé au moins cinq groupes", "en": "Women who ate at least five groups" },
-      "denominator": { "fr": "Femmes de 15 à 49 ans enquêtées", "en": "Women aged 15 to 49 surveyed" },
+      "numerator": {
+        "fr": "Femmes ayant consommé au moins cinq groupes",
+        "en": "Women who ate at least five groups"
+      },
+      "denominator": {
+        "fr": "Femmes de 15 à 49 ans enquêtées",
+        "en": "Women aged 15 to 49 surveyed"
+      },
       "level": "outcome",
       "collection": "survey",
       "frequency": "rounds",
@@ -107,8 +128,14 @@
         "en": "Share of the population in moderate or severe food insecurity, measured with the eight-question Food Insecurity Experience Scale."
       },
       "type": "percent",
-      "numerator": { "fr": "Personnes en insécurité modérée ou grave", "en": "People in moderate or severe insecurity" },
-      "denominator": { "fr": "Population enquêtée", "en": "Population surveyed" },
+      "numerator": {
+        "fr": "Personnes en insécurité modérée ou grave",
+        "en": "People in moderate or severe insecurity"
+      },
+      "denominator": {
+        "fr": "Population enquêtée",
+        "en": "Population surveyed"
+      },
       "direction": "decrease",
       "level": "impact",
       "collection": "survey",
@@ -137,18 +164,83 @@
     },
     {
       "id": "food.yield",
-      "name": { "fr": "Rendement moyen de la culture principale", "en": "Average yield of the main crop" },
+      "name": {
+        "fr": "Rendement moyen de la culture principale",
+        "en": "Average yield of the main crop"
+      },
       "definition": {
         "fr": "Production récoltée divisée par la surface cultivée, en kilogrammes par hectare, chez les producteurs appuyés.",
         "en": "Harvested production divided by area cultivated, in kilograms per hectare, among supported farmers."
       },
       "type": "mean",
-      "unit_label": { "fr": "kg par hectare", "en": "kg per hectare" },
+      "unit_label": {
+        "fr": "kg par hectare",
+        "en": "kg per hectare"
+      },
       "level": "outcome",
       "collection": "survey",
       "frequency": "annual",
       "breakdowns": ["sex"],
       "source": null
+    },
+    {
+      "id": "food.improved_practices",
+      "name": {
+        "fr": "Producteurs appliquant des pratiques ou technologies améliorées",
+        "en": "Producers applying improved practices or technologies"
+      },
+      "definition": {
+        "fr": "Nombre de producteurs ayant appliqué au moins une pratique de gestion ou une technologie améliorée promue par le projet pendant la campagne.",
+        "en": "Number of producers who applied at least one improved management practice or technology promoted by the project during the season."
+      },
+      "type": "count",
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "age"],
+      "source": "ftf"
+    },
+    {
+      "id": "food.area_improved",
+      "name": {
+        "fr": "Superficie cultivée avec des pratiques améliorées",
+        "en": "Area cultivated with improved practices"
+      },
+      "definition": {
+        "fr": "Superficie en hectares cultivée avec au moins une pratique ou technologie améliorée promue par le projet.",
+        "en": "Area in hectares cultivated with at least one improved practice or technology promoted by the project."
+      },
+      "type": "count",
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": [],
+      "source": "ftf",
+      "unit_label": {
+        "fr": "ha",
+        "en": "ha"
+      }
+    },
+    {
+      "id": "food.sales",
+      "name": {
+        "fr": "Valeur des ventes des producteurs appuyés",
+        "en": "Value of sales of supported producers"
+      },
+      "definition": {
+        "fr": "Valeur totale des ventes de produits agricoles réalisées par les producteurs appuyés pendant la campagne, dans la devise du projet.",
+        "en": "Total value of the sales of agricultural products made by supported producers during the season, in the project currency."
+      },
+      "type": "count",
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex"],
+      "source": "ftf",
+      "unit_label": {
+        "fr": "devise du projet",
+        "en": "project currency"
+      }
     }
   ]
 }

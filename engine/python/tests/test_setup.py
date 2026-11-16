@@ -286,10 +286,26 @@ def test_library_is_complete_and_searchable():
     from sme_engine import library
 
     lib = library.load()  # checks every sheet
-    assert {"health", "nutrition", "wash", "education", "food_security", "protection"} <= {
-        s["key"] for s in lib["sectors"]
+    # Every sector of the specification (module M13).
+    assert {s["key"] for s in lib["sectors"]} == {
+        "cross_cutting",
+        "sdg",
+        "health",
+        "hiv_tb_malaria",
+        "mnch",
+        "nutrition",
+        "wash",
+        "education",
+        "protection",
+        "food_security",
+        "cash",
+        "shelter",
+        "gender_inclusion",
+        "employment",
+        "governance",
+        "environment",
     }
-    assert len(lib["sheets"]) >= 50
+    assert len(lib["sheets"]) >= 140
     # Accents and case do not matter; every word must match.
     hits = library.search("COUVERTURE vaccinale rougeole")
     assert [h["id"] for h in hits] == ["health.mcv1"]
@@ -297,10 +313,21 @@ def test_library_is_complete_and_searchable():
     assert all(h["sector"] == "nutrition" for h in library.search("", "nutrition"))
 
 
+def test_every_library_sheet_makes_a_valid_indicator(call, tmp_path):
+    from sme_engine import library
+
+    call("project.create", {"path": str(tmp_path / "p.sme"), "name": "P", "profile": PROFILE})
+    node = call("framework.add", {"title": "Effet"})["created"]
+    for sheet_id in library.load()["sheets"]:
+        for lang in ("fr", "en"):
+            call("library.adopt", {"id": sheet_id, "node_id": node, "lang": lang})
+    assert len(call("project.get", {})["indicators"]) == 2 * len(library.load()["sheets"])
+
+
 def test_adopt_a_library_indicator(call, tmp_path):
     call("project.create", {"path": str(tmp_path / "p.sme"), "name": "P", "profile": PROFILE})
     sectors = call("library.sectors")
-    assert sectors["total"] >= 50
+    assert sectors["total"] >= 140
     node = call("framework.add", {"title": "Les enfants sont mieux nourris"})["created"]
     out = call("library.adopt", {"id": "nutrition.sam_cure", "node_id": node, "lang": "fr"})
     ind = out["indicators"][0]

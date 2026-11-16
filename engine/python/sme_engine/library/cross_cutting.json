@@ -1,7 +1,10 @@
 {
   "_licence": "SPDX-License-Identifier: GPL-3.0-or-later. Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou. Definitions written for SuiviEvalLab after the cited public references.",
   "sector": "cross_cutting",
-  "name": { "fr": "Transversal : redevabilité et inclusion", "en": "Cross-cutting: accountability and inclusion" },
+  "name": {
+    "fr": "Transversal : redevabilité et inclusion",
+    "en": "Cross-cutting: accountability and inclusion"
+  },
   "indicators": [
     {
       "id": "cross.disability_share",
@@ -18,7 +21,10 @@
         "fr": "Personnes atteintes avec beaucoup de difficultés ou incapacité dans un domaine au moins",
         "en": "People reached with a lot of difficulty or unable in at least one domain"
       },
-      "denominator": { "fr": "Personnes atteintes interrogées", "en": "People reached who were asked" },
+      "denominator": {
+        "fr": "Personnes atteintes interrogées",
+        "en": "People reached who were asked"
+      },
       "level": "output",
       "collection": "survey",
       "frequency": "rounds",
@@ -36,8 +42,14 @@
         "en": "Share of people reached who say they are satisfied or very satisfied with the assistance received (relevance, quality, timeliness, respect)."
       },
       "type": "percent",
-      "numerator": { "fr": "Personnes satisfaites ou très satisfaites", "en": "People satisfied or very satisfied" },
-      "denominator": { "fr": "Personnes interrogées", "en": "People asked" },
+      "numerator": {
+        "fr": "Personnes satisfaites ou très satisfaites",
+        "en": "People satisfied or very satisfied"
+      },
+      "denominator": {
+        "fr": "Personnes interrogées",
+        "en": "People asked"
+      },
       "level": "outcome",
       "collection": "survey",
       "frequency": "rounds",
@@ -55,8 +67,14 @@
         "en": "Share of complaints and feedback received in the period that got a response to the person within the time set by the project procedure."
       },
       "type": "percent",
-      "numerator": { "fr": "Retours avec réponse dans le délai", "en": "Feedback answered in time" },
-      "denominator": { "fr": "Retours reçus pendant la période", "en": "Feedback received in the period" },
+      "numerator": {
+        "fr": "Retours avec réponse dans le délai",
+        "en": "Feedback answered in time"
+      },
+      "denominator": {
+        "fr": "Retours reçus pendant la période",
+        "en": "Feedback received in the period"
+      },
       "level": "output",
       "collection": "routine",
       "frequency": "monthly",
@@ -65,7 +83,10 @@
     },
     {
       "id": "cross.people_reached",
-      "name": { "fr": "Personnes atteintes par le projet", "en": "People reached by the project" },
+      "name": {
+        "fr": "Personnes atteintes par le projet",
+        "en": "People reached by the project"
+      },
       "definition": {
         "fr": "Nombre de personnes ayant reçu au moins un service ou un bien du projet depuis son début, chaque personne comptée une seule fois quel que soit le nombre de services reçus.",
         "en": "Number of people who received at least one service or item from the project since it started, each person counted once whatever the number of services received."
@@ -81,6 +102,107 @@
         "fr": "Attention au double comptage : additionner les personnes atteintes par plusieurs activités surestime le total.",
         "en": "Beware of double counting: adding up people reached by several activities overstates the total."
       }
+    },
+    {
+      "id": "cross.know_complaints",
+      "name": {
+        "fr": "Personnes sachant comment faire une plainte ou un retour",
+        "en": "People who know how to give feedback or complain"
+      },
+      "definition": {
+        "fr": "Part des personnes assistées enquêtées qui connaissent au moins un moyen de faire un retour ou une plainte au projet.",
+        "en": "Share of assisted people surveyed who know at least one way to give feedback or complain to the project."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes connaissant au moins un moyen",
+        "en": "People knowing at least one way"
+      },
+      "denominator": {
+        "fr": "Personnes assistées enquêtées",
+        "en": "Assisted people surveyed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "age", "disability"],
+      "source": "chs"
+    },
+    {
+      "id": "cross.priority_needs",
+      "name": {
+        "fr": "Personnes estimant que l'aide répond à leurs besoins prioritaires",
+        "en": "People who find the assistance meets their priority needs"
+      },
+      "definition": {
+        "fr": "Part des personnes assistées enquêtées qui estiment que l'aide reçue correspond à leurs besoins les plus importants.",
+        "en": "Share of assisted people surveyed who consider the assistance received matches their most important needs."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes répondant oui",
+        "en": "People answering yes"
+      },
+      "denominator": {
+        "fr": "Personnes assistées enquêtées",
+        "en": "Assisted people surveyed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "age", "disability"],
+      "source": "chs"
+    },
+    {
+      "id": "cross.safe_access",
+      "name": {
+        "fr": "Personnes s'étant senties en sécurité pour recevoir l'aide",
+        "en": "People who felt safe receiving assistance"
+      },
+      "definition": {
+        "fr": "Part des personnes assistées enquêtées qui déclarent s'être senties en sécurité pour se rendre au lieu d'assistance, y attendre et en revenir.",
+        "en": "Share of assisted people surveyed who report feeling safe going to, waiting at and returning from the assistance site."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes s'étant senties en sécurité",
+        "en": "People who felt safe"
+      },
+      "denominator": {
+        "fr": "Personnes assistées enquêtées",
+        "en": "Assisted people surveyed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "age", "disability"],
+      "source": "iasc_ir"
+    },
+    {
+      "id": "cross.timely",
+      "name": {
+        "fr": "Personnes assistées dans le délai prévu",
+        "en": "People assisted within the planned time"
+      },
+      "definition": {
+        "fr": "Part des personnes ciblées qui ont reçu l'assistance dans le délai prévu après leur enregistrement ou le début de la crise.",
+        "en": "Share of targeted people who received assistance within the planned time after registration or the onset of the crisis."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes assistées dans le délai",
+        "en": "People assisted within the time"
+      },
+      "denominator": {
+        "fr": "Personnes ciblées assistées",
+        "en": "Targeted people assisted"
+      },
+      "level": "output",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": [],
+      "source": "iasc_ir",
+      "aggregation": "sum"
     }
   ]
 }

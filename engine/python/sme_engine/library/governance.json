@@ -1,0 +1,194 @@
+{
+  "_licence": "SPDX-License-Identifier: GPL-3.0-or-later. Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou. Definitions written for SuiviEvalLab after the cited public references.",
+  "sector": "governance",
+  "name": {
+    "fr": "Gouvernance, paix, société civile",
+    "en": "Governance, peace, civil society"
+  },
+  "indicators": [
+    {
+      "id": "gov.feel_safe",
+      "name": {
+        "fr": "Personnes se sentant en sécurité la nuit dans leur quartier",
+        "en": "People who feel safe walking alone at night in their area"
+      },
+      "definition": {
+        "fr": "Part de la population enquêtée qui déclare se sentir en sécurité en marchant seule la nuit dans son quartier ou son village.",
+        "en": "Share of the population surveyed who report feeling safe walking alone at night in their neighbourhood or village."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes se sentant en sécurité",
+        "en": "People who feel safe"
+      },
+      "denominator": {
+        "fr": "Personnes enquêtées",
+        "en": "People surveyed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "age"],
+      "source": "sdg",
+      "ref": "ODD 16.1.4"
+    },
+    {
+      "id": "gov.services_satisfaction",
+      "name": {
+        "fr": "Personnes satisfaites de leur dernier recours aux services publics",
+        "en": "People satisfied with their last experience of public services"
+      },
+      "definition": {
+        "fr": "Part de la population enquêtée satisfaite de sa dernière expérience des services publics (santé, éducation, état civil).",
+        "en": "Share of the population surveyed satisfied with their last experience of public services (health, education, civil registration)."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes satisfaites",
+        "en": "People satisfied"
+      },
+      "denominator": {
+        "fr": "Personnes ayant eu recours à ces services",
+        "en": "People who used these services"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "area"],
+      "source": "sdg",
+      "ref": "ODD 16.6.2"
+    },
+    {
+      "id": "gov.dispute_resolution",
+      "name": {
+        "fr": "Personnes ayant eu accès à un mécanisme de règlement des différends",
+        "en": "People who accessed a dispute resolution mechanism"
+      },
+      "definition": {
+        "fr": "Part des personnes ayant connu un différend au cours des deux dernières années qui ont eu accès à un mécanisme formel ou coutumier de règlement.",
+        "en": "Share of people who had a dispute in the past two years who accessed a formal or customary dispute resolution mechanism."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes ayant eu accès à un mécanisme",
+        "en": "People who accessed a mechanism"
+      },
+      "denominator": {
+        "fr": "Personnes ayant connu un différend",
+        "en": "People who had a dispute"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex"],
+      "source": "sdg",
+      "ref": "ODD 16.3.3"
+    },
+    {
+      "id": "gov.bribery",
+      "name": {
+        "fr": "Personnes ayant payé ou à qui l'on a demandé un pot-de-vin",
+        "en": "People who paid or were asked for a bribe"
+      },
+      "definition": {
+        "fr": "Part des personnes ayant eu au moins un contact avec un agent public au cours des 12 derniers mois qui ont versé un pot-de-vin ou à qui l'on en a demandé un.",
+        "en": "Share of people who had at least one contact with a public official in the past 12 months who paid a bribe or were asked for one."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes ayant payé ou été sollicitées",
+        "en": "People who paid or were asked"
+      },
+      "denominator": {
+        "fr": "Personnes ayant eu un contact avec un agent public",
+        "en": "People who had contact with a public official"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex"],
+      "source": "sdg",
+      "ref": "ODD 16.5.1",
+      "direction": "decrease"
+    },
+    {
+      "id": "gov.inclusive_decisions",
+      "name": {
+        "fr": "Personnes estimant que les décisions locales sont inclusives",
+        "en": "People who find local decision-making inclusive"
+      },
+      "definition": {
+        "fr": "Part de la population enquêtée qui estime que la prise de décision des autorités locales tient compte de l'avis de personnes comme elle.",
+        "en": "Share of the population surveyed who believe that local authorities' decision-making takes into account the views of people like them."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes estimant la décision inclusive",
+        "en": "People who find it inclusive"
+      },
+      "denominator": {
+        "fr": "Personnes enquêtées",
+        "en": "People surveyed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "age"],
+      "source": "sdg",
+      "ref": "ODD 16.7.2"
+    },
+    {
+      "id": "gov.cso_capacity",
+      "name": {
+        "fr": "Organisations de la société civile dont la capacité s'est améliorée",
+        "en": "Civil society organisations with improved capacity"
+      },
+      "definition": {
+        "fr": "Nombre d'organisations de la société civile appuyées dont le score d'évaluation des capacités organisationnelles a progressé entre deux évaluations.",
+        "en": "Number of supported civil society organisations whose organisational capacity assessment score improved between two assessments."
+      },
+      "type": "count",
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "annual",
+      "breakdowns": [],
+      "source": null,
+      "aggregation": "last"
+    },
+    {
+      "id": "gov.conflicts_resolved",
+      "name": {
+        "fr": "Conflits locaux résolus par les mécanismes communautaires",
+        "en": "Local conflicts resolved through community mechanisms"
+      },
+      "definition": {
+        "fr": "Nombre de conflits (fonciers, entre agriculteurs et éleveurs, intercommunautaires) résolus par les comités de paix ou mécanismes communautaires appuyés.",
+        "en": "Number of conflicts (land, between farmers and herders, between communities) resolved by the peace committees or community mechanisms supported."
+      },
+      "type": "count",
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": [],
+      "source": null
+    },
+    {
+      "id": "gov.legal_aid",
+      "name": {
+        "fr": "Personnes ayant reçu une assistance juridique",
+        "en": "People who received legal assistance"
+      },
+      "definition": {
+        "fr": "Nombre de personnes ayant reçu un conseil, un accompagnement ou une représentation juridique de la part du projet ou de ses partenaires.",
+        "en": "Number of people who received legal advice, support or representation from the project or its partners."
+      },
+      "type": "count",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": ["sex", "age"],
+      "source": "sdg",
+      "ref": "ODD 16.3"
+    }
+  ]
+}

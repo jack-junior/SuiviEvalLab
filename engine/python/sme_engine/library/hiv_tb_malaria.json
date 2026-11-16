@@ -1,0 +1,299 @@
+{
+  "_licence": "SPDX-License-Identifier: GPL-3.0-or-later. Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou. Definitions written for SuiviEvalLab after the cited public references.",
+  "sector": "hiv_tb_malaria",
+  "name": {
+    "fr": "VIH, tuberculose, paludisme",
+    "en": "HIV, tuberculosis, malaria"
+  },
+  "indicators": [
+    {
+      "id": "hiv.tested_results",
+      "name": {
+        "fr": "Personnes ayant fait un test du VIH et reçu leur résultat",
+        "en": "People tested for HIV who received their result"
+      },
+      "definition": {
+        "fr": "Nombre de personnes ayant réalisé un test de dépistage du VIH pendant la période et ayant reçu leur résultat, quel qu'il soit.",
+        "en": "Number of people tested for HIV during the period who received their result, whatever it was."
+      },
+      "type": "count",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": ["sex", "age"],
+      "source": "global_fund_mf"
+    },
+    {
+      "id": "hiv.know_status",
+      "name": {
+        "fr": "Personnes vivant avec le VIH qui connaissent leur statut",
+        "en": "People living with HIV who know their status"
+      },
+      "definition": {
+        "fr": "Part des personnes vivant avec le VIH qui connaissent leur statut sérologique : premier objectif 95 de l'ONUSIDA.",
+        "en": "Share of people living with HIV who know their HIV status: first UNAIDS 95 target."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Nombre de personnes vivant avec le VIH qui connaissent leur statut",
+        "en": "Number of people living with HIV who know their status"
+      },
+      "denominator": {
+        "fr": "Nombre estimé de personnes vivant avec le VIH",
+        "en": "Estimated number of people living with HIV"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "annual",
+      "breakdowns": ["sex", "age"],
+      "source": "unaids",
+      "benchmark": {
+        "fr": "Cible 2025 de l'ONUSIDA : 95 %.",
+        "en": "UNAIDS 2025 target: 95%."
+      }
+    },
+    {
+      "id": "hiv.art_coverage",
+      "name": {
+        "fr": "Couverture du traitement antirétroviral",
+        "en": "Antiretroviral therapy coverage"
+      },
+      "definition": {
+        "fr": "Part des personnes vivant avec le VIH qui reçoivent un traitement antirétroviral à la fin de la période.",
+        "en": "Share of people living with HIV receiving antiretroviral therapy at the end of the period."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Nombre de personnes sous traitement antirétroviral à la fin de la période",
+        "en": "Number of people on antiretroviral therapy at the end of the period"
+      },
+      "denominator": {
+        "fr": "Nombre estimé de personnes vivant avec le VIH",
+        "en": "Estimated number of people living with HIV"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": ["sex", "age"],
+      "source": "unaids",
+      "aggregation": "last"
+    },
+    {
+      "id": "hiv.viral_suppression",
+      "name": {
+        "fr": "Personnes sous traitement dont la charge virale est supprimée",
+        "en": "People on treatment with suppressed viral load"
+      },
+      "definition": {
+        "fr": "Part des personnes sous traitement antirétroviral, ayant eu une mesure de charge virale dans les 12 derniers mois, dont la charge virale est inférieure à 1 000 copies par millilitre.",
+        "en": "Share of people on antiretroviral therapy with a viral load test in the past 12 months whose viral load is below 1,000 copies per millilitre."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Nombre de personnes sous traitement dont le dernier résultat est inférieur à 1 000 copies/ml",
+        "en": "Number of people on treatment whose latest result is below 1,000 copies/ml"
+      },
+      "denominator": {
+        "fr": "Nombre de personnes sous traitement ayant eu une mesure de charge virale dans les 12 derniers mois",
+        "en": "Number of people on treatment with a viral load test in the past 12 months"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": ["sex", "age"],
+      "source": "unaids",
+      "aggregation": "last"
+    },
+    {
+      "id": "hiv.pmtct",
+      "name": {
+        "fr": "Femmes enceintes vivant avec le VIH sous traitement antirétroviral",
+        "en": "Pregnant women living with HIV on antiretroviral therapy"
+      },
+      "definition": {
+        "fr": "Part des femmes enceintes vivant avec le VIH qui ont reçu un traitement antirétroviral pour réduire le risque de transmission de la mère à l'enfant.",
+        "en": "Share of pregnant women living with HIV who received antiretroviral therapy to reduce the risk of mother-to-child transmission."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Nombre de femmes enceintes vivant avec le VIH ayant reçu un traitement antirétroviral",
+        "en": "Number of pregnant women living with HIV who received antiretroviral therapy"
+      },
+      "denominator": {
+        "fr": "Nombre de femmes enceintes vivant avec le VIH identifiées",
+        "en": "Number of pregnant women living with HIV identified"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": ["age"],
+      "source": "unaids",
+      "aggregation": "last"
+    },
+    {
+      "id": "hiv.condoms",
+      "name": {
+        "fr": "Préservatifs distribués",
+        "en": "Condoms distributed"
+      },
+      "definition": {
+        "fr": "Nombre de préservatifs masculins et féminins distribués gratuitement ou vendus à prix social pendant la période.",
+        "en": "Number of male and female condoms distributed free of charge or sold at a social price during the period."
+      },
+      "type": "count",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": [],
+      "source": "global_fund_mf"
+    },
+    {
+      "id": "tb.notified",
+      "name": {
+        "fr": "Cas de tuberculose notifiés",
+        "en": "Tuberculosis cases notified"
+      },
+      "definition": {
+        "fr": "Nombre de cas de tuberculose, toutes formes, nouveaux et rechutes, notifiés au programme national pendant la période.",
+        "en": "Number of tuberculosis cases, all forms, new and relapse, notified to the national programme during the period."
+      },
+      "type": "count",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": ["sex", "age"],
+      "source": "who_tb"
+    },
+    {
+      "id": "tb.preventive",
+      "name": {
+        "fr": "Personnes ayant commencé un traitement préventif de la tuberculose",
+        "en": "People started on tuberculosis preventive treatment"
+      },
+      "definition": {
+        "fr": "Nombre de personnes (contacts familiaux, personnes vivant avec le VIH) ayant commencé un traitement préventif de la tuberculose pendant la période.",
+        "en": "Number of people (household contacts, people living with HIV) who started tuberculosis preventive treatment during the period."
+      },
+      "type": "count",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": ["sex", "age"],
+      "source": "who_tb"
+    },
+    {
+      "id": "malaria.confirmed",
+      "name": {
+        "fr": "Cas de paludisme confirmés",
+        "en": "Confirmed malaria cases"
+      },
+      "definition": {
+        "fr": "Nombre de cas de paludisme confirmés par test de diagnostic rapide ou par microscopie pendant la période.",
+        "en": "Number of malaria cases confirmed by rapid diagnostic test or microscopy during the period."
+      },
+      "type": "count",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": ["sex", "age"],
+      "source": "who_malaria"
+    },
+    {
+      "id": "malaria.incidence",
+      "name": {
+        "fr": "Incidence du paludisme pour 1 000 personnes exposées",
+        "en": "Malaria incidence per 1,000 population at risk"
+      },
+      "definition": {
+        "fr": "Nombre de cas de paludisme confirmés pour 1 000 personnes exposées au risque pendant l'année.",
+        "en": "Number of confirmed malaria cases per 1,000 population at risk during the year."
+      },
+      "type": "ratio",
+      "numerator": {
+        "fr": "Nombre de cas de paludisme confirmés",
+        "en": "Number of confirmed malaria cases"
+      },
+      "denominator": {
+        "fr": "Population exposée au risque",
+        "en": "Population at risk"
+      },
+      "level": "impact",
+      "collection": "routine",
+      "frequency": "annual",
+      "breakdowns": ["age"],
+      "source": "who_malaria",
+      "ref": "ODD 3.3.3",
+      "direction": "decrease",
+      "aggregation": "sum",
+      "multiplier": 1000
+    },
+    {
+      "id": "malaria.itn_distributed",
+      "name": {
+        "fr": "Moustiquaires imprégnées distribuées",
+        "en": "Insecticide-treated nets distributed"
+      },
+      "definition": {
+        "fr": "Nombre de moustiquaires imprégnées d'insecticide à longue durée distribuées lors de campagnes ou en distribution continue.",
+        "en": "Number of long-lasting insecticide-treated nets distributed through campaigns or continuous distribution."
+      },
+      "type": "count",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": [],
+      "source": "who_malaria"
+    },
+    {
+      "id": "malaria.iptp3",
+      "name": {
+        "fr": "Femmes enceintes ayant reçu au moins trois doses de TPIg",
+        "en": "Pregnant women who received at least three doses of IPTp"
+      },
+      "definition": {
+        "fr": "Part des femmes enceintes vues en consultation prénatale ayant reçu au moins trois doses de traitement préventif intermittent à la sulfadoxine-pyriméthamine.",
+        "en": "Share of pregnant women seen in antenatal care who received at least three doses of intermittent preventive treatment with sulfadoxine-pyrimethamine."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Nombre de femmes enceintes ayant reçu une troisième dose de TPIg",
+        "en": "Number of pregnant women who received a third dose of IPTp"
+      },
+      "denominator": {
+        "fr": "Nombre de femmes enceintes vues en première consultation prénatale",
+        "en": "Number of pregnant women seen at a first antenatal visit"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": [],
+      "source": "who_malaria",
+      "aggregation": "last"
+    },
+    {
+      "id": "malaria.itn_use",
+      "name": {
+        "fr": "Personnes ayant dormi sous une moustiquaire imprégnée la nuit précédente",
+        "en": "People who slept under an insecticide-treated net the previous night"
+      },
+      "definition": {
+        "fr": "Part des membres des ménages enquêtés ayant dormi sous une moustiquaire imprégnée d'insecticide la nuit précédant l'enquête.",
+        "en": "Share of members of surveyed households who slept under an insecticide-treated net the night before the survey."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Membres des ménages ayant dormi sous une moustiquaire imprégnée",
+        "en": "Household members who slept under an insecticide-treated net"
+      },
+      "denominator": {
+        "fr": "Membres des ménages présents la nuit précédente",
+        "en": "Household members present the previous night"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "age", "area"],
+      "source": "dhs"
+    }
+  ]
+}
