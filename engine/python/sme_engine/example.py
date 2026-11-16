@@ -37,6 +37,10 @@ TEXT = {
         "i4s": "Procès-verbaux de réception des travaux",
         "q": ["2019-T4", "2020-T1", "2020-T2", "2020-T3"],
         "q_note": "Chantiers suspendus pendant le confinement",
+        "country": "Irak",
+        "sector": "Éducation",
+        "level_gov": "Gouvernorat",
+        "level_district": "District",
         "source": "Enquête ménages MCNA (REACH)",
         "method": "Entretien en face à face avec un membre adulte du ménage",
         "responsible": "Chargé de suivi-évaluation",
@@ -68,6 +72,10 @@ TEXT = {
         "i4s": "Handover reports of the works",
         "q": ["2019-Q4", "2020-Q1", "2020-Q2", "2020-Q3"],
         "q_note": "Works suspended during the lockdown",
+        "country": "Iraq",
+        "sector": "Education",
+        "level_gov": "Governorate",
+        "level_district": "District",
         "source": "MCNA household survey (REACH)",
         "method": "Face-to-face interview with an adult household member",
         "responsible": "M&E officer",
@@ -265,6 +273,34 @@ def fill_example(svc: Any, lang: str = "fr") -> None:
             ],
         }
     )
+
+    # Project sheet: dates and quarterly calendar matching the routine values above,
+    # the disaggregations, a few places, and the quarterly targets of the works.
+    from . import places, project_setup
+
+    project_setup.apply_profile(
+        p,
+        {
+            "code": "EDU-IRQ",
+            "start": "2019-10-01",
+            "end": "2020-12-31",
+            "frequency": "quarterly",
+            "countries": [t["country"]],
+            "sectors": [t["sector"]],
+            "place_levels": [t["level_gov"], t["level_district"]],
+        },
+    )
+    project_setup.generate_periods(p)
+    for key in ("sex", "status"):
+        p.insert_record("disaggregation", places.validate_disaggregation({"preset": key}, p.records("disaggregation")))
+    gov = {}
+    for name in ("Ninewa", "Anbar", "Salah al-Din"):
+        gov[name] = p.insert_record("place", {"name": name, "code": "", "level": 0, "parent_id": ""})
+    for name in ("Mosul", "Sinjar"):
+        p.insert_record("place", {"name": name, "code": "", "level": 1, "parent_id": gov["Ninewa"]})
+    codes = [x["code"] for x in p.records("period")]
+    for code, value in zip(codes, (5, 10, 10, 10, 5), strict=False):
+        p.insert_record("target", {"period": code, "value": value, "history": []}, scope=routine_id)
 
     design = {"weights": "weights", "strata": ["population_group", "governorate_mcna"], "cluster": None}
     for file, name, round_, id_col, round_label in (

@@ -31,6 +31,8 @@ interface I18n {
   /** Count text: uses `${key}_one` or `${key}_other` (French: 0 and 1 take the singular). */
   tn: (key: string, n: number, vars?: Vars) => string;
   date: (iso: string | null | undefined) => string;
+  /** A calendar day ("2026-03-31"), without time and without a time zone shift. */
+  day: (iso: string | null | undefined) => string;
   number: (x: number, digits?: number) => string;
   percent: (share: number, digits?: number) => string;
 }
@@ -66,6 +68,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       hasKey: (key): key is MessageKey => key in catalogue,
       date: (iso) =>
         iso ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso)) : "",
+      day: (iso) =>
+        iso
+          ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }).format(
+              new Date(`${iso.slice(0, 10)}T00:00:00Z`),
+            )
+          : "",
       tn: (key, n, vars) => {
         const one = lang === "fr" ? Math.abs(n) < 2 : n === 1;
         const text = catalogue[`${key}_${one ? "one" : "other"}` as MessageKey] ?? key;

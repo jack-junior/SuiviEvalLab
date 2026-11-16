@@ -6,7 +6,7 @@
 One row per indicator, in framework order: result, definition, calculation in
 words, unit, breakdown, data source and collection method, frequency, who is
 responsible, baseline, target and its date, current value and status. A second
-sheet holds the results framework. This is the table donors ask for in a
+sheet holds the targets by reporting period, a third the results chain. This is the table donors ask for in a
 monitoring and evaluation plan; it stays editable in Excel.
 """
 
@@ -23,7 +23,10 @@ from .report import Fmt, T
 P = {
     "fr": {
         "sheet": "Plan de suivi",
-        "sheet_fw": "Cadre de résultats",
+        "sheet_fw": "Chaîne des résultats",
+        "sheet_targets": "Cibles par période",
+        "targets_cols": ["Code", "Indicateur", "Unité", "Référence"],
+        "total": "Fin de projet",
         "title": "Plan de suivi des indicateurs",
         "cols": [
             "Code",
@@ -73,7 +76,10 @@ P = {
     },
     "en": {
         "sheet": "Monitoring plan",
-        "sheet_fw": "Results framework",
+        "sheet_fw": "Results chain",
+        "sheet_targets": "Targets by period",
+        "targets_cols": ["Code", "Indicator", "Unit", "Baseline"],
+        "total": "End of project",
         "title": "Indicator monitoring plan",
         "cols": [
             "Code",
@@ -169,6 +175,7 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
     nodes = {n["id"]: n for n in snap["framework"]}
     model = snap["project"]["framework_model"]
     summary = {r["indicator_id"]: r for r in svc.overview()["rows"]}
+    dis_names = {d["key"]: d["name_en" if lang == "en" else "name_fr"] for d in snap["disaggregations"]}
     if path.suffix.lower() != ".xlsx":
         path = path.with_suffix(".xlsx")
 
@@ -211,7 +218,10 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
         node = nodes.get(ind["node_id"], {})
         s = summary.get(ind["id"], {})
         unit = ind["unit"]
-        by = [label(c) for c in (ind.get("disaggregation"), ind.get("disaggregation2")) if c]
+        if ind.get("breakdowns"):
+            by = [dis_names.get(k, k) for k in ind["breakdowns"]]
+        else:
+            by = [label(c) for c in (ind.get("disaggregation"), ind.get("disaggregation2")) if c]
         status = s.get("status", "unknown")
         values = [
             node.get("code") or "",
@@ -236,6 +246,33 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
         ws.write(row, len(values), t["status"][status], st[status])
         row += 1
     ws.autofilter(3, 0, max(row - 1, 3), len(p["cols"]) - 1)
+
+    # Targets by reporting period: one column per period of the calendar.
+    periods = snap["periods"]
+    tw = wb.add_worksheet(p["sheet_targets"])
+    cols = [*p["targets_cols"], *(x["label_en" if lang == "en" else "label_fr"] for x in periods), p["total"]]
+    for i, w in enumerate([8, 40, 12, 11]):
+        tw.set_column(i, i, w)
+    tw.set_column(4, len(cols), 11)
+    tw.write_row(0, 0, cols, head)
+    tw.freeze_panes(1, 2)
+    tw.set_landscape()
+    tw.set_paper(9)
+    tw.fit_to_pages(1, 0)
+    for i, ind in enumerate(snap["indicators"], start=1):
+        node = nodes.get(ind["node_id"], {})
+        by_period = {x["period"]: x["value"] for x in snap["targets"].get(ind["id"], [])}
+        unit = ind["unit"]
+        base = summary.get(ind["id"], {}).get("baseline")
+        row_values = [
+            node.get("code") or "",
+            ind["name"],
+            p["units"][unit],
+            f.value(base, unit) if base is not None else "",
+            *(f.value(by_period[x["code"]], unit) if x["code"] in by_period else "" for x in periods),
+            f.value(ind["target"], unit) if ind.get("target") is not None else "",
+        ]
+        tw.write_row(i, 0, row_values, cell)
 
     fw = wb.add_worksheet(p["sheet_fw"])
     for i, w in enumerate([8, 18, 46, 40, 36, 46]):

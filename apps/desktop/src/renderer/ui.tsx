@@ -30,6 +30,15 @@ const PATHS: Record<string, ReactNode> = {
   history: <path d="M3.4 9a5.6 5.6 0 1 0 1.7-4M3.2 2.8v2.6h2.6M9 6v3.2l2.2 1.4" />,
   calc: <path d="M4.5 2.5h9v13h-9zM6.5 5h5v2.5h-5zM6.5 10h.1M9 10h.1M11.5 10h.1M6.5 12.8h.1M9 12.8h.1M11.5 12.8h.1" />,
   scale: <path d="M9 3v12M5 15h8M3.5 6.5h11M3.5 6.5L2 10.5h3zM14.5 6.5L13 10.5h3" />,
+  plan: <path d="M3 3.5h12v11H3zM3 7h12M7.5 3.5v11M11.2 7v7.5" />,
+  calendar: <path d="M3 4.5h12v10H3zM3 7.5h12M6 2.8v3M12 2.8v3M6 10.2h.1M9 10.2h.1M12 10.2h.1M6 12.6h.1M9 12.6h.1" />,
+  pin: (
+    <path d="M9 15.5s4.5-4.4 4.5-8a4.5 4.5 0 0 0-9 0c0 3.6 4.5 8 4.5 8zM9 9a1.6 1.6 0 1 0 0-3.2A1.6 1.6 0 0 0 9 9z" />
+  ),
+  lock: <path d="M4.5 8h9v6.5h-9zM6.3 8V5.8a2.7 2.7 0 0 1 5.4 0V8" />,
+  people: (
+    <path d="M6.5 8.5a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6zM2.5 14.5c0-2.3 1.8-3.8 4-3.8s4 1.5 4 3.8M12 8.3a2 2 0 1 0 0-4M13 10.9c1.5.4 2.5 1.6 2.5 3.6" />
+  ),
 };
 
 export function Icon({ name, size = 18 }: { name: keyof typeof PATHS | string; size?: number }) {

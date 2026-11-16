@@ -246,12 +246,24 @@ def register_setup(server: Server, svc: Service) -> None:
         current = next((t for t in p.records("target", indicator["id"]) if t["period"] == period), None)
         if period in locked and current is not None:
             raise _err("This period is locked", "period_locked")
-        new = targets.set_value(current, period, params.get("value"), params.get("reason"), codes)
+        value = params.get("value")
+        if period == targets.TOTAL and current is None and indicator.get("target") is not None:
+            # End of project target set before 1.0, from the indicator form: the first
+            # change from it is a revision too.
+            current = {"id": None, "period": targets.TOTAL, "value": indicator["target"], "history": []}
+        new = targets.set_value(current, period, value, params.get("reason"), codes)
         if new is not None:
-            if current is None:
+            if indicator.get("unit") == "percent" and not 0 <= new["value"] <= 1:
+                raise _err("A percentage target is between 0 and 100", "invalid_share")
+            if current is None or current["id"] is None:
                 p.insert_record("target", new, scope=indicator["id"])
             else:
                 p.update_record("target", current["id"], new)
+            if period == targets.TOTAL:
+                # The end of project target also lives on the indicator, where the
+                # analyses and the report read it.
+                p.update_record("indicator", indicator["id"], {**indicator, "target": new["value"]})
+                svc._results.clear()
         return svc.snapshot()
 
     @server.method("target.clear")
@@ -261,4 +273,7 @@ def register_setup(server: Server, svc: Service) -> None:
         current = next((t for t in p.records("target", indicator["id"]) if t["period"] == params.get("period")), None)
         if current is not None:
             p.delete_record("target", current["id"])
+        if params.get("period") == targets.TOTAL and indicator.get("target") is not None:
+            p.update_record("indicator", indicator["id"], {**indicator, "target": None})
+            svc._results.clear()
         return svc.snapshot()

@@ -82,7 +82,7 @@ export interface Recent {
 
 // ----- Project model (mirrors engine/python/sme_engine) -----------------------------
 
-export type Level = "impact" | "outcome" | "output" | "activity";
+export type Level = "impact" | "outcome" | "output" | "activity" | "detail";
 export type Round = "baseline" | "midline" | "endline" | "monitoring";
 
 export interface FrameworkNode {
@@ -103,7 +103,7 @@ export interface FrameworkLevel {
   indicators: boolean;
 }
 export interface FrameworkModel {
-  id: "standard" | "eu" | "usaid" | "un" | "worldbank" | "custom";
+  id: "standard" | "eu" | "usaid" | "un" | "worldbank" | "ifrc" | "custom";
   levels: FrameworkLevel[];
 }
 
@@ -142,6 +142,8 @@ export interface Indicator {
   source_type?: "survey" | "routine";
   aggregation?: "sum" | "last" | "mean";
   categories?: string[];
+  /** Keys of the project disaggregations the indicator is reported by. */
+  breakdowns?: string[];
 }
 
 export interface RoutinePeriod {
@@ -439,6 +441,87 @@ export interface Snapshot {
   analyses: AnalysisSpec[];
   untrusted_scripts: UntrustedScript[];
   report_content: ReportContent;
+  profile: Profile;
+  periods: Period[];
+  places: Place[];
+  partners: Partner[];
+  disaggregations: Disaggregation[];
+  targets: Record<string, Target[]>;
+}
+
+export type PeriodFrequency = "monthly" | "quarterly" | "semiannual" | "annual";
+export interface Donor {
+  name: string;
+  agreement: string;
+  frequency: PeriodFrequency | "";
+}
+export interface Profile {
+  code: string;
+  summary: string;
+  start: string;
+  end: string;
+  frequency: PeriodFrequency;
+  fiscal_start_month: number;
+  data_due_days: number;
+  report_due_days: number;
+  donors: Donor[];
+  implementer: string;
+  countries: string[];
+  sectors: string[];
+  currency: string;
+  budget: number;
+  manager: string;
+  color: string;
+  place_levels: string[];
+}
+export interface Period {
+  id: string;
+  code: string;
+  label_fr: string;
+  label_en: string;
+  start: string;
+  end: string;
+  data_due: string;
+  report_due: string;
+  state: "open" | "locked";
+}
+export interface Place {
+  id: string;
+  name: string;
+  code: string;
+  level: number;
+  parent_id: string;
+}
+export type PartnerRole = "implementing" | "funding" | "technical" | "government" | "community" | "research" | "other";
+export interface Partner {
+  id: string;
+  name: string;
+  acronym: string;
+  role: PartnerRole;
+  contact: string;
+  place_ids: string[];
+  start: string;
+  end: string;
+  note: string;
+}
+export interface Category {
+  code: string;
+  fr: string;
+  en: string;
+}
+export interface Disaggregation {
+  id: string;
+  key: string;
+  name_fr: string;
+  name_en: string;
+  categories: Category[];
+}
+export interface Target {
+  id: string;
+  indicator_id: string;
+  period: string;
+  value: number;
+  history: { value: number; at: string; reason: string }[];
 }
 
 export type TestQuestion = "groups" | "target" | "paired";

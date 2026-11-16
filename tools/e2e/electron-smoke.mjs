@@ -103,6 +103,20 @@ try {
   await id("new-project").click();
   await id("new-name").fill("Projet test");
   await id("new-create").click();
+  // A new project opens on its sheet: dates, then the calendar is made from them.
+  await id("profile-form").waitFor({ timeout: 60_000 });
+  await id("profile-start").fill("2026-01-01");
+  await id("profile-end").fill("2027-12-31");
+  await id("profile-save").click();
+  await id("setup-tab-calendar").click();
+  await id("period-T1-2026").waitFor({ timeout: 60_000 });
+  const periods = await page.locator('[data-testid^="period-T"]').count();
+  if (periods !== 8) throw new Error(`Expected 8 quarters, got ${periods}`);
+  await id("setup-tab-disaggregations").click();
+  await id("preset-sex").click();
+  await id("dis-sex").waitFor({ timeout: 60_000 });
+  await shot("project-sheet");
+  await id("nav-framework").click();
   await id("add-impact").click();
   await id("node-title").fill("Les enfants accèdent à l'éducation");
   await id("node-save").click();
@@ -188,6 +202,21 @@ try {
     throw new Error("Typing in the indicator target failed");
   await id("indicator-save").click();
   await page.locator(".ind-row").first().waitFor();
+
+  // Monitoring plan: a target per quarter; changing it asks for a reason.
+  await id("nav-plan").click();
+  const q1 = page.locator('[data-testid$="-T1-2026"][data-testid^="target-"]');
+  await q1.fill("40");
+  await q1.press("Enter");
+  await page.waitForTimeout(500);
+  await q1.fill("35");
+  await q1.press("Enter");
+  await id("reason-panel").waitFor({ timeout: 30_000 });
+  await id("reason-text").fill("Rentrée scolaire décalée");
+  await id("reason-save").click();
+  await page.locator('[data-testid$="-T1-2026"].revised').waitFor({ timeout: 30_000 });
+  if ((await q1.inputValue()) !== "35") throw new Error("Revised target not shown");
+  await shot("monitoring-plan");
 
   await id("nav-analysis").click();
   await id("comparison").waitFor({ timeout: 120_000 });
@@ -345,17 +374,20 @@ try {
     `Dashboard written, ${Math.round(board.length / 1024)} KB`,
   );
 
-  // Checks before the report, and the monitoring plan in Excel.
+  // Checks before the report.
   await id("report-checks").waitFor({ timeout: 120_000 });
   notice(
     "E2E checks",
     (await id("report-checks").innerText()).replace(/\s+/g, " ").slice(0, 200),
   );
-  await id("export-plan").click();
+  await shot("report-checks");
+
+  // The monitoring plan in Excel, from its own screen.
+  await id("nav-plan").click();
+  await id("plan-export").click();
   await id("plan-done").waitFor({ timeout: 120_000 });
   if (statSync(path.join(work, "plan.xlsx")).size < 5_000)
     throw new Error("Monitoring plan too small");
-  await shot("report-checks");
 
   // 2. Example project
   await id("close-project").click();

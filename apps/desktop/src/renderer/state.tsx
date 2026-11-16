@@ -10,7 +10,17 @@ import { call, EngineCallError, Snapshot } from "./api";
 import { useI18n } from "./i18n";
 
 export type View =
-  "overview" | "framework" | "indicators" | "data" | "analysis" | "tests" | "workshop" | "report" | "engines";
+  | "overview"
+  | "setup"
+  | "framework"
+  | "indicators"
+  | "plan"
+  | "data"
+  | "analysis"
+  | "tests"
+  | "workshop"
+  | "report"
+  | "engines";
 
 interface ProjectState {
   snap: Snapshot | null;

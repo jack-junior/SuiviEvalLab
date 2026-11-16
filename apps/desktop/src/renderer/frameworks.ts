@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
 
-// The results framework model of the open project: level names in the interface
+// The logframe model of the open project: level names in the interface
 // language, how deep the chain goes, which levels carry indicators.
 
 import { useCallback, useMemo } from "react";
@@ -9,14 +9,14 @@ import { FrameworkModel, Level } from "./api";
 import { useI18n } from "./i18n";
 import { useProject } from "./state";
 
-export const LEVEL_KEYS: Level[] = ["impact", "outcome", "output", "activity"];
+export const LEVEL_KEYS: Level[] = ["impact", "outcome", "output", "activity", "detail"];
 
 const STANDARD: FrameworkModel = {
   id: "standard",
   levels: [
     { fr: "Impact", en: "Impact", indicators: true },
     { fr: "Effet", en: "Outcome", indicators: true },
-    { fr: "Extrant", en: "Output", indicators: true },
+    { fr: "Produit", en: "Output", indicators: true },
     { fr: "Activité", en: "Activity", indicators: false },
   ],
 };

@@ -473,7 +473,7 @@ def test_monitoring_plan_workbook(engine, tmp_path):
     assert first["Mode de calcul"].startswith("Part des observations où")
     assert "À moins de 2 km" in first["Mode de calcul"]  # labels, not codes
     assert first["Cible"] == "90,0 %"
-    fw = pl.read_excel(out["path"], sheet_name="Cadre de résultats")
+    fw = pl.read_excel(out["path"], sheet_name="Chaîne des résultats")
     assert fw.height == len(snap["framework"])
     with pytest.raises(AssertionError, match="invalid_params"):
         engine("indicator.save", {"id": ind["id"], "indicator": {**spec, "frequency": "weekly"}})

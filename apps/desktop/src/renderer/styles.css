@@ -2154,3 +2154,142 @@ button.cell-sub {
   gap: 2px 10px;
   color: var(--encre-2);
 }
+/* Project sheet and monitoring plan */
+.box {
+  padding: 18px 20px;
+  border-radius: 14px;
+  border: 1px solid var(--ligne);
+  background: var(--surface);
+}
+.box h2 {
+  margin: 0;
+  font-size: 17px;
+}
+.box-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.row-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px 18px;
+}
+.form-grid .field.wide {
+  grid-column: 1 / -1;
+}
+.row-actions.start {
+  justify-content: flex-start;
+}
+.row-actions.wrap {
+  flex-wrap: wrap;
+}
+.input.color {
+  padding: 2px;
+  height: 36px;
+  width: 64px;
+}
+.chip.small {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.table tr.current td {
+  background: var(--action-teinte);
+}
+.tree-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+  border: 1px solid var(--ligne);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.tree-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--ligne);
+}
+.tree-list li:last-child {
+  border-bottom: 0;
+}
+.tree-list li .row-actions {
+  margin-left: auto;
+}
+.check-list {
+  border: 1px solid var(--ligne);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow: auto;
+}
+.check-list legend {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 4px;
+}
+ul.plain {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.grid-scroll {
+  overflow: auto;
+  border: 1px solid var(--ligne);
+  border-radius: 12px;
+  background: var(--surface);
+  max-height: calc(100vh - 230px);
+}
+.plan-grid th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 2;
+}
+.plan-grid .sticky {
+  position: sticky;
+  left: 0;
+  background: var(--surface);
+  z-index: 1;
+  min-width: 240px;
+  max-width: 320px;
+}
+.plan-grid th.sticky {
+  z-index: 3;
+}
+.plan-grid td {
+  padding: 6px 8px;
+  vertical-align: middle;
+}
+.plan-grid tr.group-row td {
+  background: var(--fond);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--encre-2);
+}
+.input.cell {
+  width: 84px;
+  height: 30px;
+  text-align: right;
+  padding: 0 8px;
+}
+.input.cell.revised {
+  border-color: var(--en-cours);
+}

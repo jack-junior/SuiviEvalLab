@@ -121,10 +121,26 @@ def test_hand_made_periods_and_locking(call, tmp_path):
 # ----- targets -------------------------------------------------------------------
 
 
-def _indicator(call):
+def _indicator(call, **extra):
     node = call("framework.add", {"title": "Objectif"})["created"]
-    snap = call("indicator.save", {"node_id": node, "indicator": {"name": "Enfants vaccinés", "unit": "count"}})
+    spec = {"name": "Enfants vaccinés", "unit": "count", **extra}
+    snap = call("indicator.save", {"node_id": node, "indicator": spec})
     return snap["indicators"][0]["id"]
+
+
+def test_percentage_targets_and_older_end_targets(call, tmp_path):
+    call("project.create", {"path": str(tmp_path / "p.sme"), "name": "P", "profile": PROFILE})
+    ind = _indicator(call, unit="percent", target=0.8, breakdowns=["sex", "age"])
+    with pytest.raises(RuntimeError, match="invalid_share"):
+        call("target.set", {"indicator_id": ind, "period": "T1-2026", "value": 80})
+    # The end target typed in 0.5 counts as the first value: changing it needs a reason.
+    with pytest.raises(RuntimeError, match="target_reason_required"):
+        call("target.set", {"indicator_id": ind, "period": "total", "value": 0.7})
+    snap = call("target.set", {"indicator_id": ind, "period": "total", "value": 0.7, "reason": "Revue à mi-parcours"})
+    assert snap["indicators"][0]["target"] == 0.7 and snap["indicators"][0]["breakdowns"] == ["sex", "age"]
+    assert snap["targets"][ind][0]["history"][0]["value"] == 0.8
+    snap = call("target.clear", {"indicator_id": ind, "period": "total"})
+    assert snap["indicators"][0]["target"] is None
 
 
 def test_targets_keep_their_history(call, tmp_path):
@@ -137,7 +153,10 @@ def test_targets_keep_their_history(call, tmp_path):
     snap = call("target.set", {"indicator_id": ind, "period": "T1-2026", "value": 1000, "reason": "Rupture de vaccins"})
     t = snap["targets"][ind][0]
     assert t["value"] == 1000 and t["history"][0]["value"] == 1200 and t["history"][0]["reason"] == "Rupture de vaccins"
-    call("target.set", {"indicator_id": ind, "period": "total", "value": 5000})
+    snap = call("target.set", {"indicator_id": ind, "period": "total", "value": 5000})
+    assert snap["indicators"][0]["target"] == 5000
+    snap = call("target.set", {"indicator_id": ind, "period": "total", "value": 4500, "reason": "Budget réduit"})
+    assert snap["indicators"][0]["target"] == 4500
     with pytest.raises(RuntimeError, match="period_not_found"):
         call("target.set", {"indicator_id": ind, "period": "T9-2030", "value": 1})
     # A period holding targets cannot disappear when the calendar is rebuilt.

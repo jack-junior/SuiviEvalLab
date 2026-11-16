@@ -82,7 +82,6 @@ export function Report() {
   const [reportLang, setReportLang] = useState<Lang>(lang);
   const [done, setDone] = useState<{ token: string; name: string } | null>(null);
   const [shared, setShared] = useState<{ token: string; name: string } | null>(null);
-  const [planned, setPlanned] = useState<{ token: string; name: string } | null>(null);
   const [templateNote, setTemplateNote] = useState<{ kind: "ok" | "info"; text: string } | null>(null);
   if (!snap) return null;
   const ready = snap.indicators.length > 0;
@@ -113,14 +112,6 @@ export function Report() {
     if (!file) return;
     const r = await run("report.share", { file_token: file.token, lang: reportLang }, "share");
     if (r) setShared(file);
-  };
-
-  const exportPlan = async () => {
-    setPlanned(null);
-    const file = await pick("xlsx-save", `${t("plan.file")} ${snap.project.name.slice(0, 50)}.xlsx`);
-    if (!file) return;
-    const r = await run("report.plan", { file_token: file.token, lang: reportLang }, "plan");
-    if (r) setPlanned(file);
   };
 
   return (
@@ -220,24 +211,6 @@ export function Report() {
           </button>
         </Notice>
       )}
-
-      <section className="stack" data-testid="plan-section">
-        <h2>{t("plan.title")}</h2>
-        <p className="muted">{t("plan.text")}</p>
-        <div className="row-actions start">
-          <button className="btn" onClick={exportPlan} disabled={!ready || busy === "plan"} data-testid="export-plan">
-            <Icon name="table" /> {busy === "plan" ? t("plan.exporting") : t("plan.action")}
-          </button>
-        </div>
-        {planned && (
-          <Notice kind="ok">
-            <span data-testid="plan-done">{t("plan.done", { name: planned.name })}</span>{" "}
-            <button className="link" onClick={() => openFile(planned.token)}>
-              {t("report.shareOpen")}
-            </button>
-          </Notice>
-        )}
-      </section>
 
       <section className="stack" data-testid="share-section">
         <h2>{t("report.shareTitle")}</h2>

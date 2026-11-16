@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
 
-// Results framework: impact, outcomes, outputs and activities as an editable tree.
+// Results chain of the logframe: its levels as an editable tree.
 
 import { useState } from "react";
 import { FrameworkModel, FrameworkNode, Level } from "../api";

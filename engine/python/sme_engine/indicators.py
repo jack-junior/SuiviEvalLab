@@ -137,6 +137,8 @@ def validate(spec: dict[str, Any]) -> dict[str, Any]:
         "frequency": spec.get("frequency") or "",
         "responsible": _text(spec, "responsible", max_len=200),
         "target_date": _text(spec, "target_date", max_len=40),
+        # Disaggregations of the project the results are reported by (their keys).
+        "breakdowns": [str(k)[:30] for k in (spec.get("breakdowns") or [])[:6] if isinstance(k, str) and k.strip()],
     }
     if out["frequency"] not in FREQUENCIES:
         raise _err(f"frequency must be one of {FREQUENCIES}", "invalid_params")

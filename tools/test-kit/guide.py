@@ -192,12 +192,12 @@ scenario(
     ],
 )
 scenario(
-    "Créer un projet et son cadre de résultats",
+    "Créer un projet et sa chaîne des résultats",
     "construire un projet vide, comme pour un vrai projet.",
     None,
     [
         "Accueil, « Créer un projet », nommez-le « Test Irak », « Choisir l'emplacement ».",
-        "Cadre de résultats : ajoutez un impact « Les enfants ont accès à l'éducation », puis sous lui un effet « L'accès physique aux écoles s'améliore ».",
+        "Chaîne des résultats : ajoutez un impact « Les enfants ont accès à l'éducation », puis sous lui un effet « L'accès physique aux écoles s'améliore ».",
     ],
     ["Le projet apparaît dans « Mes projets » à l'accueil, avec sa date de modification."],
 )
@@ -417,7 +417,7 @@ scenario(
     None,
     [
         "Fermez « Test Irak » et rouvrez-le (une copie est faite à l'ouverture).",
-        "Supprimez l'effet du cadre de résultats (avec ses indicateurs). Fermez le projet.",
+        "Supprimez l'effet de la chaîne des résultats (avec ses indicateurs). Fermez le projet.",
         "Accueil, icône horloge du projet : choisissez la copie la plus récente, « Restaurer ».",
     ],
     [

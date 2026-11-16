@@ -48,7 +48,7 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
   const chosen = model ?? models?.[0] ?? null;
 
   const opened = (s: Snapshot | null) => {
-    if (s) go(s.indicators.length ? "overview" : "framework");
+    if (s) go(s.indicators.length ? "overview" : s.profile.start ? "framework" : "setup");
   };
 
   const openRecent = async (r: Recent) => {

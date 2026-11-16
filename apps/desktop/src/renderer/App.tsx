@@ -14,7 +14,9 @@ import { Framework } from "./screens/Framework";
 import { Home } from "./screens/Home";
 import { Indicators } from "./screens/Indicators";
 import { Overview } from "./screens/Overview";
+import { Plan } from "./screens/Plan";
 import { Report } from "./screens/Report";
+import { Setup } from "./screens/Setup";
 import { Tests } from "./screens/Tests";
 import { Workshop } from "./screens/Workshop";
 import { TrustDialog } from "./TrustDialog";
@@ -29,8 +31,10 @@ const LANGS: { code: Lang; label: string; name: string }[] = [
 
 const NAV: { view: View; icon: string }[] = [
   { view: "overview", icon: "gauge" },
+  { view: "setup", icon: "calendar" },
   { view: "framework", icon: "tree" },
   { view: "indicators", icon: "target" },
+  { view: "plan", icon: "plan" },
   { view: "data", icon: "table" },
   { view: "analysis", icon: "chart" },
   { view: "tests", icon: "scale" },
@@ -235,10 +239,14 @@ export function App() {
             <Engines info={info} versions={versions} error={engineError} onRecheck={loadVersions} />
           ) : !snap ? (
             <Home enginesReady={ready} />
+          ) : view === "setup" ? (
+            <Setup />
           ) : view === "framework" ? (
             <Framework />
           ) : view === "indicators" ? (
             <Indicators />
+          ) : view === "plan" ? (
+            <Plan />
           ) : view === "data" ? (
             <Data />
           ) : view === "analysis" ? (
