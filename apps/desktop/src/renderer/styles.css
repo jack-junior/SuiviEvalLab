@@ -3086,3 +3086,14 @@ ul.plain {
   background: var(--action-teinte);
   border-bottom-color: var(--action);
 }
+
+/* periodic report sections */
+.report-sections {
+  margin: 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 14px;
+}
+.report-sections li > .row-between {
+  margin-bottom: 6px;
+}

@@ -315,3 +315,127 @@ def test_evaluation_steps_meetings_and_qualitative_coding(call, tmp_path):
     call("learning_question.save", {"question": {"text": "Quels freins à la fréquentation ?"}})
     snap = call("project.get", {})
     assert len(snap["lessons"]) == 1 and snap["learning_questions"][0]["status"] == "open"
+
+
+def test_periodic_reports_in_every_donor_format(call, tmp_path):
+    from docx import Document
+
+    from sme_engine import donor_formats
+
+    snap = call("project.create", {"path": str(tmp_path / "ex.sme"), "name": "Exemple", "example": True})
+    codes = [p["code"] for p in snap["periods"]]
+    node = snap["framework"][-1]["id"]
+    call(
+        "activity.save",
+        {
+            "activity": {
+                "title": "Former les relais",
+                "node_id": node,
+                "start": snap["periods"][0]["start"],
+                "end": snap["periods"][1]["end"],
+            }
+        },
+    )
+    line = call("budget_line.save", {"line": {"name": "Formations", "planned": {codes[0]: 500}}})["created"]
+    call("expense.save", {"expense": {"line_id": line, "date": snap["periods"][0]["start"], "amount": 120}})
+    call(
+        "feedback.save", {"feedback": {"received": snap["periods"][0]["start"], "category": "sea", "summary": "Secret"}}
+    )
+    call("risk.save", {"risk": {"title": "Saison des pluies"}})
+
+    formats = call("reports.formats", {})["formats"]
+    assert len([f for f in formats if f["builtin"]]) == 23
+    # Text written for a report is kept for the next generation of the same report.
+    call("report_doc.save", {"format": "eu", "from": codes[0], "to": codes[3], "texts": {"summary": "Bonne année."}})
+    got = call("report_doc.get", {"format": "eu", "from": codes[0], "to": codes[3]})
+    assert got["texts"] == {"summary": "Bonne année."} and got["from"] == codes[0]
+    for f in formats:
+        out = tmp_path / f"{f['id']}.docx"
+        call("reports.generate", {"path": str(out), "format": f["id"], "from": codes[0], "to": codes[3], "lang": "fr"})
+        text = "\n".join(p.text for p in Document(str(out)).paragraphs)
+        cells = "\n".join(c.text for t in Document(str(out)).tables for r in t.rows for c in r.cells)
+        for i, sec in enumerate(f["sections"], start=1):
+            assert f"{i}. {sec['fr']}" in text, (f["id"], sec["fr"])
+        assert "Secret" not in text + cells  # a sensitive case never reaches a report
+    eu = Document(str(tmp_path / "eu.docx"))
+    body = "\n".join(p.text for p in eu.paragraphs)
+    assert "Bonne année." in body and "Section à rédiger" in body
+    tables = "\n".join(c.text for t in eu.tables for r in t.rows for c in r.cells)
+    assert "Former les relais" in tables and "Formations" in tables
+    # A custom format, then in English.
+    custom = call(
+        "report_format.save",
+        {
+            "format": {
+                "name": "Mon canevas",
+                "sections": [
+                    {"kind": "text", "key": "intro", "label": "Intro"},
+                    {"kind": "tracking", "label": "Suivi"},
+                ],
+            }
+        },
+    )["created"]
+    out = tmp_path / "custom.docx"
+    call("reports.generate", {"path": str(out), "format": custom, "lang": "en"})
+    assert "2. Suivi" in "\n".join(p.text for p in Document(str(out)).paragraphs)
+    assert set(donor_formats.KINDS) >= {s["kind"] for f in formats for s in f["sections"]}
+
+
+def test_exports_tracking_values_and_data_pack(call, tmp_path):
+    import openpyxl
+
+    from sme_engine import exports
+
+    node = _project(call, tmp_path)
+    call("disaggregation.save", {"disaggregation": {"preset": "sex"}})
+    ind = call(
+        "indicator.save",
+        {
+            "node_id": node,
+            "indicator": {
+                "name": "Agents formés",
+                "unit": "count",
+                "source_type": "routine",
+                "breakdowns": ["sex"],
+                "target": 100,
+                "people": "unique",
+            },
+        },
+    )["saved"]
+    sub = call("submission.open", {"period": "T1-2026"})["created"]
+    call(
+        "submission.save",
+        {
+            "id": sub,
+            "values": [
+                {"indicator_id": ind, "cats": {"sex": "f"}, "value": 12},
+                {"indicator_id": ind, "cats": {"sex": "m"}, "value": 8},
+            ],
+        },
+    )
+    call("submission.act", {"id": sub, "action": "submit"})
+    call("submission.act", {"id": sub, "action": "validate"})
+    call("gap.save", {"indicator_id": ind, "period": "T1-2026", "text": "Formation reportée"})
+
+    out = call("export.tracking", {"path": str(tmp_path / "suivi.xlsx"), "period": "T1-2026"})
+    ws = openpyxl.load_workbook(out["path"])["Suivi"]
+    cells = [c for row in ws.iter_rows(values_only=True) for c in row if c is not None]
+    assert "Agents formés" in cells and 20 in cells and "Formation reportée" in cells
+
+    xl = call("export.values", {"path": str(tmp_path / "valeurs.xlsx")})
+    assert xl["rows"] == 2
+    csvf = call("export.values", {"path": str(tmp_path / "valeurs"), "kind": "csv"})
+    text = open(csvf["path"], encoding="utf-8-sig").read()
+    assert csvf["path"].endswith(".csv") and "Agents formés" in text and ";12" in text
+
+    packed = call("export.pack", {"path": str(tmp_path / "paquet")})
+    data = exports.read_pack(tmp_path / "paquet.smepack")
+    assert packed["indicators"] == 1 and data["project"]["profile"]["currency"] == "EUR"
+    assert data["indicators"][0]["to_date"] == 20
+    # No personal data travels in a pack.
+    raw = json.dumps(data)
+    assert "person" not in raw and "summary" not in raw
+    with pytest.raises(Exception, match="pack"):
+        bad = tmp_path / "x.smepack"
+        bad.write_text("nope")
+        exports.read_pack(bad)

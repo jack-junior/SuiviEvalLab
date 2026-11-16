@@ -165,6 +165,15 @@ const ALLOWED = new Set([
   "dhis2.search",
   "dhis2.import",
   "people.save",
+  "reports.formats",
+  "report_format.save",
+  "report_format.delete",
+  "report_doc.get",
+  "report_doc.save",
+  "reports.generate",
+  "export.tracking",
+  "export.values",
+  "export.pack",
 ]);
 
 // Paths chosen by the user in a dialog, by token. Tokens live for the session.
@@ -182,6 +191,8 @@ type DialogKind =
   | "ics-save"
   | "ics-open"
   | "xlsx-open"
+  | "pack-save"
+  | "pack-open"
   | "folder"
   | "template-open";
 
@@ -201,7 +212,8 @@ async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token
       kind === "html-save" ||
       kind === "xlsx-save" ||
       kind === "r-save" ||
-      kind === "ics-save"
+      kind === "ics-save" ||
+      kind === "pack-save"
     ) {
       const filter = {
         "project-save": { name: "SuiviEvalLab", extensions: ["sme"], file: "Projet.sme" },
@@ -211,6 +223,7 @@ async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token
         "xlsx-save": { name: "Excel", extensions: ["xlsx"], file: "Plan-de-suivi.xlsx" },
         "r-save": { name: "R", extensions: ["R"], file: "Nettoyage.R" },
         "ics-save": { name: "iCalendar", extensions: ["ics"], file: "Agenda.ics" },
+        "pack-save": { name: "SuiviEvalLab", extensions: ["smepack"], file: "Paquet.smepack" },
       }[kind];
       const res = await dialog.showSaveDialog(win, {
         defaultPath: path.join(docs, defaultName ?? filter.file),
@@ -232,7 +245,8 @@ async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token
         "template-open": [{ name: "Word", extensions: ["docx", "dotx"] }],
         "ics-open": [{ name: "iCalendar", extensions: ["ics"] }],
         "xlsx-open": [{ name: "Excel", extensions: ["xlsx", "xlsm"] }],
-      }[kind as "project-open" | "data-open" | "template-open" | "ics-open" | "xlsx-open"];
+        "pack-open": [{ name: "SuiviEvalLab", extensions: ["smepack"] }],
+      }[kind as "project-open" | "data-open" | "template-open" | "ics-open" | "xlsx-open" | "pack-open"];
       const res = await dialog.showOpenDialog(win, { defaultPath: docs, properties: ["openFile"], filters });
       chosen = res.canceled ? undefined : res.filePaths[0];
     }
@@ -437,6 +451,8 @@ app.whenReady().then(() => {
       "ics-save",
       "ics-open",
       "xlsx-open",
+      "pack-save",
+      "pack-open",
       "folder",
       "template-open",
     ];

@@ -377,7 +377,7 @@ def _move_after(anchor: Any, elements: list[Any]) -> None:
     ref_parent.remove(anchor._p)
 
 
-def _table(doc: Any, header: list[str], rows: list[list[str]], widths: list[float] | None = None) -> None:
+def _table(doc: Any, header: list[str], rows: list[list[str]], widths: list[float] | None = None) -> Any:
     table = doc.add_table(rows=1, cols=len(header))
     try:
         table.style = "Table Grid"
@@ -408,6 +408,7 @@ def _table(doc: Any, header: list[str], rows: list[list[str]], widths: list[floa
             for i, w in enumerate(widths):
                 row.cells[i].width = Cm(w)
     doc.add_paragraph()
+    return table
 
 
 def _setup(doc: Any) -> None:

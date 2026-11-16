@@ -60,6 +60,8 @@ const dialogs = [
   file2019,
   file2020,
   path.join(work, "rapport-manuel.docx"),
+  path.join(work, "rapport-ue.docx"),
+  path.join(work, "suivi.xlsx"),
   fileSav,
   fileMerge,
   fileMerge,
@@ -515,6 +517,7 @@ try {
   await shot("manual-workshop");
 
   await id("nav-report").click();
+  await id("report-tab-survey").click();
   await id("report-content").waitFor();
   await id("generate-report").click();
   await id("report-done").waitFor({ timeout: 180_000 });
@@ -524,6 +527,29 @@ try {
   notice(
     "E2E report",
     `Word report written, ${Math.round(statSync(report).size / 1024)} KB`,
+  );
+
+  // Periodic report in the European Union format, with a text kept for next time.
+  await id("report-tab-periodic").click();
+  await id("rep-format").selectOption("eu");
+  await id("rep-text-summary").fill(
+    "Le premier trimestre a lancé les formations.",
+  );
+  await id("rep-text-summary").blur();
+  await id("rep-generate").click();
+  await id("rep-done").waitFor({ timeout: 180_000 });
+  const periodic = path.join(work, "rapport-ue.docx");
+  if (!existsSync(periodic) || statSync(periodic).size < 10_000)
+    throw new Error("Periodic report missing or too small");
+  await shot("periodic-report");
+  await id("report-tab-exports").click();
+  await id("exp-tracking").click();
+  await id("exp-done").waitFor({ timeout: 60_000 });
+  if (!existsSync(path.join(work, "suivi.xlsx")))
+    throw new Error("Tracking table not exported");
+  notice(
+    "E2E periodic report",
+    `EU format, ${Math.round(statSync(periodic).size / 1024)} KB, tracking table in Excel`,
   );
 
   // SPSS file: its variable labels come with it.
@@ -633,6 +659,7 @@ try {
 
   // Read-only dashboard.
   await id("nav-report").click();
+  await id("report-tab-survey").click();
   await id("share-dashboard").click();
   await id("share-done").waitFor({ timeout: 180_000 });
   const board = readFileSync(path.join(work, "tableau.html"), "utf-8");
@@ -800,7 +827,7 @@ try {
   notice("E2E updates", await id("update-status").innerText());
   notice(
     "E2E",
-    "Full path verified: project sheet, framework, import, cleaning, indicator, monitoring plan, periodic entry, reception and validation, tracking, gap comment, project today, agenda, work plan and budget, feedback, recommendations, risks, meetings, evaluation with coded notes, analysis, report, SPSS, quality, merge, dashboard, checks, plan export, workspace today, workspace, sample size, example, test, logframe matrix, Kobo server sync, languages, indicator library",
+    "Full path verified: project sheet, framework, import, cleaning, indicator, monitoring plan, periodic entry, reception and validation, tracking, gap comment, project today, agenda, work plan and budget, feedback, recommendations, risks, meetings, evaluation with coded notes, periodic report in a donor format, tracking export, analysis, report, SPSS, quality, merge, dashboard, checks, plan export, workspace today, workspace, sample size, example, test, logframe matrix, Kobo server sync, languages, indicator library",
   );
 } catch (e) {
   // The screen at the moment of failure, kept with the other screenshots.

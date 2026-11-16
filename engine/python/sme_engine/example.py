@@ -37,6 +37,7 @@ TEXT = {
         "i4s": "Procès-verbaux de réception des travaux",
         "q": ["2019-T4", "2020-T1", "2020-T2", "2020-T3"],
         "q_note": "Chantiers suspendus pendant le confinement",
+        "q_last": "Procès-verbaux de réception du dernier trimestre attendus de l'entreprise",
         "country": "Irak",
         "sector": "Éducation",
         "level_gov": "Gouvernorat",
@@ -72,6 +73,7 @@ TEXT = {
         "i4s": "Handover reports of the works",
         "q": ["2019-Q4", "2020-Q1", "2020-Q2", "2020-Q3"],
         "q_note": "Works suspended during the lockdown",
+        "q_last": "Handover reports of the last quarter awaited from the contractor",
         "country": "Iraq",
         "sector": "Education",
         "level_gov": "Governorate",
@@ -299,6 +301,7 @@ def fill_example(svc: Any, lang: str = "fr") -> None:
         reception.act(p, sub, "submit")
         reception.act(p, sub, "validate")
     p.insert_record("gap_comment", {"period": codes[2], "text": t["q_note"], "at": reception.now()}, scope=routine_id)
+    p.insert_record("gap_comment", {"period": codes[-1], "text": t["q_last"], "at": reception.now()}, scope=routine_id)
     # The reports of the first three quarters were sent.
     for period in p.records("period")[:3]:
         p.update_record("period", period["id"], {**period, "reported_at": reception.now()})

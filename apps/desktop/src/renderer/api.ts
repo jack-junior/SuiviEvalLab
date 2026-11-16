@@ -70,6 +70,8 @@ export type PickKind =
   | "ics-save"
   | "ics-open"
   | "xlsx-open"
+  | "pack-save"
+  | "pack-open"
   | "folder"
   | "template-open";
 export interface Picked {
@@ -516,6 +518,46 @@ export interface Snapshot {
   evaluations: Evaluation[];
   qual_notes: QualNote[];
   qual_themes: QualTheme[];
+}
+
+// ----- M12 report formats -----
+
+export const SECTION_KINDS = [
+  "text",
+  "tracking",
+  "results",
+  "gaps",
+  "activities",
+  "next_activities",
+  "budget",
+  "beneficiaries",
+  "feedback",
+  "recommendations",
+  "risks",
+  "lessons",
+  "surveys",
+  "evaluations",
+  "logframe",
+  "calendar",
+  "pirs",
+] as const;
+export type SectionKind = (typeof SECTION_KINDS)[number];
+export interface FormatSection {
+  key: string;
+  kind: SectionKind;
+  fr: string;
+  en: string;
+  hint_fr: string;
+  hint_en: string;
+}
+export interface ReportFormat {
+  id: string;
+  donor: string;
+  fr?: string;
+  en?: string;
+  name?: string;
+  sections: FormatSection[];
+  builtin: boolean;
 }
 
 // ----- M9 work plan and budget -----

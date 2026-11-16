@@ -278,6 +278,90 @@ def register_registers(server: Server, svc: Service) -> None:
     ):
         _simple(server, table, key, validate, save, project, done)
 
+    # ----- M12 periodic reports --------------------------------------------------------------------
+
+    @server.method("reports.formats")
+    def report_formats(_: dict[str, Any]) -> dict[str, Any]:
+        from . import reports
+
+        return {"formats": reports.formats(project())}
+
+    @server.method("report_format.save")
+    def report_format_save(params: dict[str, Any]) -> dict[str, Any]:
+        from . import donor_formats
+
+        return save("report_format", params, donor_formats.validate_custom(params.get("format")))
+
+    @server.method("report_format.delete")
+    def report_format_delete(params: dict[str, Any]) -> dict[str, Any]:
+        project().delete_record("report_format", params.get("id"))
+        return done()
+
+    @server.method("report_doc.get")
+    def report_doc_get(params: dict[str, Any]) -> dict[str, Any]:
+        from . import reports
+
+        p = project()
+        fmt = reports.find_format(p, params.get("format"))
+        sc = reports.scope(p, params)
+        return {"format": fmt, "from": sc["from"], "to": sc["to"], "texts": reports.texts(p, fmt["id"], sc)}
+
+    @server.method("report_doc.save")
+    def report_doc_save(params: dict[str, Any]) -> dict[str, Any]:
+        from . import reports
+
+        p = project()
+        fmt = reports.find_format(p, params.get("format"))
+        sc = reports.scope(p, params)
+        reports.save_texts(p, fmt["id"], sc, params.get("texts"))
+        return {"saved": True}
+
+    @server.method("reports.generate")
+    def reports_generate(params: dict[str, Any]) -> dict[str, Any]:
+        import base64
+
+        from . import reports
+
+        lang = params.get("lang", "fr")
+        if lang not in ("fr", "en"):
+            raise rg._err("lang must be fr or en", "invalid_params")
+        path = params.get("path")
+        if not isinstance(path, str) or not path:
+            raise rg._err("No file chosen", "invalid_params")
+        meta = project().meta()
+        template = base64.b64decode(meta["report_template"]) if meta.get("report_template") else None
+        return reports.generate(svc, Path(path), lang, str(params.get("format")), params, template)
+
+    # ----- exports ---------------------------------------------------------------------------------
+
+    def _path(params: dict[str, Any]) -> Path:
+        path = params.get("path")
+        if not isinstance(path, str) or not path:
+            raise rg._err("No file chosen", "invalid_params")
+        return Path(path)
+
+    def _lang(params: dict[str, Any]) -> str:
+        return "en" if params.get("lang") == "en" else "fr"
+
+    @server.method("export.tracking")
+    def export_tracking(params: dict[str, Any]) -> dict[str, Any]:
+        from . import exports
+
+        return exports.tracking_xlsx(svc, _path(params), _lang(params), params.get("period"), params.get("today"))
+
+    @server.method("export.values")
+    def export_values(params: dict[str, Any]) -> dict[str, Any]:
+        from . import exports
+
+        kind = "csv" if params.get("kind") == "csv" else "xlsx"
+        return exports.values_file(project(), _path(params), _lang(params), kind)
+
+    @server.method("export.pack")
+    def export_pack(params: dict[str, Any]) -> dict[str, Any]:
+        from . import exports
+
+        return exports.write_pack(svc, _path(params))
+
     @server.method("qual_note.save")
     def note_save(params: dict[str, Any]) -> dict[str, Any]:
         themes = {t["id"] for t in project().records("qual_theme")}

@@ -41,6 +41,8 @@ TABLES = (
     "evaluation",
     "qual_note",
     "qual_theme",
+    "report_format",
+    "report_doc",
 )
 
 SCHEMA = "".join(

@@ -82,6 +82,26 @@ def run(svc: Any) -> dict[str, Any]:
         if not (ind.get("definition") or "").strip():
             add("indicator_no_definition", "info", "indicators", ind["node_id"], name)
 
+    # The latest ended period: what the progress report rests on (section M12).
+    view = reception.View(svc.project)
+    day = reception.today()
+    ended = [p for p in view.periods if p["end"] < day]
+    if ended and view.entry:
+        last = ended[-1]
+        label = last["label_fr"]
+        pending = [
+            s for s in view.subs.values() if s["period"] == last["code"] and s["status"] not in ("validated", "locked")
+        ]
+        if pending:
+            add("subs_not_validated", "warning", "reception", None, label, n=len(pending))
+        gaps = {g["indicator_id"] for g in svc.project.records("gap_comment") if g["period"] == last["code"]}
+        names = {i["id"]: i["name"] for i in view.entry}
+        for row in reception.track_all(view, {"period": last["code"]})["rows"]:
+            if row["status"] == "late" and row["indicator_id"] not in gaps:
+                add("gap_missing", "warning", "tracking", None, names[row["indicator_id"]], detail=label)
+        if last.get("state") != "locked":
+            add("period_open", "info", "setup", None, label)
+
     warnings = sum(1 for i in items if i["severity"] == "warning")
     items.sort(key=lambda i: i["severity"] != "warning")
     return {"items": items, "warnings": warnings, "remarks": len(items) - warnings}
