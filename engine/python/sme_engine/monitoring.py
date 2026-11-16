@@ -677,6 +677,22 @@ def track(
     }
 
 
+FREQ_MONTHS = {"monthly": 1, "quarterly": 3, "semiannual": 6, "annual": 12}
+
+
+def expected(ind: dict[str, Any], period: dict[str, Any], fiscal_start: int = 1) -> bool:
+    """Whether the indicator is reported in this period, from its collection frequency.
+
+    A quarterly indicator in a monthly calendar is expected in the months that close
+    a quarter of the financial year; one without a regular frequency, every period.
+    """
+    months = FREQ_MONTHS.get(ind.get("frequency") or "")
+    if not months:
+        return True
+    end_month = int(period["end"][5:7])
+    return (end_month - fiscal_start + 1) % months == 0
+
+
 # ----- reporting units and expected submissions --------------------------------------------
 
 

@@ -144,6 +144,12 @@ CREATE TABLE IF NOT EXISTS task (
     position    INTEGER NOT NULL,
     spec        TEXT NOT NULL            -- JSON, see agenda.py
 );
+CREATE TABLE IF NOT EXISTS quality_review (
+    id           TEXT PRIMARY KEY,
+    indicator_id TEXT NOT NULL REFERENCES indicator(id) ON DELETE CASCADE,
+    position     INTEGER NOT NULL,
+    spec         TEXT NOT NULL           -- JSON, see quality_review in reception_rpc.py
+);
 CREATE TABLE IF NOT EXISTS event (
     id          TEXT PRIMARY KEY,
     position    INTEGER NOT NULL,
@@ -237,6 +243,13 @@ class Project:
         except (OSError, sqlite3.Error):
             pass  # a copy that cannot be written must not stop the user from working
         cls._migrate(conn, version)
+        # When the project was last opened, for "what changed since"; not a change of the project.
+        with conn:
+            row = conn.execute("SELECT value FROM meta WHERE key = 'opened_at'").fetchone()
+            conn.execute(
+                "INSERT OR REPLACE INTO meta(key, value) VALUES ('previous_open', ?)", (row[0] if row else "",)
+            )
+            conn.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('opened_at', ?)", (_now(),))
         return cls(path, conn)
 
     @staticmethod
@@ -521,6 +534,7 @@ class Project:
         "justification": None,
         "task": None,
         "event": None,
+        "quality_review": "indicator_id",
     }
 
     def records(self, table: str, scope: str | None = None) -> list[dict[str, Any]]:

@@ -282,6 +282,23 @@ def derived(view: reception.View, day: str, lang: str = "fr") -> dict[str, list[
                 }
             )
 
+    # Data quality reviews more than a year old (section M7).
+    a_year_ago = (date.fromisoformat(day) - timedelta(days=365)).isoformat()
+    for ind in view.indicators:
+        reviews = view.p.records("quality_review", ind["id"])
+        if reviews and max(r["date"] for r in reviews) < a_year_ago:
+            last = max(r["date"] for r in reviews)
+            tasks.append(
+                {
+                    "id": f"auto:dqa:{ind['id']}",
+                    "auto": True,
+                    "kind": "dqa",
+                    "due": (date.fromisoformat(last) + timedelta(days=365)).isoformat(),
+                    "indicator_id": ind["id"],
+                    "indicator": ind["name"],
+                }
+            )
+
     for t in tasks:
         t["priority"] = "high" if t["due"] and t["due"] < day else ("low" if t["kind"] == "sheet" else "normal")
         t["status"] = "todo"
@@ -349,8 +366,17 @@ def today(p: Project, lang: str = "fr", day: str | None = None) -> dict[str, Any
             for r in track["rows"]
             if r["status"] == "late"
         ]
+    since = p.meta().get("previous_open", "")
+    changes = []
+    for c in reception.changes_since(view, since):
+        c["unit_name"] = _unit_name(view, c, lang)
+        per = next((x for x in view.periods if x["code"] == c["period"]), None)
+        c["label"] = (per["label_en"] if lang == "en" else per["label_fr"]) if per else c["period"]
+        changes.append(c)
     return {
         "day": day,
+        "since": since,
+        "changes": changes,
         "deadlines": deadlines[:8],
         "events": sorted(upcoming, key=lambda e: e["start"]),
         "tasks": _sort_tasks(d["tasks"] + manual),

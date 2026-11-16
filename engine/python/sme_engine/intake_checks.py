@@ -50,6 +50,7 @@ def run(
     previous: dict[str, float | None],
     disaggregations: dict[str, dict[str, Any]],
     period: dict[str, Any] | None,
+    fiscal_start: int = 1,
 ) -> list[dict[str, Any]]:
     """Alerts of one submission. `cells` is {indicator: {cats: (value, num, den)}};
     `previous` the value of the same unit in the period before, by indicator."""
@@ -60,7 +61,8 @@ def run(
         k = m.kind(ind)
         filled = {key: c for key, c in mine.items() if any(x is not None for x in c)}
         if not filled:
-            out.append(_alert(sid, "missing", "review", ind["id"]))
+            if period is None or m.expected(ind, period, fiscal_start):
+                out.append(_alert(sid, "missing", "review", ind["id"]))
             continue
         expected = cells_expected(ind, disaggregations)
         if expected and not any(key for key in filled):

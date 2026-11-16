@@ -514,6 +514,12 @@ def test_excel_template_round_trip(call, tmp_path):
     assert res["changes"] == [
         {"indicator_id": trained, "cats": {"sex": "f"}, "before": [12, None, None], "after": [15, None, None]}
     ]
+    with pytest.raises(RuntimeError, match="comment_required"):
+        call("canevas.receive", {"path": str(file), "apply": True})
+    res = call("canevas.receive", {"path": str(file), "apply": True, "reason": "Registre corrigé"})
+    assert res["revised"] and res["applied"]
+    assert call("submission.get", {"id": sub["id"]})["cells"][trained]["sex=f"][0] == 15
+    call("submission.act", {"id": sub["id"], "action": "validate"})
 
     # A line moved: refused.
     wb = load_workbook(file)
@@ -566,3 +572,131 @@ def test_workspace_agenda(call, tmp_path, monkeypatch):
         ("Atelier", "P", False),
         ("Congé", None, True),
     ]
+
+
+# ----- crosstab, quality reviews, expected indicators, changes ----------------------------------
+
+
+def test_crosstab_by_place_partner_period_and_category(call, tmp_path):
+    node = _project(call, tmp_path, reporting_by="partner_place")
+    kara = call("place.save", {"place": {"name": "Kara"}})["created"]
+    lome = call("place.save", {"place": {"name": "Lomé"}})["created"]
+    a = call("partner.save", {"partner": {"name": "ONG A", "acronym": "A", "place_ids": [kara, lome]}})["created"]
+    ind = call(
+        "indicator.save",
+        {
+            "node_id": node,
+            "indicator": {"name": "Formés", "unit": "count", "source_type": "routine", "breakdowns": ["sex"]},
+        },
+    )["saved"]
+    for period, place, f, m_ in (("T1-2026", kara, 10, 5), ("T1-2026", lome, 3, 2), ("T2-2026", kara, 4, 6)):
+        sid = call("submission.open", {"period": period, "place_id": place, "partner_id": a})["created"]
+        call(
+            "submission.save",
+            {
+                "id": sid,
+                "values": [
+                    {"indicator_id": ind, "cats": {"sex": "f"}, "value": f},
+                    {"indicator_id": ind, "cats": {"sex": "m"}, "value": m_},
+                ],
+            },
+        )
+        call("submission.act", {"id": sid, "action": "validate"})
+    out = call("tracking.crosstab", {"indicator_id": ind, "rows": "place", "cols": "sex", "period": "T2-2026"})
+    kara_row = next(r for r in out["rows"] if r["label"] == "Kara")
+    assert kara_row["values"][:2] == [14, 11] and kara_row["total"] == 25
+    assert out["col_totals"][:2] == [17, 13] and out["total"] == 30
+    by_period = call(
+        "tracking.crosstab", {"indicator_id": ind, "rows": "period", "cols": "partner", "period": "T2-2026"}
+    )
+    assert [r["values"][0] for r in by_period["rows"]] == [20, 10]
+    assert by_period["rows"][0]["total"] == 20  # one partner column plus the empty one
+    with pytest.raises(RuntimeError, match="invalid_params"):
+        call("tracking.crosstab", {"indicator_id": ind, "rows": "age"})
+
+
+def test_annual_indicator_is_expected_once_a_year(call, tmp_path):
+    node = _project(call, tmp_path)
+    call(
+        "indicator.save",
+        {
+            "node_id": node,
+            "indicator": {
+                "name": "Enquête de satisfaction",
+                "unit": "percent",
+                "source_type": "routine",
+                "frequency": "annual",
+            },
+        },
+    )
+    q = call(
+        "indicator.save",
+        {
+            "node_id": node,
+            "indicator": {"name": "Formés", "unit": "count", "source_type": "routine", "frequency": "quarterly"},
+        },
+    )["saved"]
+    sub = call("submission.open", {"period": "T1-2026"})["created"]
+    res = call("submission.save", {"id": sub, "values": [{"indicator_id": q, "value": 3}]})
+    assert [a["check"] for a in res["alerts"]] == []  # the annual one is not due in Q1
+    sub = call("submission.open", {"period": "T4-2026"})["created"]
+    res = call("submission.save", {"id": sub, "values": [{"indicator_id": q, "value": 3}]})
+    assert [a["check"] for a in res["alerts"]] == ["missing"]
+
+
+def test_quality_review_reminder_and_changes_since_last_opening(call, tmp_path):
+    node = _project(call, tmp_path)
+    ind = call(
+        "indicator.save",
+        {
+            "node_id": node,
+            "indicator": {
+                "name": "Formés",
+                "unit": "count",
+                "source_type": "routine",
+                "definition": "d",
+                "source": "s",
+                "target": 10,
+            },
+        },
+    )["saved"]
+    snap = call(
+        "quality.save",
+        {
+            "indicator_id": ind,
+            "review": {
+                "date": "2025-01-15",
+                "scores": {"validity": "met", "timeliness": "partly", "x": "met"},
+                "conclusions": "Registres incomplets à Kara",
+            },
+        },
+    )
+    review = snap["quality_reviews"][ind][0]
+    assert review["scores"] == {
+        "validity": "met",
+        "reliability": "",
+        "timeliness": "partly",
+        "precision": "",
+        "integrity": "",
+    }
+    today = call("today.project", {"today": "2026-03-01"})
+    dqa = next(t for t in today["tasks"] if t["kind"] == "dqa")
+    assert dqa["due"] == "2026-01-15" and dqa["priority"] == "high"
+    # Reopened: what was received since the last opening is listed.
+    sub = call("submission.open", {"period": "T1-2026"})["created"]
+    call("submission.save", {"id": sub, "values": [{"indicator_id": ind, "value": 3}]})
+    call("submission.act", {"id": sub, "action": "submit"})
+    path = call("project.get")["project"]["path"]
+    call("project.close")
+    call("project.open", {"path": path})
+    assert call("today.project", {})["changes"] == []  # nothing new since this opening
+    call("project.close")
+    import sqlite3 as _s
+
+    conn = _s.connect(path)
+    conn.execute("UPDATE meta SET value = '2026-01-01T00:00:00+00:00' WHERE key = 'opened_at'")
+    conn.commit()
+    conn.close()
+    call("project.open", {"path": path})
+    changes = call("today.project", {})["changes"]
+    assert [c["action"] for c in changes] == ["submit"] and changes[0]["label"] == "T1 2026"

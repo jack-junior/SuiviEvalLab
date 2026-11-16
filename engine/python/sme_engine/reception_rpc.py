@@ -26,8 +26,16 @@ def state(p: Project) -> dict[str, Any]:
         "units": view.units(),
         "gap_comments": gaps,
         "tasks": p.records("task"),
+        "quality_reviews": _by_indicator(p.records("quality_review")),
         "events": p.records("event"),
     }
+
+
+def _by_indicator(records: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    out: dict[str, list[dict[str, Any]]] = {}
+    for r in records:
+        out.setdefault(r["indicator_id"], []).append(r)
+    return out
 
 
 def submission_detail(p: Project, sub_id: Any) -> dict[str, Any]:
@@ -109,6 +117,47 @@ def register_reception(server: Server, svc: Service) -> None:
         view = rc.View(p)
         ind = p.record("indicator", params.get("indicator_id"))
         return {"values": rc.by_category(view, ind, str(params.get("key")), params)}
+
+    @server.method("tracking.crosstab")
+    def tracking_crosstab(params: dict[str, Any]) -> dict[str, Any]:
+        p = project()
+        view = rc.View(p)
+        ind = p.record("indicator", params.get("indicator_id"))
+        if not rc.is_entry(ind):
+            raise rc._err("This indicator is computed from imported data", "invalid_params")
+        return rc.crosstab(view, ind, params)
+
+    @server.method("quality.save")
+    def quality_save(params: dict[str, Any]) -> dict[str, Any]:
+        """A data quality review of an indicator: five criteria, conclusions, actions."""
+        from . import agenda
+
+        p = project()
+        ind = p.record("indicator", params.get("indicator_id"))
+        spec = params.get("review") or {}
+        if not isinstance(spec, dict):
+            raise rc._err("The review must be an object", "invalid_params")
+        scores = {}
+        for crit in ("validity", "reliability", "timeliness", "precision", "integrity"):
+            v = (spec.get("scores") or {}).get(crit)
+            scores[crit] = v if v in ("met", "partly", "not_met") else ""
+        review = {
+            "date": agenda._day(spec.get("date"), "date", required=True)[:10],
+            "scores": scores,
+            "reviewer": str(spec.get("reviewer") or "").strip()[:120],
+            "conclusions": str(spec.get("conclusions") or "").strip()[:4000],
+            "actions": str(spec.get("actions") or "").strip()[:4000],
+        }
+        if params.get("id"):
+            p.update_record("quality_review", params["id"], review)
+        else:
+            p.insert_record("quality_review", review, scope=ind["id"])
+        return svc.snapshot()
+
+    @server.method("quality.delete")
+    def quality_delete(params: dict[str, Any]) -> dict[str, Any]:
+        project().delete_record("quality_review", params.get("id"))
+        return svc.snapshot()
 
     @server.method("gap.save")
     def gap_save(params: dict[str, Any]) -> dict[str, Any]:
@@ -268,6 +317,12 @@ def register_canevas(server: Server, svc: Service) -> None:
         path = params.get("path")
         if not isinstance(path, str) or not Path(path).is_file():
             raise rc._err("No file chosen", "invalid_params")
-        result = canevas.receive(project(), path)
+        p = project()
+        result = canevas.receive(p, path)
+        if result["revision"] and params.get("apply"):
+            # A revision accepted: the validated submission is reopened with the reason,
+            # then the template's values are applied.
+            rc.act(p, result["submission_id"], "reopen", params.get("reason") or "")
+            result = {**canevas.receive(p, path), "revised": True}
         svc._results.clear()
         return {**svc.snapshot(), **result}

@@ -137,7 +137,9 @@ def alerts(view: View, sub: dict[str, Any]) -> list[dict[str, Any]]:
                 if ind["id"] in cells:
                     previous[ind["id"]] = monitoring.submission_measure(ind, cells[ind["id"]], {}).value
     period = next((p for p in view.periods if p["code"] == sub["period"]), None)
-    return intake_checks.run(sub, view.entry, view.cells(sub["id"]), previous, view.dis, period)
+    return intake_checks.run(
+        sub, view.entry, view.cells(sub["id"]), previous, view.dis, period, view.profile["fiscal_start_month"]
+    )
 
 
 def justified(p: Project) -> dict[str, dict[str, Any]]:
@@ -636,3 +638,133 @@ def migrate_routine(conn: sqlite3.Connection) -> None:
                 have_targets.add(code)
     if unplaced:
         conn.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('routine_unplaced', ?)", (json.dumps(unplaced),))
+
+
+# ----- quick crosstab (section M8) ---------------------------------------------------------------
+
+DIMENSIONS = ("period", "place", "partner")
+
+
+def crosstab(view: View, ind: dict[str, Any], params: dict[str, Any]) -> dict[str, Any]:
+    """One indicator by two dimensions: period, place (at a level), partner, or a
+    disaggregation of the indicator. Values to date at the period chosen, or by
+    period when the period is one of the dimensions; totals by the same rules."""
+
+    rows_dim = params.get("rows") or "place"
+    cols_dim = params.get("cols") or ""
+    keys_ok = set(DIMENSIONS) | set(ind.get("breakdowns") or [])
+    for d in (rows_dim, cols_dim):
+        if d and d not in keys_ok:
+            raise _err(f"Unknown dimension: {d}", "invalid_params")
+    day = params.get("today") or today()
+    upto = monitoring.selected_period(view.periods, params.get("period"), day) if view.periods else 0
+    periods = view.periods[: upto + 1]
+    level = int(params.get("place_level") or 0)
+    by_place = {p["id"]: p for p in view.places}
+
+    def place_at(pid: str) -> str:
+        p = by_place.get(pid)
+        while p is not None and p["level"] > level and p.get("parent_id"):
+            p = by_place.get(p["parent_id"])
+        return p["id"] if p is not None and p["level"] == level else ""
+
+    scope = scope_from(params, view)
+    cells_of = monitoring.read_values(view.p.conn, [ind["id"]])
+    codes = {p["code"] for p in periods}
+
+    def labels(dim: str) -> list[tuple[str, str]]:
+        lang = "en" if params.get("lang") == "en" else "fr"
+        if dim == "period":
+            return [(p["code"], p["label_en"] if lang == "en" else p["label_fr"]) for p in periods]
+        if dim == "place":
+            return [(p["id"], p["name"]) for p in view.places if p["level"] == level] + [("", "-")]
+        if dim == "partner":
+            return [(p["id"], p.get("acronym") or p["name"]) for p in view.partners] + [("", "-")]
+        if dim == "":
+            return [("*", "")]
+        dis = view.dis[dim]
+        out = [(c["code"], c["en"] if lang == "en" else c["fr"]) for c in dis["categories"]]
+        return out + [("_na", "Not specified" if lang == "en" else "Non précisé")]
+
+    def key_of(dim: str, sub: dict[str, Any], period: str) -> str | None:
+        if dim == "period":
+            return period
+        if dim == "place":
+            return place_at(sub.get("place_id", ""))
+        if dim == "partner":
+            return sub.get("partner_id", "")
+        return "*"
+
+    # {(row, col): {period: [measures of submissions]}}
+    grid: dict[tuple[str, str], dict[str, list[monitoring.Measure]]] = {}
+    for (_ind, period, sub_id), cells in cells_of.items():
+        sub = view.subs.get(sub_id)
+        if period not in codes or sub is None or not monitoring.counted(sub, scope):
+            continue
+        if scope.partner_id is not None and sub.get("partner_id", "") != scope.partner_id:
+            continue
+        if scope.place_ids is not None and sub.get("place_id", "") not in scope.place_ids:
+            continue
+        r_values = [c for c, _ in labels(rows_dim)] if rows_dim in view.dis else [key_of(rows_dim, sub, period)]
+        c_values = [c for c, _ in labels(cols_dim)] if cols_dim in view.dis else [key_of(cols_dim, sub, period)]
+        for r in r_values:
+            for c in c_values:
+                want = dict(scope.cats)
+                if rows_dim in view.dis:
+                    want[rows_dim] = r
+                if cols_dim in view.dis:
+                    want[cols_dim] = c
+                m = monitoring.submission_measure(ind, cells, want)
+                if m.ok or m.num is not None:
+                    grid.setdefault((r, c), {}).setdefault(period, []).append(m)
+
+    def value(parts: dict[str, list[monitoring.Measure]]) -> float | None:
+        # A cell of one period holds that period only; elsewhere, the value to date.
+        series = [monitoring.combine(ind, parts.get(p["code"], [])) for p in periods]
+        return monitoring.over_time(ind, series).value
+
+    def merge(items: list[dict[str, list[monitoring.Measure]]]) -> dict[str, list[monitoring.Measure]]:
+        out: dict[str, list[monitoring.Measure]] = {}
+        for it in items:
+            for k, v in it.items():
+                out.setdefault(k, []).extend(v)
+        return out
+
+    rows = labels(rows_dim)
+    cols = labels(cols_dim)
+    table = []
+    for r, r_label in rows:
+        line = [value(grid.get((r, c), {})) for c, _ in cols]
+        total = value(merge([grid.get((r, c), {}) for c, _ in cols])) if len(cols) > 1 else None
+        table.append({"key": r, "label": r_label, "values": line, "total": total})
+    col_totals = [value(merge([grid.get((r, c), {}) for r, _ in rows])) for c, _ in cols]
+    return {
+        "rows": table,
+        "cols": [{"key": c, "label": label} for c, label in cols],
+        "col_totals": col_totals,
+        "period": periods[-1]["code"] if periods else None,
+        # Breakdowns overlap when both dimensions are the same disaggregation; no grand total then.
+        "total": value(merge(list(grid.values()))) if rows_dim not in view.dis or cols_dim not in view.dis else None,
+    }
+
+
+def changes_since(view: View, since: str) -> list[dict[str, Any]]:
+    """What happened to submissions since a date: received, sent back, validated, reopened."""
+    if not since:
+        return []
+    out = []
+    for s in view.subs.values():
+        for h in s.get("history", []):
+            if h["at"] > since and h["action"] in ("submit", "return", "validate", "reopen", "unlock"):
+                out.append(
+                    {
+                        "submission_id": s["id"],
+                        "period": s["period"],
+                        "place_id": s.get("place_id", ""),
+                        "partner_id": s.get("partner_id", ""),
+                        "action": h["action"],
+                        "at": h["at"],
+                        "channel": s.get("channel"),
+                    }
+                )
+    return sorted(out, key=lambda c: c["at"], reverse=True)[:50]
