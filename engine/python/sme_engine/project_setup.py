@@ -259,7 +259,61 @@ def register_setup(server: Server, svc: Service) -> None:
     def ws_summaries(params: dict[str, Any]) -> dict[str, Any]:
         from . import workspace
 
-        return {"projects": workspace.summaries(params.get("paths"), params.get("today"))}
+        lang = "en" if params.get("lang") == "en" else "fr"
+        return {"projects": workspace.summaries(params.get("paths"), params.get("today"), lang)}
+
+    @server.method("personal.get")
+    def personal_get(_: dict[str, Any]) -> dict[str, Any]:
+        from . import workspace
+
+        return workspace.personal_load()
+
+    @server.method("personal.task_save")
+    def personal_task(params: dict[str, Any]) -> dict[str, Any]:
+        import uuid
+
+        from . import agenda, workspace
+
+        data = workspace.personal_load()
+        own = params.get("id")
+        current = next((t for t in data["tasks"] if t.get("id") == own), None) if own else None
+        if params.get("delete"):
+            data["tasks"] = [t for t in data["tasks"] if t.get("id") != own]
+        else:
+            spec = {**agenda.validate_task(params.get("task"), current), "id": own or uuid.uuid4().hex}
+            data["tasks"] = (
+                [spec if t.get("id") == own else t for t in data["tasks"]]
+                if current
+                else [
+                    *data["tasks"],
+                    spec,
+                ]
+            )
+            if current and spec["status"] == "done" and current.get("status") != "done":
+                nxt = agenda.next_occurrence(spec)
+                if nxt:
+                    data["tasks"].append({**nxt, "id": uuid.uuid4().hex})
+        workspace.personal_save(data)
+        return data
+
+    @server.method("personal.event_save")
+    def personal_event(params: dict[str, Any]) -> dict[str, Any]:
+        import uuid
+
+        from . import agenda, workspace
+
+        data = workspace.personal_load()
+        own = params.get("id")
+        if params.get("delete"):
+            data["events"] = [e for e in data["events"] if e.get("id") != own]
+        else:
+            spec = {**agenda.validate_event(params.get("event")), "id": own or uuid.uuid4().hex}
+            if own and any(e.get("id") == own for e in data["events"]):
+                data["events"] = [spec if e.get("id") == own else e for e in data["events"]]
+            else:
+                data["events"].append(spec)
+        workspace.personal_save(data)
+        return data
 
     # Indicator library
     @server.method("library.sectors")

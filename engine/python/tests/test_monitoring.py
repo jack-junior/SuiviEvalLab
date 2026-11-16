@@ -445,3 +445,111 @@ def test_manual_tasks_events_and_calendar_files(call, tmp_path):
     mission = next(e for e in snap["events"] if "Mission" in e["title"])
     assert mission["start"] == "2026-02-10" and mission["end"] == "2026-02-12" and mission["place"] == "Kara"
     assert any(e["start"] == "2026-03-30T09:00" for e in snap["events"])
+
+
+# ----- Excel templates ----------------------------------------------------------------------------
+
+
+def test_excel_template_round_trip(call, tmp_path):
+    from openpyxl import load_workbook
+
+    node = _project(call, tmp_path, reporting_by="partner")
+    a = call("partner.save", {"partner": {"name": "ONG Lumière", "acronym": "OL"}})["created"]
+    call("partner.save", {"partner": {"name": "ONG Espoir"}})
+    trained = call(
+        "indicator.save",
+        {
+            "node_id": node,
+            "indicator": {"name": "Formés", "unit": "count", "source_type": "routine", "breakdowns": ["sex"]},
+        },
+    )["saved"]
+    cover = call(
+        "indicator.save",
+        {"node_id": node, "indicator": {"name": "Couverture", "unit": "percent", "source_type": "routine"}},
+    )["saved"]
+    done = call(
+        "indicator.save",
+        {"node_id": node, "indicator": {"name": "Comité créé", "unit": "milestone", "source_type": "routine"}},
+    )["saved"]
+    folder = tmp_path / "out"
+    folder.mkdir()
+    out = call("canevas.write", {"path": str(folder), "period": "T1-2026"})
+    assert sorted(out["files"]) == ["T1-2026-OL.xlsx", "T1-2026-ONG-Espoir.xlsx"]
+    file = folder / "T1-2026-OL.xlsx"
+    wb = load_workbook(file)
+    ws = wb["Saisie"]
+    assert ws.protection.sheet and wb["_sme"].sheet_state == "hidden"
+    # Lines: Formés by sex (women, men, not specified), coverage, milestone.
+    assert [ws.cell(row=9 + i, column=3).value for i in range(5)] == [
+        "Femme",
+        "Homme",
+        "Non précisé",
+        "Total",
+        "Total",
+    ]
+    ws.cell(row=9, column=4).value = 12
+    ws.cell(row=10, column=4).value = 8
+    ws.cell(row=12, column=5).value = 45
+    ws.cell(row=12, column=6).value = 60
+    ws.cell(row=13, column=4).value = "Fait"
+    ws.cell(row=15, column=2).value = "Registres des centres, mars 2026"
+    wb.save(file)
+
+    res = call("canevas.receive", {"path": str(file)})
+    assert res["applied"] and res["saved"] == 4
+    sub = next(s for s in res["submissions"] if s["partner_id"] == a)
+    assert sub["status"] == "submitted" and sub["channel"] == "excel"
+    assert sub["source_ref"] == "Registres des centres, mars 2026"
+    detail = call("submission.get", {"id": sub["id"]})
+    assert detail["cells"][trained]["sex=f"][0] == 12 and detail["cells"][cover][""][0] == pytest.approx(0.75)
+    assert detail["cells"][done][""][0] == 1
+
+    # Sent back again once validated: a revision, shown, not applied.
+    call("submission.act", {"id": sub["id"], "action": "validate"})
+    wb = load_workbook(file)
+    wb["Saisie"].cell(row=9, column=4).value = 15
+    wb.save(file)
+    res = call("canevas.receive", {"path": str(file)})
+    assert res["revision"] and not res["applied"]
+    assert res["changes"] == [
+        {"indicator_id": trained, "cats": {"sex": "f"}, "before": [12, None, None], "after": [15, None, None]}
+    ]
+
+    # A line moved: refused.
+    wb = load_workbook(file)
+    ws = wb["Saisie"]
+    ws.cell(row=9, column=2).value, ws.cell(row=12, column=2).value = "Couverture", "Formés"
+    wb.save(file)
+    with pytest.raises(RuntimeError, match="canevas_changed"):
+        call("canevas.receive", {"path": str(file)})
+    # A new indicator since: the template is outdated.
+    call(
+        "indicator.save", {"node_id": node, "indicator": {"name": "Nouveau", "unit": "count", "source_type": "routine"}}
+    )
+    with pytest.raises(RuntimeError, match="canevas_outdated"):
+        call("canevas.receive", {"path": str(folder / "T1-2026-ONG-Espoir.xlsx")})
+    # Another project's template.
+    call("project.create", {"path": str(tmp_path / "other.sme"), "name": "Autre"})
+    with pytest.raises(RuntimeError, match="canevas_other_project"):
+        call("canevas.receive", {"path": str(file)})
+
+
+def test_workspace_today_and_personal_items(call, tmp_path, monkeypatch):
+    monkeypatch.setenv("SME_TRUST_DIR", str(tmp_path / "home"))
+    node = _project(call, tmp_path)
+    call(
+        "indicator.save", {"node_id": node, "indicator": {"name": "Formés", "unit": "count", "source_type": "routine"}}
+    )
+    path = call("project.get")["project"]["path"]
+    out = call("workspace.summaries", {"paths": [path], "today": "2026-04-12"})["projects"][0]
+    kinds = sorted(t["kind"] for t in out["today"]["tasks"])
+    assert kinds == ["chase", "report", "sheet"]
+    data = call("personal.task_save", {"task": {"title": "Préparer la mission", "due": "2026-04-20"}})
+    assert data["tasks"][0]["title"] == "Préparer la mission"
+    tid = data["tasks"][0]["id"]
+    data = call("personal.task_save", {"id": tid, "task": {**data["tasks"][0], "status": "done"}})
+    assert data["tasks"][0]["status"] == "done"
+    data = call("personal.event_save", {"event": {"title": "Congé", "kind": "absence", "start": "2026-05-01"}})
+    assert call("personal.get")["events"][0]["title"] == "Congé"
+    data = call("personal.task_save", {"id": tid, "delete": True})
+    assert data["tasks"] == []

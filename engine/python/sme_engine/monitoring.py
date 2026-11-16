@@ -99,6 +99,15 @@ CREATE TABLE IF NOT EXISTS value (
 );
 CREATE INDEX IF NOT EXISTS value_indicator ON value(indicator_id, period);
 CREATE INDEX IF NOT EXISTS value_submission ON value(submission_id);
+CREATE INDEX IF NOT EXISTS value_period ON value(period);
+-- Measures of one period, kept until a submission of that period changes.
+CREATE TABLE IF NOT EXISTS measure_cache (
+    scope   TEXT NOT NULL,
+    period  TEXT NOT NULL,
+    rev     TEXT NOT NULL,
+    data    TEXT NOT NULL,
+    PRIMARY KEY (scope, period)
+);
 """
 
 
@@ -308,6 +317,179 @@ def period_measures(
     return out
 
 
+_SUB_LEVEL = """
+SELECT x.indicator_id AS ind, x.period AS period, x.submission_id AS sub,
+  MAX(x.submission_id IN (SELECT value FROM json_each(?))) AS prov,
+  CASE WHEN MAX(x.cats = '') THEN SUM(CASE WHEN x.cats = '' THEN x.value END) ELSE SUM(x.value) END AS v,
+  CASE WHEN MAX(x.cats = '') THEN SUM(CASE WHEN x.cats = '' THEN x.numerator END) ELSE SUM(x.numerator) END AS num,
+  CASE WHEN MAX(x.cats = '') THEN SUM(CASE WHEN x.cats = '' THEN x.denominator END)
+       ELSE SUM(x.denominator) END AS den,
+  CASE WHEN MAX(x.cats = '')
+       THEN SUM(CASE WHEN x.cats = '' AND x.numerator IS NOT NULL AND x.denominator IS NOT NULL THEN 1 ELSE 0 END)
+       ELSE COUNT(*) = COUNT(x.numerator) AND COUNT(*) = COUNT(x.denominator) END AS complete,
+  CASE WHEN MAX(x.cats = '') THEN SUM(CASE WHEN x.cats = '' AND x.denominator IS NOT NULL THEN 1 ELSE 0 END)
+       ELSE COUNT(*) = COUNT(x.denominator) END AS weighted,
+  CASE WHEN MAX(x.cats = '') THEN SUM(CASE WHEN x.cats = '' THEN x.value * x.denominator END)
+       ELSE SUM(x.value * x.denominator) END AS vw,
+  CASE WHEN MAX(x.cats = '') THEN MIN(CASE WHEN x.cats = '' THEN x.value END) ELSE MIN(x.value) END AS vmin,
+  CASE WHEN MAX(x.cats = '') THEN MAX(CASE WHEN x.cats = '' THEN x.value END) ELSE MAX(x.value) END AS vmax,
+  CASE WHEN MAX(x.cats = '') THEN 1 ELSE COUNT(*) END AS n
+FROM value x
+WHERE x.submission_id IN (SELECT value FROM json_each(?)) AND {where}
+GROUP BY x.indicator_id, x.period, x.submission_id
+"""
+
+_PERIOD_LEVEL = """
+SELECT ind, period, COUNT(*), MAX(prov), SUM(v), SUM(num), SUM(den), MIN(complete), MIN(weighted),
+       SUM(vw), MIN(vmin), MAX(vmax), SUM(n)
+FROM ({sub}) GROUP BY ind, period
+"""
+
+
+def measures_sql(
+    conn: sqlite3.Connection,
+    inds: list[dict[str, Any]],
+    subs: dict[str, dict[str, Any]],
+    scope: Scope,
+    period: str | None = None,
+) -> dict[str, dict[str, tuple[Measure, bool]]]:
+    """{indicator: {period: (measure, provisional)}} computed by SQLite.
+
+    The same rules as `submission_measure` then `combine`, done in two grouped
+    queries so that a project of hundreds of indicators, sites and periods is
+    read in a fraction of a second.
+    """
+    if not inds:
+        return {}
+    counted_subs = {}
+    for sid, sub in subs.items():
+        if not counted(sub, scope):
+            continue
+        if scope.partner_id is not None and sub.get("partner_id", "") != scope.partner_id:
+            continue
+        if scope.place_ids is not None and sub.get("place_id", "") not in scope.place_ids:
+            continue
+        counted_subs[sid] = 0 if sub["status"] in ("validated", "locked") else 1
+    if not counted_subs:
+        return {}
+    import json as _json
+
+    where = [f"x.indicator_id IN ({','.join('?' * len(inds))})"]
+    provisional = [sid for sid, prov in counted_subs.items() if prov]
+    args: list[Any] = [_json.dumps(provisional), _json.dumps(list(counted_subs)), *[i["id"] for i in inds]]
+    if period is not None:
+        where.append("x.period = ?")
+        args.append(period)
+    if scope.cats:
+        where.append("x.cats <> ''")
+        for k, v in scope.cats.items():
+            where.append("(';' || x.cats || ';') LIKE ?")
+            args.append(f"%;{k}={v};%")
+    sql = _PERIOD_LEVEL.format(sub=_SUB_LEVEL.format(where=" AND ".join(where)))
+    by_id = {i["id"]: i for i in inds}
+    out: dict[str, dict[str, tuple[Measure, bool]]] = {}
+    for ind_id, period, n_subs, prov, sv, snum, sden, allc, allw, svw, vmin, vmax, rows in conn.execute(sql, args):
+        ind = by_id[ind_id]
+        k = kind(ind)
+        single = n_subs == 1 and rows == 1
+        if k == "count":
+            m = Measure(sv, n=n_subs) if sv is not None else Measure(None, reason="no_data")
+        elif k == "fraction":
+            if allc and sden:
+                m = Measure(snum / sden * multiplier(ind), snum, sden, n_subs)
+            elif allc:
+                m = Measure(None, snum, sden, n_subs)
+            elif single:
+                m = Measure(vmax, snum, sden)
+            else:
+                m = Measure(None, reason="no_denominator", n=n_subs)
+        elif k == "mean":
+            if allw and sden:
+                m = Measure(svw / sden, None, sden, n_subs)
+            elif single:
+                m = Measure(vmax)
+            else:
+                m = Measure(None, reason="no_weights", n=n_subs)
+        elif k == "milestone":
+            m = Measure(None if vmin is None else (1.0 if vmin == 1 else 0.0), n=n_subs)
+        else:
+            m = Measure(vmax) if single else Measure(None, reason="not_additive", n=n_subs)
+        out.setdefault(ind_id, {})[period] = (m, bool(prov))
+    return out
+
+
+def _pack(measures: dict[str, dict[str, tuple[Measure, bool]]], period: str) -> str:
+    import json as _json
+
+    return _json.dumps(
+        {
+            ind: [m.value, m.num, m.den, m.n, m.reason, prov]
+            for ind, by_period in measures.items()
+            for per, (m, prov) in by_period.items()
+            if per == period
+        }
+    )
+
+
+def _unpack(data: str) -> dict[str, tuple[Measure, bool]]:
+    import json as _json
+
+    return {
+        ind: (Measure(v, num, den, n, reason), prov)
+        for ind, (v, num, den, n, reason, prov) in _json.loads(data).items()
+    }
+
+
+def signature(inds: list[dict[str, Any]]) -> str:
+    """What the measures depend on in the indicators: their type and multiplier."""
+    import hashlib
+
+    raw = "|".join(f"{i['id']}:{i.get('unit')}:{multiplier(i)}" for i in sorted(inds, key=lambda i: i["id"]))
+    return hashlib.sha1(raw.encode()).hexdigest()[:16]
+
+
+def measures_cached(
+    conn: sqlite3.Connection,
+    inds: list[dict[str, Any]],
+    subs: dict[str, dict[str, Any]],
+    scope: Scope,
+    periods: list[str],
+    revs: dict[str, str],
+) -> dict[str, dict[str, tuple[Measure, bool]]]:
+    """measures_sql, period by period, reusing what was computed while the period did
+    not change. Only the whole-project scopes are kept (validated, or provisional)."""
+    if scope.place_ids is not None or scope.partner_id is not None or scope.cats:
+        return measures_sql(conn, inds, subs, scope)
+    key = "provisional" if scope.provisional else "validated"
+    sig = signature(inds)
+    stored = {
+        period: (rev, data)
+        for period, rev, data in conn.execute("SELECT period, rev, data FROM measure_cache WHERE scope = ?", (key,))
+    }
+    out: dict[str, dict[str, tuple[Measure, bool]]] = {}
+    fresh: list[tuple[str, str, str, str]] = []
+    for period in periods:
+        rev = f"{revs.get(period, '0')}:{sig}"
+        hit = stored.get(period)
+        if hit and hit[0] == rev:
+            got = _unpack(hit[1])
+        else:
+            computed = measures_sql(conn, inds, subs, scope, period)
+            fresh.append((key, period, rev, _pack(computed, period)))
+            got = {ind: by[period] for ind, by in computed.items() if period in by}
+        for ind, item in got.items():
+            out.setdefault(ind, {})[period] = item
+    if fresh:
+        try:
+            with conn:
+                conn.executemany(
+                    "INSERT OR REPLACE INTO measure_cache(scope, period, rev, data) VALUES (?, ?, ?, ?)", fresh
+                )
+        except sqlite3.Error:
+            pass  # read-only: the workspace reads projects without writing to them
+    return out
+
+
 # ----- targets, achievement, status -------------------------------------------------------
 
 
@@ -437,10 +619,13 @@ def track(
     upto: int,
     today: str,
     threshold: float = ON_TRACK,
+    measures: dict[str, tuple[Measure, bool]] | None = None,
 ) -> dict[str, Any]:
-    """One row of the tracking table, with the series by period."""
+    """One row of the tracking table, with the series by period. `measures` are the
+    values by period already computed (measures_sql); else they are read from `values`."""
     codes = [p["code"] for p in periods]
-    measures = period_measures(ind, codes, subs, values, scope)
+    if measures is None:
+        measures = period_measures(ind, codes, subs, values, scope)
     series = []
     running: list[Measure] = []
     prev_value = None

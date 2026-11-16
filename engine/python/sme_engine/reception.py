@@ -94,11 +94,29 @@ class View:
         return monitoring.units(self.profile, self.places, self.partners)
 
     def cells(self, sub_id: str) -> dict[str, dict[str, tuple]]:
+        """{indicator: {cats: (value, numerator, denominator)}} of one submission."""
         out: dict[str, dict[str, tuple]] = {}
-        for (ind_id, _period, sid), cells in self.values.items():
-            if sid == sub_id:
-                out[ind_id] = cells
+        rows = self.p.conn.execute(
+            "SELECT indicator_id, cats, value, numerator, denominator FROM value WHERE submission_id = ?", (sub_id,)
+        )
+        for ind_id, cats, v, num, den in rows:
+            out.setdefault(ind_id, {})[cats] = (v, num, den)
         return out
+
+    def measures(self, scope: Scope, inds: list[dict[str, Any]] | None = None) -> dict[str, dict[str, tuple]]:
+        if inds is not None:
+            return monitoring.measures_sql(self.p.conn, inds, self.subs, scope)
+        meta = self.p.meta()
+        revs = {p["code"]: meta.get(f"rev:{p['code']}", "0") for p in self.periods}
+        return monitoring.measures_cached(
+            self.p.conn, self.entry, self.subs, scope, [p["code"] for p in self.periods], revs
+        )
+
+
+def bump(p: Project, period: str) -> None:
+    """A submission of the period changed: its cached measures are stale."""
+    rev = int(p.meta().get(f"rev:{period}", "0") or 0) + 1
+    p.set_meta(f"rev:{period}", str(rev))
 
 
 def find(view: View, period: str, place_id: str, partner_id: str) -> dict[str, Any] | None:
@@ -224,9 +242,8 @@ def save_values(p: Project, sub_id: Any, items: Any, source_ref: Any = None) -> 
         )
     if source_ref is not None:
         sub["source_ref"] = str(source_ref).strip()[:500]
-    if sub["status"] == "returned":
-        pass  # stays returned until submitted again
     p.update_record("submission", sub["id"], sub)
+    bump(p, sub["period"])
     return len(rows)
 
 
@@ -265,6 +282,7 @@ def act(p: Project, sub_id: Any, action: Any, comment: Any = "") -> dict[str, An
     sub["status"] = new
     sub["history"] = _history(sub, action, comment)
     p.update_record("submission", sub["id"], sub)
+    bump(p, sub["period"])
     return sub
 
 
@@ -288,6 +306,7 @@ def lock_period(p: Project, period: dict[str, Any], lock: bool, reason: str = ""
                 s["status"] = "validated"
                 s["history"] = _history(s, "unlock", reason)
                 p.update_record("submission", s["id"], s)
+    bump(p, period["code"])
     period["state"] = "locked" if lock else "open"
     period["history"] = [
         *period.get("history", []),
@@ -303,6 +322,7 @@ def delete_submission(p: Project, sub_id: Any) -> None:
     with p.conn:
         p.conn.execute("DELETE FROM value WHERE submission_id = ?", (sub["id"],))
     p.delete_record("submission", sub["id"])
+    bump(p, sub["period"])
 
 
 # ----- tracking table --------------------------------------------------------------------
@@ -332,11 +352,20 @@ def threshold(view: View) -> float:
 
 def track_all(view: View, params: dict[str, Any] | None = None) -> dict[str, Any]:
     params = params or {}
+    key = json.dumps(params, sort_keys=True, default=str)
+    cache = view.__dict__.setdefault("_track", {})
+    if key not in cache:
+        cache[key] = _track_all(view, params)
+    return cache[key]
+
+
+def _track_all(view: View, params: dict[str, Any]) -> dict[str, Any]:
     day = params.get("today") or today()
     if not view.periods:
         return {"period": None, "rows": [], "periods": []}
     upto = monitoring.selected_period(view.periods, params.get("period"), day)
     scope = scope_from(params, view)
+    measures = view.measures(scope)
     rows = []
     for ind in view.entry:
         rows.append(
@@ -344,13 +373,14 @@ def track_all(view: View, params: dict[str, Any] | None = None) -> dict[str, Any
                 ind,
                 view.periods,
                 view.subs,
-                view.values,
+                {},
                 view.targets.get(ind["id"], {}),
                 view.profile,
                 scope,
                 upto,
                 day,
                 threshold(view),
+                measures.get(ind["id"], {}),
             )
         )
     return {"period": view.periods[upto]["code"], "rows": rows}
@@ -366,7 +396,8 @@ def by_category(view: View, ind: dict[str, Any], key: str, params: dict[str, Any
     out = {}
     for code in [c["code"] for c in dis["categories"]] + ["_na"]:
         scope = scope_from({**params, "cats": {key: code}}, view)
-        row = monitoring.track(ind, view.periods, view.subs, view.values, {}, view.profile, scope, upto, day)
+        measures = view.measures(scope, [ind]).get(ind["id"], {})
+        row = monitoring.track(ind, view.periods, view.subs, {}, {}, view.profile, scope, upto, day, measures=measures)
         out[code] = row["to_date"]
     return out
 

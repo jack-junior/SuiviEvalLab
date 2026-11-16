@@ -201,7 +201,13 @@ class Project:
             now = _now()
             conn.executemany(
                 "INSERT INTO meta(key, value) VALUES (?, ?)",
-                [("name", name), ("created_at", now), ("updated_at", now), ("app_schema", str(SCHEMA_VERSION))],
+                [
+                    ("name", name),
+                    ("created_at", now),
+                    ("updated_at", now),
+                    ("app_schema", str(SCHEMA_VERSION)),
+                    ("uid", uuid.uuid4().hex),
+                ],
             )
             if model:
                 conn.execute("INSERT INTO meta(key, value) VALUES ('framework_model', ?)", (json.dumps(model),))
@@ -266,6 +272,8 @@ class Project:
                 # 1.0: submissions and their values, gap comments, justifications,
                 # tasks and events. Routine values of 0.4 and 0.5 move into submissions.
                 conn.executescript(_V6_SCHEMA)
+                # A lasting identity, written into the Excel templates sent to partners.
+                conn.execute("INSERT OR IGNORE INTO meta(key, value) VALUES ('uid', ?)", (uuid.uuid4().hex,))
                 from .reception import migrate_routine
 
                 migrate_routine(conn)

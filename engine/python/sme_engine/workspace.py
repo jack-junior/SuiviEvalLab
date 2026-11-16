@@ -29,7 +29,21 @@ def _count(conn: sqlite3.Connection, tables: set[str], table: str) -> int:
     return conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] if table in tables else 0
 
 
-def summary(path: str, today: str | None = None) -> dict[str, Any]:
+def _today(conn: sqlite3.Connection, file: Path, day: str, lang: str) -> dict[str, Any] | None:
+    """What the project has to do today, read without changing the file."""
+    from . import agenda
+    from .project import Project
+
+    conn.row_factory = sqlite3.Row
+    try:
+        return agenda.today(Project(file, conn), lang, day)
+    except (sqlite3.Error, KeyError, ValueError):
+        return None
+    finally:
+        conn.row_factory = None
+
+
+def summary(path: str, today: str | None = None, lang: str = "fr") -> dict[str, Any]:
     day = today or date.today().isoformat()
     file = Path(path)
     if not file.is_file():
@@ -62,8 +76,10 @@ def summary(path: str, today: str | None = None) -> dict[str, Any]:
             total = (date.fromisoformat(profile["end"]) - date.fromisoformat(profile["start"])).days
             done = (date.fromisoformat(day) - date.fromisoformat(profile["start"])).days
             progress = min(max(done / total, 0.0), 1.0)
+        todo = _today(conn, file, day, lang) if version == SCHEMA_VERSION else None
         return {
             "path": path,
+            "today": todo,
             "state": "ok" if version == SCHEMA_VERSION else "older",
             "name": meta.get("name", file.stem),
             "updated_at": meta.get("updated_at"),
@@ -109,7 +125,33 @@ def summary(path: str, today: str | None = None) -> dict[str, Any]:
         conn.close()
 
 
-def summaries(paths: Any, today: str | None = None) -> list[dict[str, Any]]:
+def summaries(paths: Any, today: str | None = None, lang: str = "fr") -> list[dict[str, Any]]:
     if not isinstance(paths, list):
         return []
-    return [summary(p, today) for p in paths[:200] if isinstance(p, str)]
+    return [summary(p, today, lang) for p in paths[:200] if isinstance(p, str)]
+
+
+# ----- personal tasks and events, outside any project ------------------------------------------
+
+
+def personal_path() -> Path:
+    from . import trust
+
+    return trust.path().parent / "workspace.json"
+
+
+def personal_load() -> dict[str, Any]:
+    file = personal_path()
+    try:
+        data = json.loads(file.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        data = {}
+    return {"tasks": list(data.get("tasks") or []), "events": list(data.get("events") or [])}
+
+
+def personal_save(data: dict[str, Any]) -> None:
+    file = personal_path()
+    file.parent.mkdir(parents=True, exist_ok=True)
+    tmp = file.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    tmp.replace(file)  # never a half-written file

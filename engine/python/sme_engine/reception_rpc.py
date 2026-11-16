@@ -219,3 +219,55 @@ def register_agenda(server: Server, svc: Service) -> None:
         for e in events:
             p.insert_record("event", agenda.validate_event(e))
         return {**svc.snapshot(), "imported": len(events)}
+
+
+# ----- Excel templates ------------------------------------------------------------------------------
+
+
+def register_canevas(server: Server, svc: Service) -> None:
+    import re
+    from pathlib import Path
+
+    from . import canevas
+
+    def project() -> Project:
+        return svc.project
+
+    def titles() -> dict[str, str]:
+        return {n["id"]: f"{n.get('code') or ''} {n['title']}".strip() for n in svc.snapshot()["framework"]}
+
+    @server.method("canevas.write")
+    def canevas_write(params: dict[str, Any]) -> dict[str, Any]:
+        """One template, or one per reporting unit when a folder is given."""
+        p = project()
+        view = rc.View(p, svc.ordered_indicators())
+        lang = "en" if params.get("lang") == "en" else "fr"
+        period = params.get("period")
+        view.period(period)
+        path = params.get("path")
+        if not isinstance(path, str):
+            raise rc._err("No file chosen", "invalid_params")
+        target = Path(path)
+        names = titles()
+        if target.is_dir():
+            from .agenda import _unit_name
+
+            written = []
+            for u in view.units():
+                name = _unit_name(view, u, lang)
+                safe = re.sub(r"[^\w\-]+", "-", f"{period}-{name}", flags=re.UNICODE).strip("-")[:80]
+                file = target / f"{safe}.xlsx"
+                canevas.write(view, period, u["place_id"], u["partner_id"], file, lang, names)
+                written.append(file.name)
+            return {"files": written, "folder": str(target)}
+        canevas.write(view, period, params.get("place_id") or "", params.get("partner_id") or "", target, lang, names)
+        return {"files": [target.name], "folder": str(target.parent)}
+
+    @server.method("canevas.receive")
+    def canevas_receive(params: dict[str, Any]) -> dict[str, Any]:
+        path = params.get("path")
+        if not isinstance(path, str) or not Path(path).is_file():
+            raise rc._err("No file chosen", "invalid_params")
+        result = canevas.receive(project(), path)
+        svc._results.clear()
+        return {**svc.snapshot(), **result}
