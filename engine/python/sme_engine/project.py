@@ -22,7 +22,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from . import frameworks, monitoring
+from . import frameworks, monitoring, registers
 from .rpc import INVALID_PARAMS, RpcError
 
 APPLICATION_ID = 0x534D4531  # "SME1": marks a file as a SuiviEvalLab project
@@ -162,6 +162,7 @@ CREATE TABLE IF NOT EXISTS event (
 );
 """
     + monitoring.SCHEMA
+    + registers.SCHEMA
 )
 
 
@@ -552,6 +553,7 @@ class Project:
         "event": None,
         "quality_review": "indicator_id",
         "connection": None,
+        **{t: None for t in registers.TABLES},
     }
 
     def records(self, table: str, scope: str | None = None) -> list[dict[str, Any]]:

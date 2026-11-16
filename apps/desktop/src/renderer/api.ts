@@ -502,6 +502,268 @@ export interface Snapshot {
   events: AgendaEvent[];
   quality_reviews: Record<string, QualityReview[]>;
   connections: Connection[];
+  activities: Activity[];
+  budget_lines: BudgetLine[];
+  expenses: Expense[];
+  workplan: WorkplanSummary;
+  feedback: Feedback[];
+  feedback_categories: FeedbackCategory[];
+  recommendations: Recommendation[];
+  risks: Risk[];
+  learning_questions: LearningQuestion[];
+  lessons: Lesson[];
+  meetings: Meeting[];
+  evaluations: Evaluation[];
+  qual_notes: QualNote[];
+  qual_themes: QualTheme[];
+}
+
+// ----- M9 work plan and budget -----
+
+export const ACTIVITY_STATES = ["not_started", "in_progress", "done", "postponed", "cancelled"] as const;
+export type ActivityState = (typeof ACTIVITY_STATES)[number];
+export const ME_KINDS = ["collection", "dqa", "review", "evaluation", "mission", "other"] as const;
+export interface Activity {
+  id: string;
+  title: string;
+  code: string;
+  family: "project" | "me";
+  me_kind: string;
+  node_id: string | null;
+  parent_id: string | null;
+  start: string;
+  end: string;
+  actual_start: string;
+  actual_end: string;
+  status: ActivityState;
+  progress: number;
+  responsible: string;
+  place_ids: string[];
+  partner_id: string | null;
+  milestone: boolean;
+  comment: string;
+  origin: string;
+  /** Worked out by the engine. */
+  expected: number | null;
+  late: "" | "late_end" | "late_start";
+  derived?: boolean;
+}
+export interface BudgetLine {
+  id: string;
+  code: string;
+  name: string;
+  activity_id: string | null;
+  planned: Record<string, number>;
+  note: string;
+}
+export interface Expense {
+  id: string;
+  line_id: string;
+  date: string;
+  amount: number;
+  label: string;
+  ref: string;
+}
+export interface BudgetSummary {
+  lines: {
+    line_id: string;
+    planned: number;
+    planned_to_date: number;
+    spent: number;
+    rate: number | null;
+    rate_to_date: number | null;
+  }[];
+  planned: number;
+  planned_to_date: number;
+  spent: number;
+  financial: number | null;
+  by_period: { period: string; planned: number; spent: number }[];
+}
+export interface WorkplanSummary {
+  day: string;
+  time: number | null;
+  activities: number;
+  physical: number | null;
+  expected: number | null;
+  late: number;
+  budget: BudgetSummary;
+  currency: string;
+  financial_ahead: number | null;
+}
+export interface ExpenseImport {
+  rows: number;
+  read: number;
+  total: number;
+  bad: number;
+  duplicates: number;
+  unknown_lines: { line: string; rows: number }[];
+}
+
+// ----- M11 accountability and learning -----
+
+export const CHANNELS = ["box", "hotline", "meeting", "in_person", "sms", "other"] as const;
+export const FEEDBACK_STATES = ["received", "forwarded", "in_progress", "answered", "closed"] as const;
+export type FeedbackState = (typeof FEEDBACK_STATES)[number];
+export const SENSITIVITY = ["", "sea", "fraud", "safety", "other"] as const;
+export interface FeedbackCategory {
+  key: string;
+  name: string;
+  days: number;
+  sensitive: boolean;
+}
+export interface Feedback {
+  id: string;
+  received: string;
+  channel: (typeof CHANNELS)[number];
+  place_id: string | null;
+  category: string;
+  sensitive: boolean;
+  sensitivity: (typeof SENSITIVITY)[number];
+  person: string;
+  summary: string;
+  detail: string;
+  response: string;
+  status: FeedbackState;
+  history: { status: FeedbackState; at: string; note: string }[];
+  answered_at: string | null;
+  closed_at: string | null;
+  deadline: string;
+  overdue: boolean;
+}
+export const REC_SOURCES = ["evaluation", "mission", "review", "audit", "other"] as const;
+export const RESPONSES = ["pending", "accepted", "partial", "rejected"] as const;
+export const ACTION_STATES = ["todo", "doing", "done"] as const;
+export interface RecAction {
+  id?: string;
+  text: string;
+  responsible: string;
+  due: string;
+  status: (typeof ACTION_STATES)[number];
+  done_at?: string | null;
+}
+export interface Recommendation {
+  id: string;
+  source: (typeof REC_SOURCES)[number];
+  evaluation_id: string | null;
+  source_ref: string;
+  date: string;
+  text: string;
+  response: (typeof RESPONSES)[number];
+  response_reason: string;
+  actions: RecAction[];
+  status: "pending" | "in_progress" | "done" | "rejected";
+  late_actions: string[];
+}
+export const REVIEW_MONTHS = [0, 1, 3, 6, 12] as const;
+export interface Risk {
+  id: string;
+  kind: "risk" | "assumption";
+  node_id: string | null;
+  title: string;
+  description: string;
+  probability: number;
+  impact: number;
+  measures: string;
+  responsible: string;
+  review_months: number;
+  status: "active" | "closed";
+  reviews: { date: string; probability: number; impact: number; note: string }[];
+  created_at: string;
+  level: "low" | "medium" | "high";
+  review_due: string;
+  review_late: boolean;
+}
+export interface LearningQuestion {
+  id: string;
+  text: string;
+  status: "open" | "answered";
+  answer: string;
+  node_id: string | null;
+}
+export interface Lesson {
+  id: string;
+  date: string;
+  title: string;
+  context: string;
+  finding: string;
+  lesson: string;
+  use: string;
+  question_id: string | null;
+  tags: string[];
+}
+export const MEETING_KINDS = ["review", "quarterly", "learning", "steering", "other"] as const;
+export interface Decision {
+  id?: string;
+  text: string;
+  responsible: string;
+  due: string;
+  as_task: boolean;
+  status: (typeof ACTION_STATES)[number];
+}
+export interface Meeting {
+  id: string;
+  date: string;
+  title: string;
+  kind: (typeof MEETING_KINDS)[number];
+  participants: string;
+  notes: string;
+  decisions: Decision[];
+}
+
+// ----- M10 evaluations -----
+
+export const EVAL_KINDS = ["midterm", "final", "thematic", "ex_post", "other"] as const;
+export const EVAL_STEPS = ["tor", "recruitment", "collection", "draft", "final"] as const;
+export const CRITERIA = ["relevance", "coherence", "effectiveness", "efficiency", "impact", "sustainability"] as const;
+export interface EvalQuestion {
+  id?: string;
+  criterion: (typeof CRITERIA)[number];
+  text: string;
+  indicator_ids: string[];
+  sources: string;
+  methods: string;
+  analysis_ids: string[];
+  findings: string;
+  conclusion: string;
+}
+export interface Evaluation {
+  id: string;
+  title: string;
+  kind: (typeof EVAL_KINDS)[number];
+  start: string;
+  end: string;
+  evaluator: string;
+  budget: number | null;
+  tor: string;
+  steps: Record<(typeof EVAL_STEPS)[number], { date: string; done: boolean }>;
+  questions: EvalQuestion[];
+  conclusions: string;
+}
+export const NOTE_KINDS = ["interview", "fgd", "observation", "other"] as const;
+export interface Excerpt {
+  id?: string;
+  start: number;
+  end: number;
+  text?: string;
+  theme_ids: string[];
+  question_id: string | null;
+  memo: string;
+}
+export interface QualNote {
+  id: string;
+  title: string;
+  kind: (typeof NOTE_KINDS)[number];
+  evaluation_id: string | null;
+  date: string;
+  place: string;
+  participants: string;
+  text: string;
+  excerpts: Excerpt[];
+}
+export interface QualTheme {
+  id: string;
+  name: string;
+  description: string;
 }
 
 export interface Connection {
@@ -677,6 +939,16 @@ export interface AgendaItem {
   path?: string;
   color?: string;
   personal?: boolean;
+  name?: string;
+  step?: string;
+  category?: string;
+  assignee?: string;
+  activity_id?: string;
+  evaluation_id?: string;
+  feedback_id?: string;
+  recommendation_id?: string;
+  risk_id?: string;
+  meeting_id?: string;
 }
 export interface AgendaData {
   events: AgendaItem[];
@@ -691,6 +963,9 @@ export interface ProjectToday {
   late: { indicator_id: string; indicator: string; period: string; rate: number | null }[];
   since: string;
   changes: Change[];
+  late_activities: { id: string; title: string; late: string; end: string; progress: number }[];
+  overdue_feedback: { id: string; summary: string; category: string; deadline: string }[];
+  overdue_recommendations: { id: string; text: string; late: number }[];
 }
 
 export type PeriodFrequency = "monthly" | "quarterly" | "semiannual" | "annual";

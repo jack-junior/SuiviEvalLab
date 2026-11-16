@@ -2837,3 +2837,252 @@ ul.plain {
   background: var(--retard-fond);
   color: var(--retard);
 }
+
+/* ----- activities, budget, accountability, evaluations (M9, M10, M11) ----- */
+
+.grid-2,
+.grid-3 {
+  display: grid;
+  gap: 10px 14px;
+  align-items: start;
+}
+.grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+.grid-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.period-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px 12px;
+}
+.table tr.group-row td {
+  background: var(--fond);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--encre-2);
+}
+.table tfoot th {
+  border-top: 2px solid var(--ligne);
+}
+.pre-wrap {
+  white-space: pre-wrap;
+}
+.warn-text {
+  color: var(--retard);
+}
+.tag.ok {
+  background: var(--action-teinte);
+  color: var(--atteint);
+}
+.tab-count.warn {
+  background: var(--retard-fond);
+  color: var(--retard);
+}
+.quote {
+  border-left: 3px solid var(--ligne);
+  padding: 2px 0 2px 10px;
+  white-space: pre-wrap;
+}
+.steps-list {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+}
+.steps-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.steps-list li.done label {
+  text-decoration: line-through;
+  color: var(--encre-2);
+}
+
+/* states of activities, feedback and recommendations */
+.act-in_progress,
+.fb-in_progress,
+.fb-forwarded,
+.rec-in_progress {
+  background: var(--en-cours-fond);
+  color: var(--en-cours);
+}
+.status-chip.act-done,
+.fb-answered,
+.fb-closed,
+.rec-done {
+  background: var(--action-teinte);
+  color: var(--atteint);
+}
+.status-chip.act-postponed,
+.rec-rejected {
+  background: var(--retard-fond);
+  color: var(--retard);
+}
+.status-chip.act-cancelled {
+  text-decoration: line-through;
+}
+
+/* timeline */
+.gantt {
+  border: 1px solid var(--ligne);
+  border-radius: 12px;
+  background: var(--surface);
+  overflow-x: auto;
+  padding: 6px 0;
+}
+.gantt-row {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  align-items: center;
+  min-height: 28px;
+  min-width: calc(260px + var(--months) * 52px);
+}
+.gantt-head {
+  min-height: 24px;
+  border-bottom: 1px solid var(--ligne);
+}
+.gantt-label {
+  padding: 0 12px;
+  font-size: 13px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gantt-track {
+  position: relative;
+  height: 100%;
+  min-height: 24px;
+  margin-right: 12px;
+}
+.gantt-month {
+  position: absolute;
+  top: 4px;
+  font-size: 11px;
+  color: var(--encre-3);
+  border-left: 1px solid var(--ligne);
+  padding-left: 3px;
+  white-space: nowrap;
+}
+.gantt-bar {
+  position: absolute;
+  top: 7px;
+  height: 14px;
+  border-radius: 4px;
+  background: var(--action-teinte);
+  border: 1px solid var(--action);
+  overflow: hidden;
+}
+.gantt-bar.late {
+  border-color: var(--retard);
+  background: var(--retard-fond);
+}
+.gantt-bar.act-done {
+  border-color: var(--atteint);
+}
+.gantt-bar.act-cancelled {
+  opacity: 0.4;
+}
+.gantt-fill {
+  display: block;
+  height: 100%;
+  background: var(--action);
+  opacity: 0.45;
+}
+.gantt-bar.act-done .gantt-fill {
+  background: var(--atteint);
+}
+.gantt-milestone {
+  position: absolute;
+  top: 7px;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  transform: rotate(45deg);
+  background: var(--laterite);
+}
+.gantt-milestone.act-done {
+  background: var(--atteint);
+}
+.gantt-today {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  border-left: 2px solid var(--laterite);
+  opacity: 0.6;
+}
+
+/* risk matrix: probability up, impact across */
+.risk-layout {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  align-items: start;
+}
+.risk-matrix {
+  border-collapse: separate;
+  border-spacing: 3px;
+}
+.risk-matrix th {
+  font-weight: 400;
+  color: var(--encre-3);
+  width: 18px;
+}
+.risk-cell {
+  width: 34px;
+  height: 30px;
+  text-align: center;
+  border-radius: 5px;
+  font-weight: 600;
+}
+.risk-low {
+  background: var(--action-teinte);
+  color: var(--atteint);
+}
+.risk-medium {
+  background: var(--en-cours-fond);
+  color: var(--en-cours);
+}
+.risk-high {
+  background: var(--retard-fond);
+  color: var(--retard);
+}
+.risk-tag {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* qualitative coding */
+.coding {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 16px;
+  align-items: start;
+}
+.coding-text {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  padding: 12px 14px;
+  border: 1px solid var(--ligne);
+  border-radius: 10px;
+  background: var(--surface);
+  max-height: 60vh;
+  overflow: auto;
+}
+.coding-text mark {
+  background: var(--en-cours-fond);
+  color: inherit;
+  border-bottom: 2px solid var(--en-cours);
+  cursor: pointer;
+}
+.coding-text mark.on {
+  background: var(--action-teinte);
+  border-bottom-color: var(--action);
+}

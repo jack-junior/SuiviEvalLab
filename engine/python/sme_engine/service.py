@@ -36,6 +36,7 @@ from . import (
     r_user,
     reception,
     reception_rpc,
+    registers_rpc,
     report_content,
     rscript,
     stattests,
@@ -122,6 +123,7 @@ class Service:
             "report_content": report_content.load(p),
             **project_setup.state(p),
             **reception_rpc.state(p),
+            **registers_rpc.state(p),
             "connections": p.records("connection"),
         }
 
@@ -1410,4 +1412,5 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
     reception_rpc.register_agenda(server, svc)
     reception_rpc.register_canevas(server, svc)
     connectors_rpc.register_connectors(server, svc)
+    registers_rpc.register_registers(server, svc)
     return svc

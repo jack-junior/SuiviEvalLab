@@ -299,10 +299,169 @@ def derived(view: reception.View, day: str, lang: str = "fr") -> dict[str, list[
                 }
             )
 
+    _registers(view.p, day, events, tasks)
+
     for t in tasks:
         t["priority"] = "high" if t["due"] and t["due"] < day else ("low" if t["kind"] == "sheet" else "normal")
         t["status"] = "todo"
     return {"events": events, "tasks": tasks}
+
+
+def _registers(p: Project, day: str, events: list[dict[str, Any]], tasks: list[dict[str, Any]]) -> None:
+    """Deadlines and tasks from the work plan, evaluations, feedback, recommendations,
+    risks and meetings (modules M9, M10 and M11)."""
+    from . import registers as rg
+    from . import workplan
+
+    soon = (date.fromisoformat(day) + timedelta(days=SOON)).isoformat()
+    for a in p.records("activity"):
+        if a.get("start") and a.get("end") and a["status"] != "cancelled":
+            events.append(
+                {
+                    "id": f"auto:activity:{a['id']}",
+                    "auto": True,
+                    "kind": "milestone" if a.get("milestone") else "activity",
+                    "start": a["end"] if a.get("milestone") else a["start"],
+                    "end": a["end"],
+                    "name": a["title"],
+                    "activity_id": a["id"],
+                    "done": a["status"] == "done",
+                }
+            )
+        late = workplan.lateness(a, day)
+        if late:
+            tasks.append(
+                {
+                    "id": f"auto:{late}:{a['id']}",
+                    "auto": True,
+                    "kind": f"activity_{late}",
+                    "due": a["end"] if late == "late_end" else a["start"],
+                    "name": a["title"],
+                    "activity_id": a["id"],
+                    "assignee": a.get("responsible", ""),
+                }
+            )
+
+    for ev in p.records("evaluation"):
+        for step in rg.EVAL_STEPS:
+            st = ev["steps"][step]
+            if not st["date"]:
+                continue
+            events.append(
+                {
+                    "id": f"auto:eval:{ev['id']}:{step}",
+                    "auto": True,
+                    "kind": "evaluation_step",
+                    "start": st["date"],
+                    "end": st["date"],
+                    "name": ev["title"],
+                    "step": step,
+                    "evaluation_id": ev["id"],
+                    "done": st["done"],
+                }
+            )
+            if not st["done"] and st["date"] <= soon:
+                tasks.append(
+                    {
+                        "id": f"auto:eval:{ev['id']}:{step}",
+                        "auto": True,
+                        "kind": "evaluation_step",
+                        "due": st["date"],
+                        "name": ev["title"],
+                        "step": step,
+                        "evaluation_id": ev["id"],
+                    }
+                )
+
+    cats = rg.categories(p.meta())
+    for f in p.records("feedback"):
+        if f["status"] not in rg.FEEDBACK_OPEN:
+            continue
+        tasks.append(
+            {
+                "id": f"auto:feedback:{f['id']}",
+                "auto": True,
+                "kind": "feedback",
+                "due": rg.feedback_deadline(f, cats),
+                # A sensitive case is named by its category only.
+                "name": "" if f["sensitive"] else f["summary"],
+                "category": f["category"],
+                "feedback_id": f["id"],
+            }
+        )
+
+    for r in p.records("recommendation"):
+        if r["response"] == "rejected":
+            continue
+        for act in r["actions"]:
+            if act["status"] == "done":
+                continue
+            if act["due"]:
+                events.append(
+                    {
+                        "id": f"auto:rec:{act['id']}",
+                        "auto": True,
+                        "kind": "recommendation_due",
+                        "start": act["due"],
+                        "end": act["due"],
+                        "name": act["text"],
+                        "recommendation_id": r["id"],
+                    }
+                )
+            tasks.append(
+                {
+                    "id": f"auto:rec:{act['id']}",
+                    "auto": True,
+                    "kind": "recommendation",
+                    "due": act["due"],
+                    "name": act["text"],
+                    "recommendation_id": r["id"],
+                    "assignee": act["responsible"],
+                }
+            )
+
+    for r in p.records("risk"):
+        due = rg.risk_review_due(r)
+        if not due:
+            continue
+        events.append(
+            {
+                "id": f"auto:risk:{r['id']}",
+                "auto": True,
+                "kind": "risk_review",
+                "start": due,
+                "end": due,
+                "name": r["title"],
+                "risk_id": r["id"],
+            }
+        )
+        if due <= soon:
+            tasks.append(
+                {
+                    "id": f"auto:risk:{r['id']}",
+                    "auto": True,
+                    "kind": "risk_review",
+                    "due": due,
+                    "name": r["title"],
+                    "risk_id": r["id"],
+                    "assignee": r.get("responsible", ""),
+                }
+            )
+
+    for m in p.records("meeting"):
+        for d in m["decisions"]:
+            if d["as_task"] and d["status"] != "done":
+                tasks.append(
+                    {
+                        "id": f"auto:decision:{d['id']}",
+                        "auto": True,
+                        "kind": "decision",
+                        "due": d["due"],
+                        "name": d["text"],
+                        "meeting_id": m["id"],
+                        "assignee": d["responsible"],
+                    }
+                )
 
 
 def _sort_tasks(tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -373,7 +532,33 @@ def today(p: Project, lang: str = "fr", day: str | None = None) -> dict[str, Any
         per = next((x for x in view.periods if x["code"] == c["period"]), None)
         c["label"] = (per["label_en"] if lang == "en" else per["label_fr"]) if per else c["period"]
         changes.append(c)
+    from . import registers_rpc
+
+    reg = registers_rpc.state(p, day)
+    late_activities = [
+        {"id": a["id"], "title": a["title"], "late": a["late"], "end": a["end"], "progress": a["progress"]}
+        for a in reg["activities"]
+        if a["late"]
+    ]
+    overdue_feedback = [
+        {
+            "id": f["id"],
+            "summary": "" if f["sensitive"] else f["summary"],
+            "category": f["category"],
+            "deadline": f["deadline"],
+        }
+        for f in reg["feedback"]
+        if f["overdue"]
+    ]
+    overdue_recommendations = [
+        {"id": r["id"], "text": r["text"], "late": len(r["late_actions"])}
+        for r in reg["recommendations"]
+        if r["late_actions"]
+    ]
     return {
+        "late_activities": late_activities,
+        "overdue_feedback": overdue_feedback,
+        "overdue_recommendations": overdue_recommendations,
         "day": day,
         "since": since,
         "changes": changes,

@@ -1,0 +1,317 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
+
+"""Work plan and budget (M9), evaluations (M10), accountability and learning (M11)."""
+
+from __future__ import annotations
+
+import io
+import json
+
+import pytest
+
+from sme_engine.methods import register
+from sme_engine.r_bridge import RBridge
+from sme_engine.rpc import Server
+
+
+@pytest.fixture()
+def call():
+    bridge = RBridge()
+    server = Server(stdin=io.StringIO(), stdout=io.StringIO())
+    register(server, bridge)
+
+    def _call(method, params=None):
+        resp = server.handle_line(json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params or {}}))
+        if "error" in resp:
+            raise RuntimeError(resp["error"]["data"]["key"] + ": " + resp["error"]["message"])
+        return resp["result"]
+
+    yield _call
+    bridge.stop()
+
+
+def _project(call, tmp_path):
+    call(
+        "project.create",
+        {
+            "path": str(tmp_path / "p.sme"),
+            "name": "P",
+            "profile": {"start": "2026-01-01", "end": "2026-12-31", "frequency": "quarterly", "currency": "EUR"},
+        },
+    )
+    return call("framework.add", {"title": "Effet"})["created"]
+
+
+def test_work_plan_progress_and_lateness(call, tmp_path):
+    node = _project(call, tmp_path)
+    a = call(
+        "activity.save",
+        {"activity": {"title": "Former les agents", "node_id": node, "start": "2026-01-01", "end": "2026-03-31"}},
+    )["created"]
+    sub = call(
+        "activity.save",
+        {
+            "activity": {
+                "title": "Session 1",
+                "parent_id": a,
+                "start": "2026-01-01",
+                "end": "2026-01-31",
+                "progress": 50,
+            }
+        },
+    )["created"]
+    # A sub-activity cannot have its own sub-activities, nor can an activity be its own parent.
+    with pytest.raises(RuntimeError, match="activity_too_deep"):
+        call("activity.save", {"activity": {"title": "x", "parent_id": sub}})
+    with pytest.raises(RuntimeError, match="dates_order"):
+        call("activity.save", {"activity": {"title": "x", "start": "2026-02-01", "end": "2026-01-01"}})
+    call(
+        "activity.save",
+        {
+            "activity": {
+                "title": "Session 2",
+                "parent_id": a,
+                "start": "2026-02-01",
+                "end": "2026-03-31",
+                "status": "done",
+            }
+        },
+    )
+    snap = call("project.get", {"today": "2026-02-15"})
+    acts = {x["title"]: x for x in snap["activities"]}
+    assert acts["Session 2"]["progress"] == 100  # done means complete
+    assert acts["Session 1"]["late"] == "late_end"
+    # The parent counts through its sub-activities: (31 * 0.5 + 59 * 1) / 90 days.
+    wp = call("project.get", {})["workplan"]
+    assert wp["physical"] == pytest.approx((31 * 0.5 + 59) / 90)
+    # Late activities reach the project's today and its tasks.
+    today = call("today.project", {"today": "2026-02-15"})
+    assert [x["title"] for x in today["late_activities"]] == ["Session 1"]
+    assert "activity_late_end" in {t["kind"] for t in today["tasks"]}
+    # Deleting the parent removes its sub-activities.
+    call("activity.delete", {"id": a})
+    assert call("project.get", {})["activities"] == []
+
+
+def test_me_activities_come_from_the_plan_once(call, tmp_path):
+    node = _project(call, tmp_path)
+    call(
+        "indicator.save",
+        {"node_id": node, "indicator": {"name": "Vaccinés", "unit": "count", "source_type": "routine"}},
+    )
+    first = call("activity.generate_me", {"lang": "fr"})
+    # A collection and a review per quarter, and one data quality review for the year.
+    assert first["added"] == 9
+    assert call("activity.generate_me", {"lang": "fr"})["added"] == 0
+    kinds = sorted({a["me_kind"] for a in first["activities"]})
+    assert kinds == ["collection", "dqa", "review"]
+
+
+def test_budget_execution_and_expense_import(call, tmp_path):
+    _project(call, tmp_path)
+    line = call(
+        "budget_line.save",
+        {"line": {"code": "1.1", "name": "Formations", "planned": {"T1-2026": 1000, "T2-2026": 1000, "T3-2026": 2000}}},
+    )["created"]
+    with pytest.raises(RuntimeError, match="period_not_found"):
+        call("budget_line.save", {"line": {"name": "x", "planned": {"T9-2030": 5}}})
+    call("expense.save", {"expense": {"line_id": line, "date": "2026-02-10", "amount": "600,50"}})
+    export = tmp_path / "compta.csv"
+    export.write_text(
+        "Date;Compte;Libellé;Montant;Pièce\n"
+        "15/03/2026;1.1;Salle;1 399,50;P-1\n"
+        "15/03/2026;Formations;Repas;100;P-2\n"
+        "16/03/2026;9.9;Inconnu;50;P-3\n"
+        "pas une date;1.1;x;10;P-4\n",
+        encoding="utf-8",
+    )
+    cols = {"date": "Date", "amount": "Montant", "line": "Compte", "label": "Libellé", "ref": "Pièce"}
+    check = call("expense.import", {"path": str(export), "columns": cols})["import"]
+    assert check["read"] == 2 and check["bad"] == 1 and check["unknown_lines"] == [{"line": "9.9", "rows": 1}]
+    assert "expenses" not in call("expense.import", {"path": str(export), "columns": cols})  # a preview writes nothing
+    done = call("expense.import", {"path": str(export), "columns": cols, "commit": True})
+    # Read again, the same rows are recognised and not counted twice.
+    again = call("expense.import", {"path": str(export), "columns": cols})["import"]
+    assert again["read"] == 0 and again["duplicates"] == 2
+    b = call("workplan.summary", {"today": "2026-05-01"})["budget"]
+    assert b["planned"] == 4000 and b["spent"] == pytest.approx(2100.0)
+    assert b["planned_to_date"] == 2000  # T1 and T2 have started
+    assert b["financial"] == pytest.approx(2100 / 4000)
+    assert len(done["expenses"]) == 3
+    # Removing the line removes its expenses.
+    assert call("budget_line.delete", {"id": line})["expenses"] == []
+
+
+def test_feedback_circuit_deadlines_and_pseudonyms(call, tmp_path):
+    _project(call, tmp_path)
+    fb = call(
+        "feedback.save",
+        {
+            "feedback": {
+                "received": "2026-03-01",
+                "channel": "hotline",
+                "category": "service_complaint",
+                "summary": "Distribution en retard",
+                "person": "Aïcha Diallo 0612",
+            }
+        },
+    )
+    rec = fb["feedback"][0]
+    assert rec["deadline"] == "2026-03-15" and rec["person"] != "Aïcha Diallo 0612" and len(rec["person"]) == 24
+    assert rec["sensitive"] is False
+    # The same person gives the same pseudonym.
+    other = call(
+        "feedback.save",
+        {
+            "feedback": {
+                "received": "2026-03-02",
+                "category": "sea",
+                "summary": "Cas signalé",
+                "person": "aïcha  diallo 0612",
+            }
+        },
+    )["feedback"][1]
+    assert other["person"] == rec["person"] and other["sensitive"] and other["sensitivity"] == "sea"
+    today = call("today.project", {"today": "2026-03-20"})
+    overdue = {f["category"]: f for f in today["overdue_feedback"]}
+    assert set(overdue) == {"service_complaint", "sea"}
+    assert overdue["sea"]["summary"] == ""  # a sensitive case is never shown in the lists
+    feedback_tasks = [t for t in today["tasks"] if t["kind"] == "feedback"]
+    assert {t["name"] for t in feedback_tasks} == {"Distribution en retard", ""}
+    # Answering closes the task and keeps the history.
+    call(
+        "feedback.save",
+        {"id": rec["id"], "feedback": {**rec, "person": "", "status": "answered", "response": "Livré le 18"}},
+    )
+    snap = call("project.get", {"today": "2026-03-20"})
+    answered = next(f for f in snap["feedback"] if f["id"] == rec["id"])
+    assert answered["person"] == rec["person"] and [h["status"] for h in answered["history"]] == [
+        "received",
+        "answered",
+    ]
+    stats = call("feedback.stats", {"today": "2026-03-20"})
+    assert stats["total"] == 2 and stats["open"] == 1 and stats["sensitive"] == 1
+    # Categories in use cannot be removed.
+    with pytest.raises(RuntimeError, match="category_in_use"):
+        call("feedback.categories", {"categories": [{"key": "other", "days": 10}]})
+
+
+def test_recommendations_actions_become_tasks(call, tmp_path):
+    _project(call, tmp_path)
+    ev = call("evaluation.save", {"evaluation": {"title": "Évaluation à mi-parcours", "kind": "midterm"}})["created"]
+    with pytest.raises(RuntimeError, match="field_required"):
+        call("recommendation.save", {"recommendation": {"text": "x", "response": "rejected"}})
+    r = call(
+        "recommendation.save",
+        {
+            "recommendation": {
+                "source": "evaluation",
+                "evaluation_id": ev,
+                "text": "Renforcer la supervision",
+                "response": "accepted",
+                "actions": [
+                    {"text": "Recruter un superviseur", "due": "2026-04-30", "responsible": "RH"},
+                    {"text": "Plan de supervision", "due": "2026-06-30"},
+                ],
+            }
+        },
+    )
+    rec = r["recommendations"][0]
+    assert rec["status"] == "in_progress"
+    today = call("today.project", {"today": "2026-05-15"})
+    assert today["overdue_recommendations"][0]["late"] == 1
+    assert sorted(t["name"] for t in today["tasks"] if t["kind"] == "recommendation") == [
+        "Plan de supervision",
+        "Recruter un superviseur",
+    ]
+    actions = [{**a, "status": "done"} for a in rec["actions"]]
+    snap = call("recommendation.save", {"id": rec["id"], "recommendation": {**rec, "actions": actions}})
+    assert snap["recommendations"][0]["status"] == "done"
+    assert all(a["done_at"] for a in snap["recommendations"][0]["actions"])
+    # Deleting the evaluation keeps the recommendation.
+    assert call("evaluation.delete", {"id": ev})["recommendations"][0]["evaluation_id"] is None
+
+
+def test_risks_reviews_and_assumptions_of_the_logframe(call, tmp_path):
+    node = _project(call, tmp_path)
+    call(
+        "framework.update",
+        {"id": node, "title": "Effet", "assumptions": "Sécurité stable\n- Prix du carburant stable\n"},
+    )
+    first = call("risk.from_assumptions", {})
+    assert first["added"] == 2 and call("risk.from_assumptions", {})["added"] == 0
+    risk = call(
+        "risk.save", {"risk": {"title": "Saison des pluies", "probability": 4, "impact": 4, "review_months": 3}}
+    )["created"]
+    snap = call("project.get", {"today": "2026-01-10"})
+    r = next(x for x in snap["risks"] if x["id"] == risk)
+    assert r["level"] == "high" and r["review_due"]
+    call("risk.review", {"id": risk, "review": {"date": "2026-02-01", "probability": 2, "impact": 3, "note": "Digues"}})
+    r = next(x for x in call("project.get", {})["risks"] if x["id"] == risk)
+    assert r["review_due"] == "2026-05-01" and r["level"] == "medium" and r["probability"] == 2
+    ag = call("agenda.list", {"start": "2026-04-01", "end": "2026-05-31"})
+    assert any(e["kind"] == "risk_review" and e["name"] == "Saison des pluies" for e in ag["events"])
+
+
+def test_evaluation_steps_meetings_and_qualitative_coding(call, tmp_path):
+    _project(call, tmp_path)
+    ev = call(
+        "evaluation.save",
+        {
+            "evaluation": {
+                "title": "Évaluation finale",
+                "kind": "final",
+                "start": "2026-09-01",
+                "end": "2026-12-15",
+                "steps": {"tor": {"date": "2026-06-01", "done": True}, "draft": {"date": "2026-11-15"}},
+                "questions": [{"criterion": "effectiveness", "text": "Les résultats sont-ils atteints ?"}],
+            }
+        },
+    )
+    evaluation = ev["evaluations"][0]
+    q = evaluation["questions"][0]["id"]
+    ag = call("agenda.list", {"start": "2026-06-01", "end": "2026-11-30"})
+    steps = {e["step"]: e["done"] for e in ag["events"] if e["kind"] == "evaluation_step"}
+    assert steps == {"tor": True, "draft": False}
+    assert "evaluation_step" in {t["kind"] for t in call("today.project", {"today": "2026-11-10"})["tasks"]}
+
+    theme = call("qual_theme.save", {"theme": {"name": "Accès"}})["created"]
+    text = "Le centre est loin. Les femmes viennent moins pendant les pluies."
+    note = call(
+        "qual_note.save",
+        {
+            "note": {
+                "title": "Groupe de discussion, femmes",
+                "kind": "fgd",
+                "evaluation_id": evaluation["id"],
+                "text": text,
+                "excerpts": [{"start": 20, "end": len(text), "theme_ids": [theme, "inconnu"], "question_id": q}],
+            }
+        },
+    )
+    x = note["qual_notes"][0]["excerpts"][0]
+    assert x["text"].startswith("Les femmes") and x["theme_ids"] == [theme]
+    with pytest.raises(RuntimeError, match="excerpt_outside"):
+        call("qual_note.save", {"note": {"title": "x", "text": "abc", "excerpts": [{"start": 1, "end": 9}]}})
+    assert call("qual_theme.delete", {"id": theme})["qual_notes"][0]["excerpts"][0]["theme_ids"] == []
+
+    call(
+        "meeting.save",
+        {
+            "meeting": {
+                "date": "2026-04-05",
+                "title": "Revue trimestrielle",
+                "decisions": [
+                    {"text": "Relancer le partenaire B", "as_task": True, "due": "2026-04-15"},
+                    {"text": "Info"},
+                ],
+            }
+        },
+    )
+    tasks = call("today.project", {"today": "2026-04-10"})["tasks"]
+    assert [t["name"] for t in tasks if t["kind"] == "decision"] == ["Relancer le partenaire B"]
+    call("lesson.save", {"lesson": {"title": "Saison des pluies", "lesson": "Prévoir les distributions avant juin"}})
+    call("learning_question.save", {"question": {"text": "Quels freins à la fréquentation ?"}})
+    snap = call("project.get", {})
+    assert len(snap["lessons"]) == 1 and snap["learning_questions"][0]["status"] == "open"

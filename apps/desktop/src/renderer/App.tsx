@@ -7,10 +7,12 @@ import { useCallback, useEffect, useState } from "react";
 import { appInfo, AppInfo, call, EngineCallError, recents, Versions } from "./api";
 import { Lang, useI18n } from "./i18n";
 import logo from "./logo.svg";
+import { Accountability } from "./screens/Accountability";
 import { Agenda } from "./screens/Agenda";
 import { Analysis } from "./screens/Analysis";
 import { Data } from "./screens/Data";
 import { Engines, EngineStatus } from "./screens/Engines";
+import { Evaluations } from "./screens/Evaluations";
 import { Framework } from "./screens/Framework";
 import { Home } from "./screens/Home";
 import { Indicators } from "./screens/Indicators";
@@ -22,6 +24,7 @@ import { Setup } from "./screens/Setup";
 import { Tests } from "./screens/Tests";
 import { ProjectTodayScreen, WorkspaceToday } from "./screens/Today";
 import { Tracking } from "./screens/Tracking";
+import { Workplan } from "./screens/Workplan";
 import { Workshop } from "./screens/Workshop";
 import { TrustDialog } from "./TrustDialog";
 import { useProject, View } from "./state";
@@ -41,6 +44,8 @@ const NAV: { group?: string; items: { view: View; icon: string }[] }[] = [
       { view: "tracking", icon: "gauge" },
       { view: "reception", icon: "open" },
       { view: "agenda", icon: "calendar" },
+      { view: "workplan", icon: "list" },
+      { view: "accountability", icon: "chat" },
     ],
   },
   {
@@ -59,6 +64,7 @@ const NAV: { group?: string; items: { view: View; icon: string }[] }[] = [
       { view: "analysis", icon: "chart" },
       { view: "tests", icon: "scale" },
       { view: "workshop", icon: "calc" },
+      { view: "evaluations", icon: "clipboard" },
     ],
   },
   {
@@ -308,6 +314,12 @@ export function App() {
             <Tracking />
           ) : view === "agenda" ? (
             <Agenda scope="project" />
+          ) : view === "workplan" ? (
+            <Workplan />
+          ) : view === "accountability" ? (
+            <Accountability />
+          ) : view === "evaluations" ? (
+            <Evaluations />
           ) : view === "setup" ? (
             <Setup />
           ) : view === "framework" ? (

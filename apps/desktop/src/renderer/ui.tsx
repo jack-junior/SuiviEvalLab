@@ -9,6 +9,9 @@ import type { Estimate, Status } from "./api";
 import { useI18n } from "./i18n";
 
 const PATHS: Record<string, ReactNode> = {
+  list: <path d="M7 4.5h8M7 9h8M7 13.5h8M3.2 4.5h.6M3.2 9h.6M3.2 13.5h.6" />,
+  chat: <path d="M3 4.2h12v7.6H8.6L5.4 14.6v-2.8H3zM6 7.2h6M6 9.4h4" />,
+  clipboard: <path d="M6.2 3.5H4.5v11.5h9V3.5h-1.7M6.5 2.6h5v2h-5zM6.5 8.2l1.5 1.5 3-3M6.5 12h5" />,
   plus: <path d="M9 3.5v11M3.5 9h11" />,
   edit: <path d="M11.8 3.6l2.6 2.6-7.6 7.6-3.3.7.7-3.3zM10.4 5l2.6 2.6" />,
   trash: <path d="M3.5 5h11M7.2 5V3.6h3.6V5M5 5l.7 9.4h6.6L13 5M7.6 7.6v4.6M10.4 7.6v4.6" />,

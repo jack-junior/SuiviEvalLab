@@ -43,6 +43,9 @@ export function useItemTitle() {
       unit: x.unit_name ?? "",
       indicator: x.indicator ?? "",
       missing: (x.missing ?? []).map((m) => t(`today.missing_${m}`)).join(", "),
+      name:
+        x.name || (x.category ? (x.category.startsWith("c_") ? t("fb.sensitiveCase") : t(`fb.cat_${x.category}`)) : ""),
+      step: x.step ? t(`ev.step_${x.step}`) : "",
     };
     // Data of the whole project: collected by the team, not chased from a partner.
     const kind =

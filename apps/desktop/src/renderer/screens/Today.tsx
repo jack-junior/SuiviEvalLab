@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { AgendaItem, call, ProjectToday, Recent, recents, recentToken, Snapshot, Task } from "../api";
 import { useI18n } from "../i18n";
+import { useCategoryName } from "./Accountability";
 import { todayIso } from "../monitoring";
 import { useProject } from "../state";
 import { Empty, Icon, Notice } from "../ui";
@@ -74,6 +75,12 @@ function useOpenItem() {
     else if (x.kind === "sheet") go("indicators", null);
     else if (x.kind === "data_due") go("reception");
     else if (x.kind === "report_due") go("tracking");
+    else if (x.kind.startsWith("activity") || x.kind === "milestone") go("workplan");
+    else if (x.kind === "evaluation_step") go("evaluations", x.evaluation_id ?? null);
+    else if (x.kind === "feedback") go("accountability", "feedback");
+    else if (x.kind.startsWith("recommendation")) go("accountability", "recommendations");
+    else if (x.kind === "risk_review") go("accountability", "risks");
+    else if (x.kind === "decision") go("accountability", "learning");
     else go("agenda");
   };
 }
@@ -85,11 +92,12 @@ export function ProjectTodayScreen() {
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const open = useOpenItem();
+  const catName = useCategoryName();
   const title = useItemTitle();
   const when = useWhen();
   const { lang } = useI18n();
   const stamp = snap
-    ? `${snap.submissions.map((s) => s.status).join()}|${snap.tasks.map((x) => x.status).join()}|${snap.periods.map((p) => p.reported_at ?? "").join()}|${Object.keys(snap.gap_comments).length}`
+    ? `${snap.project.updated_at}|${snap.submissions.map((s) => s.status).join()}|${snap.tasks.map((x) => x.status).join()}|${snap.periods.map((p) => p.reported_at ?? "").join()}|${Object.keys(snap.gap_comments).length}`
     : "";
   useEffect(() => {
     call<ProjectToday>("today.project", { lang })
@@ -114,6 +122,9 @@ export function ProjectTodayScreen() {
     !data.deadlines.length &&
     !data.alerts &&
     !data.late.length &&
+    !data.late_activities.length &&
+    !data.overdue_feedback.length &&
+    !data.overdue_recommendations.length &&
     !data.events.length &&
     !data.changes.length;
 
@@ -162,6 +173,36 @@ export function ProjectTodayScreen() {
                         {title(d)}
                       </button>{" "}
                       <span className="muted">{when(d.start)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            {(data.late_activities.length > 0 ||
+              data.overdue_feedback.length > 0 ||
+              data.overdue_recommendations.length > 0) && (
+              <section className="box stack" data-testid="today-registers">
+                <h2>{t("today.followUp")}</h2>
+                <ul className="plain small">
+                  {data.late_activities.map((a) => (
+                    <li key={a.id}>
+                      <button className="link" onClick={() => go("workplan")}>
+                        {t(`today.activity_${a.late}`, { name: a.title })}
+                      </button>
+                    </li>
+                  ))}
+                  {data.overdue_feedback.map((f) => (
+                    <li key={f.id}>
+                      <button className="link" onClick={() => go("accountability", "feedback")}>
+                        {t("today.feedbackLate", { name: f.summary || catName(f.category) })}
+                      </button>
+                    </li>
+                  ))}
+                  {data.overdue_recommendations.map((r) => (
+                    <li key={r.id}>
+                      <button className="link" onClick={() => go("accountability", "recommendations")}>
+                        {t("today.recommendationLate", { name: r.text, n: r.late })}
+                      </button>
                     </li>
                   ))}
                 </ul>

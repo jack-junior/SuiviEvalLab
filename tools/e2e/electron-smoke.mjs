@@ -368,6 +368,125 @@ try {
   await id("board-todo").waitFor();
   await shot("task-board");
 
+  // Activities and budget: an activity already late, the M&E activities of the
+  // plan, a budget line and an expense.
+  await id("nav-workplan").click();
+  await id("wp-add").click();
+  await id("activity-title").fill("Former les relais communautaires");
+  await id("activity-start").fill("2026-01-05");
+  await id("activity-end").fill("2026-02-27");
+  await id("activity-save").click();
+  await id("act-Former les relais communautaires").waitFor();
+  await id("wp-generate").click();
+  await page.locator(".notice", { hasText: "S&E" }).first().waitFor();
+  await id("wp-tab-timeline").click();
+  await page.locator(".gantt-bar").first().waitFor();
+  await shot("workplan-timeline");
+  await id("wp-tab-budget").click();
+  await id("line-add").click();
+  await id("line-name").fill("Formations");
+  await page.locator('[data-testid^="line-amount-"]').first().fill("1000");
+  await id("line-save").click();
+  await id("line-Formations").waitFor();
+  await id("expense-add").click();
+  await id("expense-amount").fill("250");
+  await id("expense-save").click();
+  await page
+    .locator('[data-testid="budget-spent"]', { hasText: "250" })
+    .waitFor();
+  notice(
+    "E2E work plan",
+    (await id("wp-kpis").innerText()).replace(/\s+/g, " ").slice(0, 200),
+  );
+  await shot("workplan-budget");
+
+  // Accountability: a complaint, a recommendation with its action, a risk, a
+  // meeting whose decision becomes a task.
+  await id("nav-accountability").click();
+  await id("fb-add").click();
+  await id("fb-summary").fill("Distribution en retard au site de Kara");
+  await id("fb-save").click();
+  await id("fb-row").first().waitFor();
+  await id("acc-tab-recommendations").click();
+  await id("rec-add").click();
+  await id("rec-text").fill("Renforcer la supervision des relais");
+  await id("rec-resp-accepted").click();
+  await id("rec-action-add").click();
+  await id("rec-action-text").fill("Recruter un superviseur");
+  await id("rec-action-due").fill("2026-03-31");
+  await id("rec-save").click();
+  await id("rec-row").first().waitFor();
+  await id("acc-tab-risks").click();
+  await id("risk-from-logframe").click();
+  await id("risk-row").first().waitFor();
+  await id("risk-add").click();
+  await id("risk-title").fill("Saison des pluies");
+  await id("risk-save").click();
+  await page
+    .locator('[data-testid="risk-row"]', { hasText: "Saison" })
+    .waitFor();
+  await shot("risks");
+  await id("acc-tab-learning").click();
+  await id("meeting-add").click();
+  await id("meeting-title").fill("Revue trimestrielle");
+  await id("decision-add").click();
+  await id("decision-text").fill("Relancer le partenaire");
+  await id("meeting-save").click();
+  await page.locator(".link", { hasText: "Revue trimestrielle" }).waitFor();
+
+  // Evaluation: sheet, a question, a note coded by theme.
+  await id("nav-evaluations").click();
+  await id("ev-add").click();
+  await id("ev-title").fill("Évaluation à mi-parcours");
+  await id("ev-date-draft").fill("2026-12-15");
+  await id("ev-save").click();
+  await id("ev-view").waitFor();
+  await id("ev-tab-questions").click();
+  await id("evq-add").click();
+  await id("evq-text").fill("Les relais ont-ils amélioré la fréquentation ?");
+  await id("evq-save").click();
+  await id("evq-row").waitFor();
+  await id("ev-tab-qualitative").click();
+  await id("themes-open").click();
+  await id("theme-name").fill("Accès");
+  await id("theme-add").click();
+  await page
+    .locator('[data-testid="themes-panel"] li', { hasText: "Accès" })
+    .waitFor();
+  await page.keyboard.press("Escape");
+  await id("note-add").click();
+  await id("note-title").fill("Groupe de femmes, Kara");
+  await id("note-text").fill(
+    "Le centre est loin. Les femmes viennent moins pendant les pluies.",
+  );
+  await id("note-save").click();
+  await id("note-Groupe de femmes, Kara").click();
+  await id("coding-text").waitFor();
+  await page.evaluate(() => {
+    const box = document.querySelector('[data-testid="coding-text"]');
+    const node = box.firstChild.firstChild;
+    const range = document.createRange();
+    range.setStart(node, 20);
+    range.setEnd(node, node.textContent.length);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    box.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+  });
+  await id("code-theme-Accès").check();
+  await id("code-save").click();
+  await page.locator('[data-testid="coding-text"] mark').first().waitFor();
+  await shot("coding");
+  await page.keyboard.press("Escape");
+  await id("theme-summary").waitFor();
+
+  // The project's today lists the late activity and the late action.
+  await id("nav-today").click();
+  const followUp = await id("today-registers").innerText();
+  notice("E2E today follow-up", followUp.replace(/\s+/g, " ").slice(0, 240));
+  if (!/Former les relais/.test(followUp) || !/supervision/.test(followUp))
+    throw new Error(`Today misses the follow-up: ${followUp}`);
+
   await id("nav-analysis").click();
   await id("comparison").waitFor({ timeout: 120_000 });
   const current = await id("current-value").innerText();
@@ -681,7 +800,7 @@ try {
   notice("E2E updates", await id("update-status").innerText());
   notice(
     "E2E",
-    "Full path verified: project sheet, framework, import, cleaning, indicator, monitoring plan, periodic entry, reception and validation, tracking, gap comment, project today, agenda, analysis, report, SPSS, quality, merge, dashboard, checks, plan export, workspace today, workspace, sample size, example, test, logframe matrix, Kobo server sync, languages, indicator library",
+    "Full path verified: project sheet, framework, import, cleaning, indicator, monitoring plan, periodic entry, reception and validation, tracking, gap comment, project today, agenda, work plan and budget, feedback, recommendations, risks, meetings, evaluation with coded notes, analysis, report, SPSS, quality, merge, dashboard, checks, plan export, workspace today, workspace, sample size, example, test, logframe matrix, Kobo server sync, languages, indicator library",
   );
 } catch (e) {
   // The screen at the moment of failure, kept with the other screenshots.
