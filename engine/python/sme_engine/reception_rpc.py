@@ -25,6 +25,8 @@ def state(p: Project) -> dict[str, Any]:
         "submissions": list(view.subs.values()),
         "units": view.units(),
         "gap_comments": gaps,
+        "tasks": p.records("task"),
+        "events": p.records("event"),
     }
 
 
@@ -123,3 +125,97 @@ def register_reception(server: Server, svc: Service) -> None:
         elif text:
             p.insert_record("gap_comment", {"period": period, "text": text, "at": rc.now()}, scope=ind["id"])
         return svc.snapshot()
+
+
+# ----- agenda and tasks ------------------------------------------------------------------------
+
+ICS_TITLES = {
+    "fr": {"data_due": "Données de {period} attendues", "report_due": "Rapport de {period} à rendre"},
+    "en": {"data_due": "Data for {period} due", "report_due": "Report for {period} due"},
+}
+
+
+def register_agenda(server: Server, svc: Service) -> None:
+    from pathlib import Path
+
+    from . import agenda
+
+    def project() -> Project:
+        return svc.project
+
+    def lang(params: dict[str, Any]) -> str:
+        return "en" if params.get("lang") == "en" else "fr"
+
+    @server.method("today.project")
+    def today_project(params: dict[str, Any]) -> dict[str, Any]:
+        return agenda.today(project(), lang(params), params.get("today"))
+
+    @server.method("agenda.list")
+    def agenda_list(params: dict[str, Any]) -> dict[str, Any]:
+        start = agenda._day(params.get("start"), "start", required=True)[:10]
+        end = agenda._day(params.get("end"), "end", required=True)[:10]
+        return agenda.agenda(project(), start, end, lang(params), params.get("today"))
+
+    @server.method("task.save")
+    def task_save(params: dict[str, Any]) -> dict[str, Any]:
+        p = project()
+        own = params.get("id")
+        current = p.record("task", own) if own else None
+        spec = agenda.validate_task(params.get("task"), current)
+        if current:
+            p.update_record("task", own, spec)
+            created = own
+            if spec["status"] == "done" and current["status"] != "done":
+                nxt = agenda.next_occurrence(spec)
+                if nxt:
+                    p.insert_record("task", nxt)
+        else:
+            created = p.insert_record("task", spec)
+        return {**svc.snapshot(), "created": created}
+
+    @server.method("task.delete")
+    def task_delete(params: dict[str, Any]) -> dict[str, Any]:
+        project().delete_record("task", params.get("id"))
+        return svc.snapshot()
+
+    @server.method("event.save")
+    def event_save(params: dict[str, Any]) -> dict[str, Any]:
+        p = project()
+        spec = agenda.validate_event(params.get("event"))
+        if params.get("id"):
+            p.update_record("event", params["id"], spec)
+            created = params["id"]
+        else:
+            created = p.insert_record("event", spec)
+        return {**svc.snapshot(), "created": created}
+
+    @server.method("event.delete")
+    def event_delete(params: dict[str, Any]) -> dict[str, Any]:
+        project().delete_record("event", params.get("id"))
+        return svc.snapshot()
+
+    @server.method("agenda.export_ics")
+    def agenda_export(params: dict[str, Any]) -> dict[str, Any]:
+        p = project()
+        path = params.get("path")
+        if not isinstance(path, str):
+            raise rc._err("No file chosen", "invalid_params")
+        start = agenda._day(params.get("start") or "1900-01-01", "start")[:10]
+        end = agenda._day(params.get("end") or "2999-12-31", "end")[:10]
+        events = agenda.agenda(p, start, end, lang(params))["events"]
+        text = agenda.to_ics(p.meta().get("name", ""), events, ICS_TITLES[lang(params)])
+        Path(path).write_text(text, encoding="utf-8", newline="")
+        return {"path": path, "events": len(events)}
+
+    @server.method("agenda.import_ics")
+    def agenda_import(params: dict[str, Any]) -> dict[str, Any]:
+        p = project()
+        path = params.get("path")
+        if not isinstance(path, str) or not Path(path).is_file():
+            raise rc._err("No file chosen", "invalid_params")
+        if Path(path).stat().st_size > 5_000_000:
+            raise rc._err("The calendar file is too large", "file_too_large")
+        events = agenda.from_ics(Path(path).read_text(encoding="utf-8", errors="replace"))
+        for e in events:
+            p.insert_record("event", agenda.validate_event(e))
+        return {**svc.snapshot(), "imported": len(events)}

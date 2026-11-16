@@ -356,3 +356,92 @@ def test_routine_values_of_version_5_are_migrated(call, tmp_path):
     unplaced = json.loads(conn.execute("SELECT value FROM meta WHERE key = 'routine_unplaced'").fetchone()[0])
     assert unplaced == [{"indicator_id": ind, "period": "Avant"}]
     conn.close()
+
+
+# ----- agenda, tasks, today ------------------------------------------------------------------
+
+
+def test_generated_tasks_close_themselves(call, tmp_path):
+    node = _project(call, tmp_path, reporting_by="partner")
+    a = call("partner.save", {"partner": {"name": "ONG A", "acronym": "ONGA"}})["created"]
+    ind = call(
+        "indicator.save",
+        {
+            "node_id": node,
+            "indicator": {"name": "Formés", "unit": "count", "source_type": "routine", "target": 400},
+        },
+    )["saved"]
+    call("target.set", {"indicator_id": ind, "period": "T1-2026", "value": 100})
+    day = "2026-04-12"  # T1 data were due on 10 April
+    today = call("today.project", {"today": day})
+    kinds = sorted(t["kind"] for t in today["tasks"])
+    assert kinds == ["chase", "report", "sheet"]
+    chase = next(t for t in today["tasks"] if t["kind"] == "chase")
+    assert chase["unit_name"] == "ONGA" and chase["priority"] == "high" and chase["due"] == "2026-04-10"
+    sheet = next(t for t in today["tasks"] if t["kind"] == "sheet")
+    assert sheet["missing"] == ["definition", "source"]
+    assert today["deadlines"][0]["kind"] == "report_due" and today["deadlines"][0]["days"] == 18
+
+    # Received: the chase becomes a verification.
+    sub = call("submission.open", {"period": "T1-2026", "partner_id": a})["created"]
+    call("submission.save", {"id": sub, "values": [{"indicator_id": ind, "value": 60}]})
+    call("submission.act", {"id": sub, "action": "submit"})
+    kinds = sorted(t["kind"] for t in call("today.project", {"today": day})["tasks"])
+    assert kinds == ["report", "sheet", "verify"]
+    # Validated and late against its target: a gap to explain.
+    call("submission.act", {"id": sub, "action": "validate"})
+    today = call("today.project", {"today": day})
+    gap = next(t for t in today["tasks"] if t["kind"] == "gap")
+    assert gap["indicator"] == "Formés" and today["late"][0]["indicator"] == "Formés"
+    call("gap.save", {"indicator_id": ind, "period": "T1-2026", "text": "Formateurs arrivés en mars"})
+    # Report sent: no task left for T1 but the sheet.
+    snap = call("period.mark_reported", {"id": next(p["id"] for p in call("project.get")["periods"])})
+    assert snap["periods"][0]["reported_at"]
+    kinds = sorted(t["kind"] for t in call("today.project", {"today": day})["tasks"])
+    assert kinds == ["sheet"]
+
+
+def test_manual_tasks_events_and_calendar_files(call, tmp_path):
+    _project(call, tmp_path)
+    snap = call(
+        "task.save",
+        {"task": {"title": "Relancer les partenaires", "due": "2026-01-31", "recurrence": "monthly"}},
+    )
+    task = snap["tasks"][0]
+    snap = call("task.save", {"id": task["id"], "task": {**task, "status": "done"}})
+    assert [t["due"] for t in snap["tasks"]] == ["2026-01-31", "2026-02-28"]
+    assert snap["tasks"][0]["done_at"] and snap["tasks"][1]["status"] == "todo"
+    with pytest.raises(RuntimeError, match="dates_order"):
+        call("event.save", {"event": {"title": "x", "start": "2026-02-10", "end": "2026-02-09"}})
+    call(
+        "event.save",
+        {
+            "event": {
+                "title": "Mission à Kara, suivi des sites",
+                "kind": "mission",
+                "start": "2026-02-10",
+                "end": "2026-02-12",
+                "place": "Kara",
+            }
+        },
+    )
+    call("event.save", {"event": {"title": "Revue trimestrielle", "kind": "meeting", "start": "2026-03-30T09:00"}})
+    ag = call("agenda.list", {"start": "2026-02-01", "end": "2026-04-30"})
+    kinds = [e["kind"] for e in ag["events"]]
+    assert kinds == ["mission", "meeting", "data_due", "report_due"]
+    # The manual task, and the T1 report still to send (today is after T1).
+    assert [(t["due"], t["auto"]) for t in ag["tasks"]] == [("2026-02-28", False), ("2026-04-30", True)]
+
+    ics = tmp_path / "agenda.ics"
+    out = call("agenda.export_ics", {"path": str(ics), "start": "2026-02-01", "end": "2026-04-30"})
+    text = ics.read_bytes().decode("utf-8")
+    assert out["events"] == 4 and "DTSTART;VALUE=DATE:20260210" in text and "DTEND;VALUE=DATE:20260213" in text
+    assert "SUMMARY:P: Données de T1 2026 attendues" in text and "DTSTART:20260330T090000" in text
+    assert [line for line in text.split("\r\n") if len(line.encode()) > 75] == []
+    # Read back into another project: the same events, typed by hand.
+    call("project.create", {"path": str(tmp_path / "q.sme"), "name": "Q"})
+    snap = call("agenda.import_ics", {"path": str(ics)})
+    assert snap["imported"] == 4
+    mission = next(e for e in snap["events"] if "Mission" in e["title"])
+    assert mission["start"] == "2026-02-10" and mission["end"] == "2026-02-12" and mission["place"] == "Kara"
+    assert any(e["start"] == "2026-03-30T09:00" for e in snap["events"])

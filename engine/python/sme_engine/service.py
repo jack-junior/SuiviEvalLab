@@ -1319,4 +1319,5 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
 
     project_setup.register_setup(server, svc)
     reception_rpc.register_reception(server, svc)
+    reception_rpc.register_agenda(server, svc)
     return svc
