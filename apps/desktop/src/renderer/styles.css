@@ -2293,3 +2293,66 @@ ul.plain {
 .input.cell.revised {
   border-color: var(--en-cours);
 }
+.tag.warn {
+  background: var(--en-cours-fond);
+  color: var(--en-cours);
+  cursor: default;
+}
+.matrix-scroll {
+  max-height: calc(100vh - 280px);
+}
+.matrix {
+  table-layout: fixed;
+  min-width: 1100px;
+}
+.matrix td {
+  padding: 6px 8px;
+  border-right: 1px solid var(--ligne);
+}
+.matrix td:last-child {
+  border-right: 0;
+}
+.matrix tr:not(.first) td {
+  border-top: 0;
+}
+.matrix .col-logic {
+  width: 26%;
+}
+.matrix .col-ind {
+  width: 22%;
+}
+.matrix .col-num {
+  width: 9%;
+}
+.matrix .col-src,
+.matrix .col-ass {
+  width: 17%;
+}
+.matrix tr.level-impact td.col-logic,
+.matrix tr.level-outcome td.col-logic {
+  background: var(--fond);
+}
+.matrix-level {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--encre-2);
+  margin-bottom: 2px;
+}
+.matrix-edit {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font: inherit;
+  color: inherit;
+  resize: vertical;
+}
+.matrix-edit:hover {
+  border-color: var(--ligne);
+}
+.matrix-edit:focus {
+  border-color: var(--action);
+  background: var(--surface);
+  outline: none;
+}

@@ -1392,6 +1392,17 @@ export const fr = {
   "mplan.noBreakdowns": "Ajoutez d'abord les désagrégations du projet dans la fiche du projet.",
   "mplan.history": "Révisions de cibles",
   "mplan.historyLine": "{period} : était {before}, révisée le {date}. {reason}",
+  "matrix.tab_chain": "Chaîne des résultats",
+  "matrix.tab_matrix": "Matrice du cadre logique",
+  "matrix.logic": "Logique d'intervention",
+  "matrix.indicators": "Indicateurs",
+  "matrix.baseline": "Référence",
+  "matrix.target": "Cible finale",
+  "matrix.sources": "Sources de vérification",
+  "matrix.sourcesHint": "Rapports, registres, enquête...",
+  "matrix.assumptions": "Hypothèses et risques",
+  "matrix.assumptionsHint": "Conditions extérieures nécessaires",
+  "matrix.noIndicator": "Sans indicateur",
 };
 
 export type MessageKey = keyof typeof fr;
@@ -2753,4 +2764,15 @@ export const en: Record<MessageKey, string> = {
   "mplan.noBreakdowns": "Add the project disaggregations in the project sheet first.",
   "mplan.history": "Target revisions",
   "mplan.historyLine": "{period}: was {before}, revised on {date}. {reason}",
+  "matrix.tab_chain": "Results chain",
+  "matrix.tab_matrix": "Logframe matrix",
+  "matrix.logic": "Intervention logic",
+  "matrix.indicators": "Indicators",
+  "matrix.baseline": "Baseline",
+  "matrix.target": "End target",
+  "matrix.sources": "Sources of verification",
+  "matrix.sourcesHint": "Reports, registers, survey...",
+  "matrix.assumptions": "Assumptions and risks",
+  "matrix.assumptionsHint": "External conditions needed",
+  "matrix.noIndicator": "No indicator",
 };
