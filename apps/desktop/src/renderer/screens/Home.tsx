@@ -21,6 +21,7 @@ import { useProject } from "../state";
 import { Confirm, Field, Icon, IconButton, Notice, Panel } from "../ui";
 import { customValid, ModelPicker, useModels } from "./ModelPicker";
 import { SampleSizePanel } from "./SampleSize";
+import { Deadlines, ProjectCard } from "./Workspace";
 
 const REOPEN_KEY = "sme.reopenLast";
 let reopenTried = false; // once per app session
@@ -34,7 +35,7 @@ function readReopen(): boolean {
 }
 
 export function Home({ enginesReady }: { enginesReady: boolean }) {
-  const { t, tn, lang, date } = useI18n();
+  const { t, tn, lang } = useI18n();
   const { run, busy, error, go } = useProject();
   const [name, setName] = useState("");
   const [list, setList] = useState<Recent[] | null>(null);
@@ -159,6 +160,8 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
         {t("sample.openHint")}
       </p>
 
+      {list && <Deadlines list={list} onOpen={openRecent} />}
+
       <section className="stack" data-testid="my-projects">
         <div className="section-head">
           <h2>{t("home.myProjects")}</h2>
@@ -174,54 +177,49 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
         </div>
         {list && list.length === 0 && <p className="muted">{t("home.noProjects")}</p>}
         {shown.length > 0 && (
-          <div className="projects">
+          <div className="ws-grid">
             {shown.map((r) => (
-              <div key={r.path} className={`project-row${r.exists ? "" : " missing"}`}>
-                <button
-                  className="project-open"
-                  onClick={() => openRecent(r)}
-                  disabled={!r.exists || !!busy}
-                  data-testid="project-row"
-                  title={r.path}
-                >
-                  <span className="project-title">{r.name}</span>
-                  <span className="project-path">{r.exists ? r.path : t("home.missingFile")}</span>
-                  <span className="project-meta">
-                    {r.modified ? t("home.modified", { date: date(r.modified) }) : ""}
-                    {r.summary && r.summary.indicators > 0 && (
-                      <span className="project-status">
-                        {tn("home.indicators", r.summary.indicators)}
-                        {r.summary.achieved > 0 && (
-                          <span className="st-ok">{tn("home.achieved", r.summary.achieved)}</span>
-                        )}
-                        {r.summary.on_track > 0 && (
-                          <span className="st-mid">{tn("home.onTrack", r.summary.on_track)}</span>
-                        )}
-                        {r.summary.late > 0 && <span className="st-late">{tn("home.late", r.summary.late)}</span>}
-                      </span>
+              <ProjectCard
+                key={r.path}
+                r={r}
+                busy={!!busy}
+                onOpen={() => openRecent(r)}
+                status={
+                  r.summary &&
+                  r.summary.indicators > 0 && (
+                    <span className="project-status">
+                      {r.summary.achieved > 0 && (
+                        <span className="st-ok">{tn("home.achieved", r.summary.achieved)}</span>
+                      )}
+                      {r.summary.on_track > 0 && (
+                        <span className="st-mid">{tn("home.onTrack", r.summary.on_track)}</span>
+                      )}
+                      {r.summary.late > 0 && <span className="st-late">{tn("home.late", r.summary.late)}</span>}
+                    </span>
+                  )
+                }
+                tools={
+                  <>
+                    {r.exists && (
+                      <IconButton
+                        icon="history"
+                        label={t("backups.open")}
+                        onClick={() => setHistory(r)}
+                        testId="project-backups"
+                      />
                     )}
-                  </span>
-                </button>
-                <div className="row-tools">
-                  {r.exists && (
+                    {r.exists && (
+                      <IconButton icon="folder" label={t("home.reveal")} onClick={() => void revealProject(r.path)} />
+                    )}
                     <IconButton
-                      icon="history"
-                      label={t("backups.open")}
-                      onClick={() => setHistory(r)}
-                      testId="project-backups"
+                      icon="close"
+                      label={t("home.forget")}
+                      onClick={() => forgetProject(r.path).then(setList)}
+                      testId="project-forget"
                     />
-                  )}
-                  {r.exists && (
-                    <IconButton icon="folder" label={t("home.reveal")} onClick={() => void revealProject(r.path)} />
-                  )}
-                  <IconButton
-                    icon="close"
-                    label={t("home.forget")}
-                    onClick={() => forgetProject(r.path).then(setList)}
-                    testId="project-forget"
-                  />
-                </div>
-              </div>
+                  </>
+                }
+              />
             ))}
           </div>
         )}

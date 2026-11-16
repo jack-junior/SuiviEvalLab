@@ -233,6 +233,14 @@ def register_setup(server: Server, svc: Service) -> None:
         project().move_record("disaggregation", params.get("id"), params.get("direction"))
         return svc.snapshot()
 
+    # Workspace: summaries of the projects known to this computer. The paths come
+    # from the application's own list, never from the interface.
+    @server.method("workspace.summaries")
+    def ws_summaries(params: dict[str, Any]) -> dict[str, Any]:
+        from . import workspace
+
+        return {"projects": workspace.summaries(params.get("paths"), params.get("today"))}
+
     # Indicator library
     @server.method("library.sectors")
     def lib_sectors(_: dict[str, Any]) -> dict[str, Any]:

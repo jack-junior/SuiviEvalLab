@@ -2303,7 +2303,7 @@ ul.plain {
 }
 .matrix {
   table-layout: fixed;
-  min-width: 1100px;
+  min-width: 900px;
 }
 .matrix td {
   padding: 6px 8px;
@@ -2316,17 +2316,17 @@ ul.plain {
   border-top: 0;
 }
 .matrix .col-logic {
-  width: 26%;
+  width: 25%;
 }
 .matrix .col-ind {
-  width: 22%;
+  width: 21%;
 }
 .matrix .col-num {
-  width: 9%;
+  width: 8%;
 }
 .matrix .col-src,
 .matrix .col-ass {
-  width: 17%;
+  width: 19%;
 }
 .matrix tr.level-impact td.col-logic,
 .matrix tr.level-outcome td.col-logic {
@@ -2381,4 +2381,76 @@ ul.plain {
   height: 30px;
   padding: 0 12px;
   font-size: 13px;
+}
+.ws-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 12px;
+}
+.ws-card {
+  display: flex;
+  align-items: flex-start;
+  border: 1px solid var(--ligne);
+  border-left: 4px solid var(--ligne);
+  border-radius: 12px;
+  background: var(--surface);
+  padding-right: 6px;
+}
+.ws-card:hover .row-tools,
+.ws-card:focus-within .row-tools {
+  opacity: 1;
+}
+.ws-card.missing {
+  opacity: 0.7;
+}
+.ws-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  border: 0;
+  background: none;
+  padding: 14px 16px;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+.ws-open:hover:not(:disabled) .project-title {
+  color: var(--action);
+}
+.ws-open:disabled {
+  cursor: default;
+}
+.ws-time {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ws-next {
+  color: var(--en-cours);
+  font-weight: 500;
+}
+.deadlines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--ligne);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.deadlines li {
+  display: grid;
+  grid-template-columns: 220px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 16px;
+  font-size: 14px;
+}
+.deadlines li + li {
+  border-top: 1px solid var(--ligne);
+}
+.dl-date {
+  font-weight: 600;
 }

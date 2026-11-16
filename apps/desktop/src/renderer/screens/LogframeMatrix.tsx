@@ -36,7 +36,7 @@ function EditCell({
     <textarea
       className="matrix-edit"
       value={text ?? value}
-      rows={Math.max(2, Math.min(8, Math.ceil((text ?? value).length / 42)))}
+      rows={Math.max(2, Math.min(10, Math.ceil((text ?? value).length / 28)))}
       aria-label={label}
       placeholder={placeholder}
       onChange={(e) => setText(e.target.value)}

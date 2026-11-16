@@ -342,10 +342,24 @@ app.whenReady().then(() => {
     if (typeof kind !== "string" || !kinds.includes(kind as DialogKind)) return null;
     return pickFile(kind as DialogKind, typeof defaultName === "string" ? defaultName.slice(0, 120) : undefined);
   });
-  ipcMain.handle("project:recents", () => listProjects());
+  // Known projects, each with what the engine reads of it without opening it
+  // (calendar, next deadline, counts). The paths come from this list only.
+  const workspaceList = async () => {
+    const list = listProjects();
+    try {
+      const res = (await engine!.call("workspace.summaries", {
+        paths: list.filter((r) => r.exists).map((r) => r.path),
+      })) as { projects: { path: string }[] };
+      const by = new Map(res.projects.map((p) => [p.path, p]));
+      return list.map((r) => ({ ...r, card: by.get(r.path) ?? null }));
+    } catch {
+      return list;
+    }
+  };
+  ipcMain.handle("project:recents", () => workspaceList());
   ipcMain.handle("project:forget", (_e, file: unknown) => {
     if (typeof file === "string") writeRecents(readRecents().filter((r) => r.path !== file));
-    return listProjects();
+    return workspaceList();
   });
   ipcMain.handle("project:reveal", (_e, file: unknown) => {
     if (typeof file === "string" && readRecents().some((r) => r.path === file)) shell.showItemInFolder(file);

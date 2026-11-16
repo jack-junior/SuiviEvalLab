@@ -78,6 +78,31 @@ export interface Recent {
   modified: string | null;
   exists: boolean;
   summary?: { indicators: number; achieved: number; on_track: number; late: number; unknown: number; datasets: number };
+  /** What the engine reads of the file without opening it. */
+  card?: ProjectCard | null;
+}
+
+export interface ProjectCard {
+  path: string;
+  state: "ok" | "older" | "missing" | "unreadable" | "too_new";
+  name?: string;
+  updated_at?: string;
+  model?: string;
+  profile?: Pick<
+    Profile,
+    "code" | "start" | "end" | "frequency" | "donors" | "countries" | "sectors" | "color" | "manager"
+  >;
+  time_elapsed?: number | null;
+  phase?: "not_started" | "running" | "closed" | "unset";
+  current_period?: Period | null;
+  next_deadline?: {
+    kind: "data" | "report";
+    date: string;
+    period: string;
+    label_fr: string;
+    label_en: string;
+  } | null;
+  counts?: Record<"results" | "indicators" | "datasets" | "periods" | "places" | "partners", number>;
 }
 
 // ----- Project model (mirrors engine/python/sme_engine) -----------------------------

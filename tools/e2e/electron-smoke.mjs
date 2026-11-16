@@ -214,8 +214,11 @@ try {
   await id("reason-panel").waitFor({ timeout: 30_000 });
   await id("reason-text").fill("Rentrée scolaire décalée");
   await id("reason-save").click();
-  await page.locator('[data-testid$="-T1-2026"].revised').waitFor({ timeout: 30_000 });
-  if ((await q1.inputValue()) !== "35") throw new Error("Revised target not shown");
+  await page
+    .locator('[data-testid$="-T1-2026"].revised')
+    .waitFor({ timeout: 30_000 });
+  if ((await q1.inputValue()) !== "35")
+    throw new Error("Revised target not shown");
   await shot("monitoring-plan");
 
   await id("nav-analysis").click();
@@ -392,6 +395,17 @@ try {
   // 2. Example project
   await id("close-project").click();
 
+  // Workspace: the project card shows its calendar, and the next deadline is listed.
+  await id("ws-card").first().waitFor({ timeout: 60_000 });
+  await id("ws-deadlines").waitFor({ timeout: 60_000 });
+  notice(
+    "E2E workspace",
+    (await id("ws-card").first().innerText())
+      .replace(/\s+/g, " ")
+      .slice(0, 200),
+  );
+  await shot("workspace");
+
   // Sample size, from the home screen without a project.
   await id("open-sample").click();
   await id("ss-goal-compare_prop").click();
@@ -430,6 +444,21 @@ try {
   );
   await shot("example-test-fr");
 
+  // Logframe matrix: the assumptions are edited in place.
+  await id("nav-framework").click();
+  await id("framework-tab-matrix").click();
+  await id("logframe-matrix").waitFor();
+  const ass = page.locator('[data-testid^="matrix-assumptions-"]').first();
+  await ass.click();
+  await ass.fill("Sécurité suffisante pour accéder aux écoles");
+  await id("framework-tab-chain").click();
+  await page
+    .locator(".tree-assumptions", { hasText: "Sécurité suffisante" })
+    .first()
+    .waitFor({ timeout: 30_000 });
+  await id("framework-tab-matrix").click();
+  await shot("logframe-matrix");
+
   // 3. Language
   await id("lang-en").click();
   const label = await id("nav-overview").innerText();
@@ -443,13 +472,27 @@ try {
   await id("rounds-table").waitFor({ timeout: 120_000 });
   await shot("example-analysis-en-dark");
 
+  // Indicator library: search, then add a sheet to a result.
+  await id("nav-indicators").click();
+  const before = await page.locator(".ind-row").count();
+  await id("open-library").click();
+  await id("library-search").fill("gross enrolment primary");
+  await id("adopt-education.ger_primary").click();
+  await page
+    .locator('[data-testid="adopt-education.ger_primary"]:disabled')
+    .waitFor({ timeout: 30_000 });
+  await shot("library");
+  await page.keyboard.press("Escape");
+  if ((await page.locator(".ind-row").count()) !== before + 1)
+    throw new Error("Library indicator not added");
+
   // Updates section (in this test build, checks are off: the update test does them).
   await id("engines-link").click();
   await id("updates-section").waitFor({ timeout: 30_000 });
   notice("E2E updates", await id("update-status").innerText());
   notice(
     "E2E",
-    "Full path verified: framework, import, cleaning, indicator, analysis, report, SPSS, quality, merge, dashboard, checks, plan, sample size, example, test, languages",
+    "Full path verified: project sheet, framework, import, cleaning, indicator, monitoring plan, analysis, report, SPSS, quality, merge, dashboard, checks, plan export, workspace, sample size, example, test, logframe matrix, languages, indicator library",
   );
 } finally {
   await app.close();

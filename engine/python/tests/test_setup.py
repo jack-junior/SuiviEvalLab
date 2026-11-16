@@ -315,3 +315,44 @@ def test_adopt_a_library_indicator(call, tmp_path):
     assert ger["unit"] == "ratio" and ger["multiplier"] == 100 and ger["name"] == "Gross enrolment ratio, primary"
     with pytest.raises(RuntimeError, match="library_not_found"):
         call("library.adopt", {"id": "nope", "node_id": node})
+
+
+# ----- workspace -------------------------------------------------------------------------
+
+
+def test_workspace_summaries(call, tmp_path):
+    a = tmp_path / "a.sme"
+    call("project.create", {"path": str(a), "name": "Projet A", "profile": PROFILE})
+    node = call("framework.add", {"title": "Objectif"})["created"]
+    call("indicator.save", {"node_id": node, "indicator": {"name": "I", "unit": "count"}})
+    call("project.close")
+    b = tmp_path / "b.sme"
+    call("project.create", {"path": str(b), "name": "Projet B"})
+    # Old project: schema 4 file, read without being migrated.
+    conn = sqlite3.connect(b)
+    conn.execute("PRAGMA user_version = 4")
+    conn.commit()
+    conn.close()
+    junk = tmp_path / "junk.sme"
+    junk.write_text("not a project")
+    out = call(
+        "workspace.summaries",
+        {"paths": [str(a), str(b), str(junk), str(tmp_path / "gone.sme")], "today": "2026-05-12"},
+    )["projects"]
+    pa, pb, pj, pg = out
+    assert pa["state"] == "ok" and pa["name"] == "Projet A" and pa["profile"]["code"] == "PSE-01"
+    assert pa["current_period"]["code"] == "T2-2026" and pa["phase"] == "running"
+    assert pa["next_deadline"] == {
+        "kind": "data",
+        "date": "2026-07-10",
+        "period": "T2-2026",
+        "label_fr": "T2 2026",
+        "label_en": "Q2 2026",
+    }
+    assert pa["counts"]["indicators"] == 1 and pa["counts"]["periods"] == 6
+    assert 0.1 < pa["time_elapsed"] < 0.3
+    assert pb["state"] == "older" and pb["phase"] == "unset"
+    assert pj["state"] == "unreadable" and pg["state"] == "missing"
+    conn = sqlite3.connect(b)
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == 4  # not migrated
+    conn.close()
