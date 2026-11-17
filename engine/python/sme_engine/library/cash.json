@@ -1,0 +1,236 @@
+{
+  "_licence": "SPDX-License-Identifier: GPL-3.0-or-later. Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou. Definitions written for SuiviEvalLab after the cited public references.",
+  "sector": "cash",
+  "name": {
+    "fr": "Transferts monétaires",
+    "en": "Cash and voucher assistance"
+  },
+  "indicators": [
+    {
+      "id": "cash.amount",
+      "name": {
+        "fr": "Montant transféré aux ménages",
+        "en": "Amount transferred to households"
+      },
+      "definition": {
+        "fr": "Montant total remis aux ménages en espèces, par mobile ou en coupons pendant la période, dans la devise du projet.",
+        "en": "Total amount given to households in cash, by mobile money or in vouchers during the period, in the project currency."
+      },
+      "type": "count",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": [],
+      "source": "calp",
+      "unit_label": {
+        "fr": "devise du projet",
+        "en": "project currency"
+      }
+    },
+    {
+      "id": "cash.full_on_time",
+      "name": {
+        "fr": "Bénéficiaires ayant reçu le montant complet à temps",
+        "en": "Recipients who received the full amount on time"
+      },
+      "definition": {
+        "fr": "Part des bénéficiaires enquêtés après distribution qui déclarent avoir reçu le montant prévu, en entier, à la date annoncée.",
+        "en": "Share of recipients surveyed after distribution who report receiving the planned amount, in full, on the announced date."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Bénéficiaires ayant reçu le montant complet à temps",
+        "en": "Recipients who received the full amount on time"
+      },
+      "denominator": {
+        "fr": "Bénéficiaires enquêtés",
+        "en": "Recipients surveyed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex"],
+      "source": "calp"
+    },
+    {
+      "id": "cash.problems",
+      "name": {
+        "fr": "Bénéficiaires ayant rencontré un problème pour recevoir ou utiliser l'aide",
+        "en": "Recipients who faced a problem receiving or using assistance"
+      },
+      "definition": {
+        "fr": "Part des bénéficiaires enquêtés qui déclarent un problème de sécurité, de distance, de frais, d'accès au point de retrait ou de prélèvement indu.",
+        "en": "Share of recipients surveyed who report a problem of safety, distance, fees, access to the cash-out point or undue deductions."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Bénéficiaires déclarant au moins un problème",
+        "en": "Recipients reporting at least one problem"
+      },
+      "denominator": {
+        "fr": "Bénéficiaires enquêtés",
+        "en": "Recipients surveyed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "disability"],
+      "source": "calp",
+      "direction": "decrease"
+    },
+    {
+      "id": "cash.meb_covered",
+      "name": {
+        "fr": "Part du panier de dépenses minimum couverte par le transfert",
+        "en": "Share of the minimum expenditure basket covered by the transfer"
+      },
+      "definition": {
+        "fr": "Valeur du transfert mensuel rapportée au coût du panier de dépenses minimum d'un ménage type sur le marché local.",
+        "en": "Value of the monthly transfer over the cost of the minimum expenditure basket of a typical household on the local market."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Valeur mensuelle du transfert par ménage",
+        "en": "Monthly transfer value per household"
+      },
+      "denominator": {
+        "fr": "Coût mensuel du panier de dépenses minimum",
+        "en": "Monthly cost of the minimum expenditure basket"
+      },
+      "level": "output",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": [],
+      "source": "calp",
+      "aggregation": "last"
+    },
+    {
+      "id": "cash.basic_needs",
+      "name": {
+        "fr": "Part de l'aide dépensée pour les besoins essentiels",
+        "en": "Share of assistance spent on basic needs"
+      },
+      "definition": {
+        "fr": "Part du montant reçu que les ménages déclarent avoir dépensée pour l'alimentation, le logement, la santé, l'éducation, l'eau et l'hygiène.",
+        "en": "Share of the amount received that households report spending on food, shelter, health, education, water and hygiene."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Montant déclaré pour les besoins essentiels",
+        "en": "Amount reported for basic needs"
+      },
+      "denominator": {
+        "fr": "Montant reçu",
+        "en": "Amount received"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": [],
+      "source": "calp"
+    },
+    {
+      "id": "cash.market_availability",
+      "name": {
+        "fr": "Articles essentiels disponibles sur les marchés suivis",
+        "en": "Essential items available on the markets monitored"
+      },
+      "definition": {
+        "fr": "Part des articles du panier de dépenses minimum trouvés en quantité suffisante sur les marchés suivis lors du relevé.",
+        "en": "Share of the items of the minimum expenditure basket found in sufficient quantity on the markets monitored at the time of the survey."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Articles disponibles relevés",
+        "en": "Items found available"
+      },
+      "denominator": {
+        "fr": "Articles relevés",
+        "en": "Items checked"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": [],
+      "source": "calp",
+      "aggregation": "last"
+    },
+    {
+      "id": "cash.cost_efficiency",
+      "name": {
+        "fr": "Coût de mise en œuvre par unité transférée",
+        "en": "Cost to deliver per unit transferred"
+      },
+      "definition": {
+        "fr": "Coûts de mise en œuvre de l'activité (personnel, logistique, frais de service) rapportés au montant transféré aux ménages.",
+        "en": "Delivery costs of the activity (staff, logistics, service fees) over the amount transferred to households."
+      },
+      "type": "ratio",
+      "numerator": {
+        "fr": "Coûts de mise en œuvre",
+        "en": "Delivery costs"
+      },
+      "denominator": {
+        "fr": "Montant transféré aux ménages",
+        "en": "Amount transferred to households"
+      },
+      "level": "output",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": [],
+      "source": "calp",
+      "direction": "decrease"
+    },
+    {
+      "id": "cash.women_recipients",
+      "name": {
+        "fr": "Femmes parmi les personnes inscrites pour recevoir l'aide",
+        "en": "Women among people registered to receive assistance"
+      },
+      "definition": {
+        "fr": "Part des femmes parmi les personnes désignées pour recevoir le transfert au nom du ménage.",
+        "en": "Share of women among the people designated to receive the transfer on behalf of the household."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Femmes inscrites comme bénéficiaires",
+        "en": "Women registered as recipients"
+      },
+      "denominator": {
+        "fr": "Personnes inscrites comme bénéficiaires",
+        "en": "People registered as recipients"
+      },
+      "level": "output",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": [],
+      "source": "calp",
+      "aggregation": "last"
+    },
+    {
+      "id": "cash.preferred",
+      "name": {
+        "fr": "Bénéficiaires satisfaits de la modalité d'aide",
+        "en": "Recipients satisfied with the assistance modality"
+      },
+      "definition": {
+        "fr": "Part des bénéficiaires enquêtés qui préfèrent la modalité reçue (espèces, mobile, coupons) aux autres modalités possibles.",
+        "en": "Share of recipients surveyed who prefer the modality received (cash, mobile money, vouchers) to the other possible modalities."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Bénéficiaires préférant la modalité reçue",
+        "en": "Recipients preferring the modality received"
+      },
+      "denominator": {
+        "fr": "Bénéficiaires enquêtés",
+        "en": "Recipients surveyed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex"],
+      "source": "calp"
+    }
+  ]
+}

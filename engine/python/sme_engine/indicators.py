@@ -21,9 +21,16 @@ from typing import Any
 
 from .rpc import INVALID_PARAMS, RpcError
 
-UNITS = ("percent", "mean", "count", "ratio")
+# Types of section 6.1. The last five are for values entered period by period.
+UNITS = ("percent", "mean", "count", "ratio", "rate", "median", "score", "milestone", "scale")
+SURVEY_UNITS = ("percent", "mean", "count", "ratio")
 DIRECTIONS = ("increase", "decrease")
-SOURCES = ("survey", "routine")
+# survey: computed from imported data; routine: entered period by period;
+# secondary: taken from another source (statistics, report), with its reference.
+# dhis2: read from a DHIS2 server, then checked and validated like entered values.
+SOURCES = ("survey", "routine", "secondary", "dhis2")
+# Values received period by period, rather than computed from imported data.
+ENTRY_SOURCES = ("routine", "secondary", "dhis2")
 FREQUENCIES = ("", "monthly", "quarterly", "semiannual", "annual", "rounds", "other")
 
 
@@ -96,9 +103,17 @@ def validate(spec: dict[str, Any]) -> dict[str, Any]:
     source_type = spec.get("source_type") or "survey"
     if source_type not in SOURCES:
         raise _err(f"source_type must be one of {SOURCES}", "invalid_params")
-    aggregation = spec.get("aggregation") or ("last" if unit == "percent" else "sum")
-    if aggregation not in ("sum", "last", "mean"):
-        raise _err("aggregation must be sum, last or mean", "invalid_params")
+    if source_type == "survey" and unit not in SURVEY_UNITS:
+        raise _err("This type is for values entered period by period", "unit_entry_only")
+    aggregation = spec.get("aggregation") or ("sum" if unit == "count" else "last")
+    if aggregation not in ("sum", "last", "mean", "max"):
+        raise _err("aggregation must be sum, last, mean or max", "invalid_params")
+    bounds: dict[str, float] = {}
+    raw_bounds = spec.get("bounds") if isinstance(spec.get("bounds"), dict) else {}
+    for key in ("min", "max"):
+        v = _num(raw_bounds, key)
+        if v is not None:
+            bounds[key] = v
     categories = spec.get("categories") or []
     if not isinstance(categories, list) or len(categories) > 12:
         raise _err("categories must be a list of at most 12 names", "invalid_params")
@@ -125,7 +140,9 @@ def validate(spec: dict[str, Any]) -> dict[str, Any]:
         "count_mode": count_mode,
         "numerator": _text(spec, "numerator", max_len=300) or None if unit == "ratio" else None,
         "denominator": _text(spec, "denominator", max_len=300) or None if unit == "ratio" else None,
-        "multiplier": multiplier if unit == "ratio" and multiplier not in (None, 0) else 1.0,
+        "multiplier": multiplier if unit in ("ratio", "rate") and multiplier not in (None, 0) else 1.0,
+        # Plausible range of a value entered; outside it, a check asks to verify.
+        "bounds": bounds,
         "disaggregation": _text(spec, "disaggregation", max_len=300) or None,
         "disaggregation2": _text(spec, "disaggregation2", max_len=300) or None,
         "baseline_manual": _num(spec, "baseline_manual"),
@@ -137,6 +154,16 @@ def validate(spec: dict[str, Any]) -> dict[str, Any]:
         "frequency": spec.get("frequency") or "",
         "responsible": _text(spec, "responsible", max_len=200),
         "target_date": _text(spec, "target_date", max_len=40),
+        # Reference sheet of the library the indicator was taken from, and its citation.
+        "library_id": _text(spec, "library_id", max_len=80),
+        # For a count of people: "unique" people (identifiers given, each counted once
+        # across periods, places and partners) or "contacts" (each service counted).
+        "people": spec.get("people") if spec.get("people") in ("unique", "contacts") and unit == "count" else "",
+        # Data element or indicator of DHIS2 the values are read from.
+        "dhis2_id": _text(spec, "dhis2_id", max_len=40),
+        "library_ref": _text(spec, "library_ref", max_len=500),
+        # Disaggregations of the project the results are reported by (their keys).
+        "breakdowns": [str(k)[:30] for k in (spec.get("breakdowns") or [])[:6] if isinstance(k, str) and k.strip()],
     }
     if out["frequency"] not in FREQUENCIES:
         raise _err(f"frequency must be one of {FREQUENCIES}", "invalid_params")
@@ -151,7 +178,7 @@ def validate(spec: dict[str, Any]) -> dict[str, Any]:
 
 def ready(ind: dict[str, Any]) -> bool:
     """True when the calculation rule is complete enough to compute."""
-    if ind.get("source_type") == "routine":
+    if ind.get("source_type") in ENTRY_SOURCES:
         return False  # no dataset calculation: values are typed (routine.py)
     unit = ind["unit"]
     if unit == "percent":

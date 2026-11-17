@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
 
-// Choice of the results framework model: the donor's chain of levels, or a custom one.
+// Choice of the logframe model: the donor's chain of levels, or a custom one.
 
 import { useEffect, useState } from "react";
 import { call, FrameworkLevel, FrameworkModel } from "../api";
@@ -104,7 +104,7 @@ export function ModelPicker({ value, onChange }: { value: FrameworkModel; onChan
             </div>
           ))}
           <div className="row-actions start">
-            {custom.length < 4 && (
+            {custom.length < 5 && (
               <button className="link" onClick={() => setLevels([...custom, { fr: "", en: "", indicators: true }])}>
                 {t("models.addLevel")}
               </button>

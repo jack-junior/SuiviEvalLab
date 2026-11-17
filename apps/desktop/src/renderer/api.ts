@@ -30,7 +30,18 @@ interface SmeBridge {
   reveal?: (file: string) => Promise<void>;
   saveSummary?: (file: string, summary: Record<string, number>) => Promise<void>;
   openFile?: (token: string) => Promise<boolean>;
+  workspaceAgenda?: (range: { start: string; end: string; lang: string }) => Promise<AgendaData>;
+  zoom?: (factor: number) => void;
+  portfolio?: () => Promise<CallResult<Dashboard>>;
+  portfolioExport?: (
+    kind: string,
+    token: string,
+    lang: string,
+  ) => Promise<{ ok: boolean; error?: string; key?: string }>;
+  archive?: (file: string, archived: boolean) => Promise<Recent[]>;
+  duplicate?: (file: string, token: string, name: string) => Promise<CallResult<Recent[]>>;
   updates?: UpdatesBridge;
+  onEvent?: (listener: (event: { method: string; params: unknown }) => void) => () => void;
 }
 
 export type UpdateStatus =
@@ -66,6 +77,21 @@ export type PickKind =
   | "html-save"
   | "xlsx-save"
   | "r-save"
+  | "ics-save"
+  | "ics-open"
+  | "xlsx-open"
+  | "pack-save"
+  | "pack-open"
+  | "pdf-save"
+  | "smeid-save"
+  | "smeid-open"
+  | "join-save"
+  | "join-open"
+  | "sync-save"
+  | "sync-open"
+  | "any-open"
+  | "any-save"
+  | "folder"
   | "template-open";
 export interface Picked {
   token: string;
@@ -77,12 +103,39 @@ export interface Recent {
   opened_at: string;
   modified: string | null;
   exists: boolean;
+  archived?: boolean;
   summary?: { indicators: number; achieved: number; on_track: number; late: number; unknown: number; datasets: number };
+  /** What the engine reads of the file without opening it. */
+  card?: ProjectCard | null;
+}
+
+export interface ProjectCard {
+  path: string;
+  state: "ok" | "older" | "missing" | "unreadable" | "too_new" | "encrypted";
+  name?: string;
+  updated_at?: string;
+  model?: string;
+  profile?: Pick<
+    Profile,
+    "code" | "start" | "end" | "frequency" | "donors" | "countries" | "sectors" | "color" | "manager"
+  >;
+  time_elapsed?: number | null;
+  phase?: "not_started" | "running" | "closed" | "unset";
+  today?: ProjectToday | null;
+  current_period?: Period | null;
+  next_deadline?: {
+    kind: "data" | "report";
+    date: string;
+    period: string;
+    label_fr: string;
+    label_en: string;
+  } | null;
+  counts?: Record<"results" | "indicators" | "datasets" | "periods" | "places" | "partners", number>;
 }
 
 // ----- Project model (mirrors engine/python/sme_engine) -----------------------------
 
-export type Level = "impact" | "outcome" | "output" | "activity";
+export type Level = "impact" | "outcome" | "output" | "activity" | "detail";
 export type Round = "baseline" | "midline" | "endline" | "monitoring";
 
 export interface FrameworkNode {
@@ -103,11 +156,28 @@ export interface FrameworkLevel {
   indicators: boolean;
 }
 export interface FrameworkModel {
-  id: "standard" | "eu" | "usaid" | "un" | "worldbank" | "custom";
+  id: "standard" | "eu" | "usaid" | "un" | "worldbank" | "ifrc" | "custom";
   levels: FrameworkLevel[];
 }
 
-export type Unit = "percent" | "mean" | "count" | "ratio";
+/** Types of indicators (specification 6.1). The last five are for values entered period by period. */
+export type Unit = "percent" | "mean" | "count" | "ratio" | "rate" | "median" | "score" | "milestone" | "scale";
+export const SURVEY_UNITS: Unit[] = ["percent", "mean", "count", "ratio"];
+export const ENTRY_UNITS: Unit[] = [
+  "count",
+  "percent",
+  "rate",
+  "ratio",
+  "mean",
+  "median",
+  "score",
+  "milestone",
+  "scale",
+];
+export type SourceType = "survey" | "routine" | "secondary" | "dhis2";
+/** Indicators whose values are entered or imported period by period. */
+export const isEntry = (i: { source_type?: SourceType }) =>
+  i.source_type === "routine" || i.source_type === "secondary" || i.source_type === "dhis2";
 export interface Condition {
   column: string;
   values: string[];
@@ -138,21 +208,21 @@ export interface Indicator {
   frequency?: Frequency;
   responsible?: string;
   target_date?: string;
-  /** survey: computed from the datasets; routine: values typed period by period. */
-  source_type?: "survey" | "routine";
-  aggregation?: "sum" | "last" | "mean";
+  /** survey: computed from imported data; routine: entered period by period; secondary: from another source. */
+  source_type?: SourceType;
+  aggregation?: "sum" | "last" | "mean" | "max";
+  /** DHIS2 data element or indicator the values are read from. */
+  dhis2_id?: string;
+  /** For a count of people: unique people (identifiers) or contacts. */
+  people?: "" | "unique" | "contacts";
+  /** Plausible range of a value entered. */
+  bounds?: { min?: number; max?: number };
   categories?: string[];
-}
-
-export interface RoutinePeriod {
-  period: string;
-  end: string | null;
-  achieved: number | null;
-  planned: number | null;
-  by: Record<string, number>;
-  note: string;
-  to_date?: number | null;
-  planned_to_date?: number | null;
+  /** Reference sheet of the indicator library, and its citation. */
+  library_id?: string;
+  library_ref?: string;
+  /** Keys of the project disaggregations the indicator is reported by. */
+  breakdowns?: string[];
 }
 
 export interface ColumnInfo {
@@ -375,6 +445,8 @@ export interface Dataset {
   /** Columns created by the cleaning rules. */
   derived_columns?: ColumnInfo[];
   rules: Rule[];
+  /** Reporting period of the collection: its estimates enter the tracking table there. */
+  period?: string;
 }
 
 export interface StackStats {
@@ -422,6 +494,9 @@ export interface Labels {
 
 export interface ProjectInfo {
   path: string;
+  uid: string;
+  encrypted: boolean;
+  integrity: "ok" | "checking" | "damaged";
   name: string;
   created_at: string;
   updated_at: string;
@@ -439,6 +514,686 @@ export interface Snapshot {
   analyses: AnalysisSpec[];
   untrusted_scripts: UntrustedScript[];
   report_content: ReportContent;
+  profile: Profile;
+  periods: Period[];
+  places: Place[];
+  partners: Partner[];
+  disaggregations: Disaggregation[];
+  targets: Record<string, Target[]>;
+  submissions: Submission[];
+  units: ReportingUnit[];
+  gap_comments: Record<string, GapComment[]>;
+  tasks: Task[];
+  events: AgendaEvent[];
+  quality_reviews: Record<string, QualityReview[]>;
+  connections: Connection[];
+  activities: Activity[];
+  budget_lines: BudgetLine[];
+  expenses: Expense[];
+  workplan: WorkplanSummary;
+  feedback: Feedback[];
+  feedback_categories: FeedbackCategory[];
+  recommendations: Recommendation[];
+  risks: Risk[];
+  learning_questions: LearningQuestion[];
+  lessons: Lesson[];
+  meetings: Meeting[];
+  evaluations: Evaluation[];
+  qual_notes: QualNote[];
+  qual_themes: QualTheme[];
+  team: TeamState;
+  /** Number of supporting documents by "kind:id" of the object they belong to. */
+  attachments: Record<string, number>;
+}
+
+// ----- sections 7 and 8: working together and security -----
+
+export const ROLES = ["admin", "officer", "partner", "validator", "feedback", "reader"] as const;
+export type Role = (typeof ROLES)[number];
+export interface Member {
+  id: string;
+  name: string;
+  roles: Role[];
+  partner_ids: string[];
+  public_key: string;
+  active: boolean;
+  fingerprint: string;
+  me: boolean;
+}
+export interface Conflict {
+  id: string;
+  kind: "conflict" | "request";
+  table: string;
+  pk: string;
+  at: string;
+  author: string;
+  op: "u" | "d";
+  row: Record<string, unknown> | null;
+}
+export interface TeamState {
+  on: boolean;
+  me: { id: string; name: string; public_key: string; fingerprint: string };
+  roles: Role[];
+  owner: string;
+  trusted: boolean;
+  members: Member[];
+  conflicts: Conflict[];
+  folder: string;
+  server: string;
+  last_run: string;
+  encrypted: boolean;
+  sensitive: boolean;
+  retention_months: number;
+}
+export interface Attachment {
+  id: string;
+  owner_kind: string;
+  owner_id: string;
+  name: string;
+  size: number;
+  sha256: string;
+  mime: string;
+  description: string;
+  added_at: string;
+  added_by: string;
+}
+export interface SyncResult {
+  written?: number;
+  read?: number;
+  applied: number;
+  skipped: number;
+  refused: number;
+  conflicts: number;
+  requests: number;
+  errors?: { file: string; key: string }[];
+}
+
+// ----- M12 report formats -----
+
+export const SECTION_KINDS = [
+  "text",
+  "tracking",
+  "results",
+  "gaps",
+  "activities",
+  "next_activities",
+  "budget",
+  "beneficiaries",
+  "feedback",
+  "recommendations",
+  "risks",
+  "lessons",
+  "surveys",
+  "evaluations",
+  "logframe",
+  "calendar",
+  "pirs",
+] as const;
+export type SectionKind = (typeof SECTION_KINDS)[number];
+export interface FormatSection {
+  key: string;
+  kind: SectionKind;
+  fr: string;
+  en: string;
+  hint_fr: string;
+  hint_en: string;
+}
+export interface ReportFormat {
+  id: string;
+  donor: string;
+  fr?: string;
+  en?: string;
+  name?: string;
+  sections: FormatSection[];
+  builtin: boolean;
+}
+
+// ----- M9 work plan and budget -----
+
+export const ACTIVITY_STATES = ["not_started", "in_progress", "done", "postponed", "cancelled"] as const;
+export type ActivityState = (typeof ACTIVITY_STATES)[number];
+export const ME_KINDS = ["collection", "dqa", "review", "evaluation", "mission", "other"] as const;
+export interface Activity {
+  id: string;
+  title: string;
+  code: string;
+  family: "project" | "me";
+  me_kind: string;
+  node_id: string | null;
+  parent_id: string | null;
+  start: string;
+  end: string;
+  actual_start: string;
+  actual_end: string;
+  status: ActivityState;
+  progress: number;
+  responsible: string;
+  place_ids: string[];
+  partner_id: string | null;
+  milestone: boolean;
+  comment: string;
+  origin: string;
+  /** Worked out by the engine. */
+  expected: number | null;
+  late: "" | "late_end" | "late_start";
+  derived?: boolean;
+}
+export interface BudgetLine {
+  id: string;
+  code: string;
+  name: string;
+  activity_id: string | null;
+  planned: Record<string, number>;
+  note: string;
+}
+export interface Expense {
+  id: string;
+  line_id: string;
+  date: string;
+  amount: number;
+  label: string;
+  ref: string;
+}
+export interface BudgetSummary {
+  lines: {
+    line_id: string;
+    planned: number;
+    planned_to_date: number;
+    spent: number;
+    rate: number | null;
+    rate_to_date: number | null;
+  }[];
+  planned: number;
+  planned_to_date: number;
+  spent: number;
+  financial: number | null;
+  by_period: { period: string; planned: number; spent: number }[];
+}
+export interface WorkplanSummary {
+  day: string;
+  time: number | null;
+  activities: number;
+  physical: number | null;
+  expected: number | null;
+  late: number;
+  budget: BudgetSummary;
+  currency: string;
+  financial_ahead: number | null;
+}
+export interface ExpenseImport {
+  rows: number;
+  read: number;
+  total: number;
+  bad: number;
+  duplicates: number;
+  unknown_lines: { line: string; rows: number }[];
+}
+
+// ----- M11 accountability and learning -----
+
+export const CHANNELS = ["box", "hotline", "meeting", "in_person", "sms", "other"] as const;
+export const FEEDBACK_STATES = ["received", "forwarded", "in_progress", "answered", "closed"] as const;
+export type FeedbackState = (typeof FEEDBACK_STATES)[number];
+export const SENSITIVITY = ["", "sea", "fraud", "safety", "other"] as const;
+export interface FeedbackCategory {
+  key: string;
+  name: string;
+  days: number;
+  sensitive: boolean;
+}
+export interface Feedback {
+  id: string;
+  received: string;
+  channel: (typeof CHANNELS)[number];
+  place_id: string | null;
+  category: string;
+  sensitive: boolean;
+  sensitivity: (typeof SENSITIVITY)[number];
+  person: string;
+  summary: string;
+  detail: string;
+  response: string;
+  status: FeedbackState;
+  history: { status: FeedbackState; at: string; note: string }[];
+  answered_at: string | null;
+  closed_at: string | null;
+  deadline: string;
+  overdue: boolean;
+  /** The content is hidden from this member's role. */
+  masked?: boolean;
+}
+export const REC_SOURCES = ["evaluation", "mission", "review", "audit", "other"] as const;
+export const RESPONSES = ["pending", "accepted", "partial", "rejected"] as const;
+export const ACTION_STATES = ["todo", "doing", "done"] as const;
+export interface RecAction {
+  id?: string;
+  text: string;
+  responsible: string;
+  due: string;
+  status: (typeof ACTION_STATES)[number];
+  done_at?: string | null;
+}
+export interface Recommendation {
+  id: string;
+  source: (typeof REC_SOURCES)[number];
+  evaluation_id: string | null;
+  source_ref: string;
+  date: string;
+  text: string;
+  response: (typeof RESPONSES)[number];
+  response_reason: string;
+  actions: RecAction[];
+  status: "pending" | "in_progress" | "done" | "rejected";
+  late_actions: string[];
+}
+export const REVIEW_MONTHS = [0, 1, 3, 6, 12] as const;
+export interface Risk {
+  id: string;
+  kind: "risk" | "assumption";
+  node_id: string | null;
+  title: string;
+  description: string;
+  probability: number;
+  impact: number;
+  measures: string;
+  responsible: string;
+  review_months: number;
+  status: "active" | "closed";
+  reviews: { date: string; probability: number; impact: number; note: string }[];
+  created_at: string;
+  level: "low" | "medium" | "high";
+  review_due: string;
+  review_late: boolean;
+}
+export interface LearningQuestion {
+  id: string;
+  text: string;
+  status: "open" | "answered";
+  answer: string;
+  node_id: string | null;
+}
+export interface Lesson {
+  id: string;
+  date: string;
+  title: string;
+  context: string;
+  finding: string;
+  lesson: string;
+  use: string;
+  question_id: string | null;
+  tags: string[];
+}
+export const MEETING_KINDS = ["review", "quarterly", "learning", "steering", "other"] as const;
+export interface Decision {
+  id?: string;
+  text: string;
+  responsible: string;
+  due: string;
+  as_task: boolean;
+  status: (typeof ACTION_STATES)[number];
+}
+export interface Meeting {
+  id: string;
+  date: string;
+  title: string;
+  kind: (typeof MEETING_KINDS)[number];
+  participants: string;
+  notes: string;
+  decisions: Decision[];
+}
+
+// ----- M10 evaluations -----
+
+export const EVAL_KINDS = ["midterm", "final", "thematic", "ex_post", "other"] as const;
+export const EVAL_STEPS = ["tor", "recruitment", "collection", "draft", "final"] as const;
+export const CRITERIA = ["relevance", "coherence", "effectiveness", "efficiency", "impact", "sustainability"] as const;
+export interface EvalQuestion {
+  id?: string;
+  criterion: (typeof CRITERIA)[number];
+  text: string;
+  indicator_ids: string[];
+  sources: string;
+  methods: string;
+  analysis_ids: string[];
+  findings: string;
+  conclusion: string;
+}
+export interface Evaluation {
+  id: string;
+  title: string;
+  kind: (typeof EVAL_KINDS)[number];
+  start: string;
+  end: string;
+  evaluator: string;
+  budget: number | null;
+  tor: string;
+  steps: Record<(typeof EVAL_STEPS)[number], { date: string; done: boolean }>;
+  questions: EvalQuestion[];
+  conclusions: string;
+}
+export const NOTE_KINDS = ["interview", "fgd", "observation", "other"] as const;
+export interface Excerpt {
+  id?: string;
+  start: number;
+  end: number;
+  text?: string;
+  theme_ids: string[];
+  question_id: string | null;
+  memo: string;
+}
+export interface QualNote {
+  id: string;
+  title: string;
+  kind: (typeof NOTE_KINDS)[number];
+  evaluation_id: string | null;
+  date: string;
+  place: string;
+  participants: string;
+  text: string;
+  excerpts: Excerpt[];
+}
+export interface QualTheme {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface Connection {
+  id: string;
+  kind: "kobo" | "odk" | "dhis2";
+  name: string;
+  url: string;
+  username: string;
+  form: { uid?: string; project_id?: string; form_id?: string; name?: string };
+  dataset_id: string;
+  syncs: { at: string; rows: number }[];
+  /** Added by the application: whether the token or password is stored on this computer. */
+  has_secret?: boolean;
+}
+
+export type QualityScore = "met" | "partly" | "not_met" | "";
+export const QUALITY_CRITERIA = ["validity", "reliability", "timeliness", "precision", "integrity"] as const;
+export interface QualityReview {
+  id: string;
+  indicator_id: string;
+  date: string;
+  scores: Record<(typeof QUALITY_CRITERIA)[number], QualityScore>;
+  reviewer: string;
+  conclusions: string;
+  actions: string;
+}
+export interface Crosstab {
+  rows: { key: string; label: string; values: (number | null)[]; total: number | null }[];
+  cols: { key: string; label: string }[];
+  col_totals: (number | null)[];
+  total: number | null;
+  period: string | null;
+}
+export interface Change {
+  submission_id: string;
+  period: string;
+  label: string;
+  unit_name: string;
+  action: string;
+  at: string;
+  channel: string;
+}
+
+// ----- monitoring (1.0, milestone J2) -----
+
+export type SubmissionStatus = "draft" | "submitted" | "review" | "returned" | "validated" | "locked";
+export interface Submission {
+  id: string;
+  period: string;
+  place_id: string;
+  partner_id: string;
+  channel: "entry" | "excel" | "import" | "secondary" | "migrated";
+  status: SubmissionStatus;
+  created_at: string;
+  submitted_at: string | null;
+  validated_at: string | null;
+  comment: string;
+  source_ref: string;
+  history: { at: string; action: string; status: string; comment?: string }[];
+}
+export interface ReportingUnit {
+  place_id: string;
+  partner_id: string;
+}
+export interface GapComment {
+  id: string;
+  period: string;
+  text: string;
+  at: string;
+}
+export interface Alert {
+  key: string;
+  check: string;
+  severity: "blocking" | "review" | "info";
+  indicator_id: string;
+  cats: string;
+  info: Record<string, number | string | null>;
+  justification?: string | null;
+}
+/** value, numerator, denominator */
+export type Cell = [number | null, number | null, number | null];
+export interface SubmissionDetail {
+  submission: Submission;
+  cells: Record<string, Record<string, Cell>>;
+  alerts: Alert[];
+}
+export type TrackStatus = "achieved" | "on_track" | "late" | "not_started" | "no_data" | "unknown";
+export interface TrackPoint {
+  period: string;
+  value: number | null;
+  numerator: number | null;
+  denominator: number | null;
+  reason: string | null;
+  provisional: boolean;
+  target: number | null;
+  to_date: number | null;
+  target_to_date: number | null;
+  interpolated: boolean;
+  rate_to_date: number | null;
+  status: TrackStatus;
+  trend: "up" | "down" | "flat" | null;
+  ci?: [number | null, number | null] | null;
+  round?: string | null;
+}
+export interface TrackRow {
+  indicator_id: string;
+  kind: "count" | "fraction" | "mean" | "level" | "milestone" | "survey";
+  mode: "sum" | "last" | "mean" | "max";
+  baseline: number | null;
+  target: number | null;
+  period: string | null;
+  value_period: number | null;
+  target_period: number | null;
+  rate_period: number | null;
+  to_date: number | null;
+  target_to_date: number | null;
+  interpolated: boolean;
+  rate_to_date: number | null;
+  status: TrackStatus;
+  trend: "up" | "down" | "flat" | null;
+  provisional: boolean;
+  reason: string | null;
+  series: TrackPoint[];
+  duplicates_possible?: boolean;
+}
+export interface Task {
+  id: string;
+  title: string;
+  due: string;
+  priority: "low" | "normal" | "high";
+  status: "todo" | "doing" | "waiting" | "done";
+  note: string;
+  assignee: string;
+  recurrence: "" | "monthly" | "quarterly";
+  link: { kind: string; id: string } | null;
+  created_at: string;
+  done_at: string | null;
+}
+export type EventKind = "meeting" | "mission" | "training" | "workshop" | "absence" | "collection" | "other";
+export interface AgendaEvent {
+  id: string;
+  title: string;
+  kind: EventKind;
+  start: string;
+  end: string;
+  place: string;
+  note: string;
+}
+/** A deadline or a task worked out from the project, or one typed by the user. */
+export interface AgendaItem {
+  id: string;
+  auto: boolean;
+  kind: string;
+  title?: string;
+  start?: string;
+  end?: string;
+  due?: string;
+  period?: string;
+  label?: string;
+  priority?: "low" | "normal" | "high";
+  status?: string;
+  done?: boolean;
+  unit_name?: string;
+  submission_id?: string | null;
+  indicator_id?: string;
+  indicator?: string;
+  missing?: string[];
+  comment?: string;
+  place?: string;
+  note?: string;
+  days?: number;
+  project?: string;
+  path?: string;
+  color?: string;
+  personal?: boolean;
+  name?: string;
+  step?: string;
+  category?: string;
+  assignee?: string;
+  activity_id?: string;
+  evaluation_id?: string;
+  feedback_id?: string;
+  recommendation_id?: string;
+  risk_id?: string;
+  meeting_id?: string;
+}
+export interface AgendaData {
+  events: AgendaItem[];
+  tasks: AgendaItem[];
+}
+export interface ProjectToday {
+  day: string;
+  deadlines: AgendaItem[];
+  events: AgendaItem[];
+  tasks: AgendaItem[];
+  alerts: number;
+  late: { indicator_id: string; indicator: string; period: string; rate: number | null }[];
+  since: string;
+  changes: Change[];
+  late_activities: { id: string; title: string; late: string; end: string; progress: number }[];
+  overdue_feedback: { id: string; summary: string; category: string; deadline: string }[];
+  overdue_recommendations: { id: string; text: string; late: number }[];
+}
+
+export type PeriodFrequency = "monthly" | "quarterly" | "semiannual" | "annual";
+export interface Donor {
+  name: string;
+  agreement: string;
+  frequency: PeriodFrequency | "";
+}
+export interface Profile {
+  code: string;
+  summary: string;
+  start: string;
+  end: string;
+  frequency: PeriodFrequency;
+  fiscal_start_month: number;
+  data_due_days: number;
+  report_due_days: number;
+  donors: Donor[];
+  implementer: string;
+  countries: string[];
+  sectors: string[];
+  currency: string;
+  budget: number;
+  manager: string;
+  color: string;
+  place_levels: string[];
+  reporting_by: "project" | "partner" | "place" | "partner_place";
+  reporting_level: number;
+  on_track: number;
+}
+export interface Period {
+  id: string;
+  code: string;
+  label_fr: string;
+  label_en: string;
+  start: string;
+  end: string;
+  data_due: string;
+  report_due: string;
+  state: "open" | "locked";
+  reported_at?: string | null;
+  history?: { at: string; action: string; comment?: string }[];
+}
+export interface Place {
+  id: string;
+  name: string;
+  code: string;
+  level: number;
+  parent_id: string;
+  lat?: number;
+  lon?: number;
+  geo_id?: string;
+}
+export interface Country {
+  iso3: string;
+  iso2: string;
+  fr: string;
+  en: string;
+}
+export interface GeoResult {
+  name: string;
+  label: string;
+  kind: string;
+  lat: number;
+  lon: number;
+}
+export type PartnerRole = "implementing" | "funding" | "technical" | "government" | "community" | "research" | "other";
+export interface Partner {
+  id: string;
+  name: string;
+  acronym: string;
+  role: PartnerRole;
+  contact: string;
+  place_ids: string[];
+  start: string;
+  end: string;
+  note: string;
+}
+export interface Category {
+  code: string;
+  fr: string;
+  en: string;
+}
+export interface Disaggregation {
+  id: string;
+  key: string;
+  name_fr: string;
+  name_en: string;
+  categories: Category[];
+}
+export interface Target {
+  id: string;
+  indicator_id: string;
+  period: string;
+  value: number;
+  history: { value: number; at: string; reason: string }[];
 }
 
 export type TestQuestion = "groups" | "target" | "paired";
@@ -633,11 +1388,105 @@ export const appInfo = () => bridge.info();
 export const pick = (kind: PickKind, defaultName?: string) => bridge.pick?.(kind, defaultName) ?? Promise.resolve(null);
 export const recents = () => bridge.recents?.() ?? Promise.resolve([]);
 export const recentToken = (file: string) => bridge.recentToken?.(file) ?? Promise.resolve(null);
+/** Events the engine sends on its own (a synchronisation made in the background). */
+export const onEngineEvent = (listener: (event: { method: string; params: unknown }) => void) =>
+  bridge.onEvent?.(listener) ?? (() => undefined);
+export const archiveProject = (file: string, archived: boolean) =>
+  bridge.archive?.(file, archived) ?? Promise.resolve([] as Recent[]);
+export async function duplicateProject(file: string, token: string, name: string): Promise<Recent[]> {
+  const res = (await bridge.duplicate?.(file, token, name)) as CallResult<Recent[]> | undefined;
+  if (!res) return [];
+  if (!res.ok) throw new EngineCallError(res.error, res.key, {});
+  return res.result;
+}
+export async function portfolioDashboard(): Promise<Dashboard> {
+  const res = (await bridge.portfolio?.()) as CallResult<Dashboard> | undefined;
+  if (!res) throw new EngineCallError("Not available", "not_available", {});
+  if (!res.ok) throw new EngineCallError(res.error, res.key, {});
+  return res.result;
+}
+export async function portfolioExport(kind: "note" | "html" | "pdf", token: string, lang: string): Promise<void> {
+  const res = await bridge.portfolioExport?.(kind, token, lang);
+  if (res && !res.ok) throw new EngineCallError(res.error ?? "", res.key ?? "unknown", {});
+}
+
+export type PortfolioStatus = "on_track" | "watch" | "difficulty" | "unknown";
+export interface PortfolioCard {
+  source: "file" | "pack";
+  path: string;
+  uid: string;
+  name: string;
+  profile: {
+    code?: string;
+    start?: string;
+    end?: string;
+    donors?: { name: string }[];
+    countries?: string[];
+    sectors?: string[];
+    currency?: string;
+    manager?: string;
+    color?: string;
+  };
+  exported_at: string | null;
+  time: number | null;
+  indicators: number;
+  indicators_judged: number;
+  indicators_on_track: number | null;
+  late_indicators: string[];
+  physical: number | null;
+  expected: number | null;
+  financial: number | null;
+  planned: number | null;
+  spent: number | null;
+  activities: number;
+  late_activities: number;
+  feedback_overdue: number;
+  next_deadline: { kind: "data" | "report"; date: string; label_fr: string; label_en: string } | null;
+  deadlines_30: number;
+  status: PortfolioStatus;
+  reasons: string[];
+}
+export interface CommonIndicator {
+  library_id: string;
+  name: string;
+  unit: string;
+  projects: { name: string; to_date: number | null; target: number | null }[];
+  total: number | null;
+  target: number | null;
+  double_count_possible: boolean;
+  not_additive: boolean;
+}
+export interface PortfolioSettings {
+  indicators_on_track: number;
+  indicators_difficulty: number;
+  financial_margin: number;
+  late_activities: number;
+}
+export interface Dashboard {
+  day: string;
+  settings: PortfolioSettings;
+  cards: PortfolioCard[];
+  overview: {
+    projects: number;
+    by_status: Partial<Record<PortfolioStatus, number>>;
+    late_activities: number;
+    late_indicators: number;
+    feedback_overdue: number;
+    deadlines_30: number;
+    planned: number;
+    spent: number;
+  };
+  distribution: { donor: Record<string, number>; country: Record<string, number>; sector: Record<string, number> };
+  common: CommonIndicator[];
+}
 export const forgetProject = (file: string) => bridge.forget?.(file) ?? Promise.resolve([]);
 export const revealProject = (file: string) => bridge.reveal?.(file) ?? Promise.resolve();
 export const saveSummary = (file: string, summary: Record<string, number>) =>
   bridge.saveSummary?.(file, summary) ?? Promise.resolve();
 export const openFile = (token: string) => bridge.openFile?.(token) ?? Promise.resolve(false);
+export const setZoom = (factor: number) => bridge.zoom?.(factor);
+export const workspaceAgenda = (start: string, end: string, lang: string) =>
+  bridge.workspaceAgenda?.({ start, end, lang }) ?? Promise.resolve({ events: [], tasks: [] } as AgendaData);
 
 /** Automatic updates; absent in the browser preview. */
 export const updates = (): UpdatesBridge | null => bridge.updates ?? null;

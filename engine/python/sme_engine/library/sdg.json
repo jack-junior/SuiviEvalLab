@@ -1,0 +1,198 @@
+{
+  "_licence": "SPDX-License-Identifier: GPL-3.0-or-later. Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou. Definitions written for SuiviEvalLab after the cited public references.",
+  "sector": "sdg",
+  "name": {
+    "fr": "Objectifs de développement durable",
+    "en": "Sustainable Development Goals"
+  },
+  "indicators": [
+    {
+      "id": "sdg.1_1_1",
+      "name": {
+        "fr": "Population vivant sous le seuil international de pauvreté",
+        "en": "Population below the international poverty line"
+      },
+      "definition": {
+        "fr": "Part de la population vivant avec moins que le seuil international de pauvreté fixé par la Banque mondiale, en parité de pouvoir d'achat.",
+        "en": "Share of the population living below the international poverty line set by the World Bank, in purchasing power parity."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes dont la consommation par tête est sous le seuil",
+        "en": "People whose consumption per head is below the line"
+      },
+      "denominator": {
+        "fr": "Population enquêtée",
+        "en": "Population surveyed"
+      },
+      "level": "impact",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "age", "area"],
+      "source": "sdg",
+      "ref": "ODD 1.1.1",
+      "direction": "decrease"
+    },
+    {
+      "id": "sdg.1_2_1",
+      "name": {
+        "fr": "Population vivant sous le seuil national de pauvreté",
+        "en": "Population below the national poverty line"
+      },
+      "definition": {
+        "fr": "Part de la population vivant sous le seuil national de pauvreté.",
+        "en": "Share of the population living below the national poverty line."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes sous le seuil national",
+        "en": "People below the national line"
+      },
+      "denominator": {
+        "fr": "Population enquêtée",
+        "en": "Population surveyed"
+      },
+      "level": "impact",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "age", "area"],
+      "source": "sdg",
+      "ref": "ODD 1.2.1",
+      "direction": "decrease"
+    },
+    {
+      "id": "sdg.3_7_1",
+      "name": {
+        "fr": "Besoins en planification familiale satisfaits par des méthodes modernes",
+        "en": "Demand for family planning satisfied with modern methods"
+      },
+      "definition": {
+        "fr": "Part des femmes de 15 à 49 ans qui souhaitent éviter ou espacer les grossesses et qui utilisent une méthode moderne de contraception.",
+        "en": "Share of women aged 15 to 49 who want to avoid or space pregnancies and use a modern contraceptive method."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Femmes utilisant une méthode moderne",
+        "en": "Women using a modern method"
+      },
+      "denominator": {
+        "fr": "Femmes ayant une demande de planification familiale",
+        "en": "Women with a demand for family planning"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["age", "area"],
+      "source": "sdg",
+      "ref": "ODD 3.7.1"
+    },
+    {
+      "id": "sdg.3_c_1",
+      "name": {
+        "fr": "Densité de personnels de santé",
+        "en": "Health worker density"
+      },
+      "definition": {
+        "fr": "Nombre de médecins, infirmiers et sages-femmes pour 10 000 habitants de la zone.",
+        "en": "Number of doctors, nurses and midwives per 10,000 population of the area."
+      },
+      "type": "ratio",
+      "numerator": {
+        "fr": "Nombre de médecins, infirmiers et sages-femmes en poste",
+        "en": "Number of doctors, nurses and midwives in post"
+      },
+      "denominator": {
+        "fr": "Population de la zone",
+        "en": "Population of the area"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "annual",
+      "breakdowns": [],
+      "source": "sdg",
+      "ref": "ODD 3.c.1",
+      "aggregation": "last",
+      "multiplier": 10000
+    },
+    {
+      "id": "sdg.4_2_2",
+      "name": {
+        "fr": "Participation à un apprentissage organisé un an avant l'âge officiel du primaire",
+        "en": "Participation in organised learning one year before primary entry age"
+      },
+      "definition": {
+        "fr": "Part des enfants ayant un an de moins que l'âge officiel d'entrée au primaire qui participent à un apprentissage organisé (préscolaire ou primaire).",
+        "en": "Share of children one year younger than the official primary entry age who take part in organised learning (pre-primary or primary)."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Enfants de cet âge inscrits",
+        "en": "Children of that age enrolled"
+      },
+      "denominator": {
+        "fr": "Enfants de cet âge",
+        "en": "Children of that age"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "area"],
+      "source": "sdg",
+      "ref": "ODD 4.2.2"
+    },
+    {
+      "id": "sdg.5_3_1",
+      "name": {
+        "fr": "Femmes de 20 à 24 ans mariées avant 18 ans",
+        "en": "Women aged 20 to 24 married before age 18"
+      },
+      "definition": {
+        "fr": "Part des femmes de 20 à 24 ans qui étaient mariées ou en union avant l'âge de 18 ans.",
+        "en": "Share of women aged 20 to 24 who were married or in a union before age 18."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Femmes de 20 à 24 ans mariées ou en union avant 18 ans",
+        "en": "Women aged 20 to 24 married or in a union before 18"
+      },
+      "denominator": {
+        "fr": "Femmes de 20 à 24 ans",
+        "en": "Women aged 20 to 24"
+      },
+      "level": "impact",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["area"],
+      "source": "sdg",
+      "ref": "ODD 5.3.1",
+      "direction": "decrease"
+    },
+    {
+      "id": "sdg.disability_poverty",
+      "name": {
+        "fr": "Personnes en situation de handicap vivant sous le seuil national de pauvreté",
+        "en": "People with disabilities below the national poverty line"
+      },
+      "definition": {
+        "fr": "Part des personnes ayant des difficultés fonctionnelles (questions du Groupe de Washington) qui vivent sous le seuil national de pauvreté.",
+        "en": "Share of people with functional difficulties (Washington Group questions) who live below the national poverty line."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes en situation de handicap sous le seuil",
+        "en": "People with disabilities below the line"
+      },
+      "denominator": {
+        "fr": "Personnes en situation de handicap enquêtées",
+        "en": "People with disabilities surveyed"
+      },
+      "level": "impact",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "age"],
+      "source": "sdg",
+      "ref": "ODD 1.2.1, 10.2",
+      "direction": "decrease"
+    }
+  ]
+}

@@ -25,6 +25,7 @@ import {
   rmSync,
   statSync,
 } from "node:fs";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -59,14 +60,79 @@ const dialogs = [
   file2019,
   file2020,
   path.join(work, "rapport-manuel.docx"),
+  path.join(work, "rapport-ue.docx"),
+  path.join(work, "suivi.xlsx"),
   fileSav,
   fileMerge,
   fileMerge,
   path.join(work, "nettoyage.R"),
   path.join(work, "tableau.html"),
   path.join(work, "plan.xlsx"),
+  path.join(work, "portefeuille.docx"),
   path.join(work, "exemple.sme"),
 ];
+
+// A local server answering like KoboToolbox, for the server synchronisation.
+const KOBO_TOKEN = "e2e-token";
+const kobo = createServer((req, res) => {
+  const send = (code, body) => {
+    res.writeHead(code, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(body));
+  };
+  if (req.headers.authorization !== `Token ${KOBO_TOKEN}`)
+    return send(401, { detail: "bad token" });
+  const url = new URL(req.url, "http://127.0.0.1");
+  if (url.pathname === "/api/v2/assets/")
+    return send(200, {
+      next: null,
+      results: [
+        {
+          uid: "aE2E",
+          name: "Suivi des ménages",
+          asset_type: "survey",
+          has_deployment: true,
+          deployment__submission_count: 3,
+        },
+      ],
+    });
+  if (url.pathname === "/api/v2/assets/aE2E/")
+    return send(200, {
+      content: {
+        translations: [null],
+        survey: [
+          { type: "integer", name: "taille", label: ["Taille du ménage"] },
+          {
+            type: "select_one",
+            select_from_list_name: "yn",
+            name: "ecole",
+            label: ["École à 2 km"],
+          },
+        ],
+        choices: [
+          { list_name: "yn", name: "oui", label: ["Oui"] },
+          { list_name: "yn", name: "non", label: ["Non"] },
+        ],
+      },
+    });
+  if (url.pathname === "/api/v2/assets/aE2E/data/")
+    return send(200, {
+      next: null,
+      results: [
+        { _id: 1, taille: "5", ecole: "oui", _submission_time: "2026-02-01" },
+        { _id: 2, taille: "3", ecole: "non", _submission_time: "2026-02-02" },
+        { _id: 3, taille: "8", ecole: "oui", _submission_time: "2026-02-03" },
+      ],
+    });
+  send(404, {});
+});
+await new Promise((ok) => kobo.listen(0, "127.0.0.1", ok));
+const koboUrl = `http://127.0.0.1:${kobo.address().port}`;
+const env = {
+  ...process.env,
+  SME_E2E_DIALOGS: dialogs.join("|"),
+  NO_PROXY: "127.0.0.1,localhost",
+  no_proxy: "127.0.0.1,localhost",
+};
 
 const app = await electron.launch(
   local
@@ -76,12 +142,12 @@ const app = await electron.launch(
           "node_modules/electron/dist/electron",
         ),
         args: ["--no-sandbox", target],
-        env: { ...process.env, SME_E2E_DIALOGS: dialogs.join("|") },
+        env,
         timeout: 60_000,
       }
     : {
         executablePath: target,
-        env: { ...process.env, SME_E2E_DIALOGS: dialogs.join("|") },
+        env,
         timeout: 60_000,
       },
 );
@@ -99,10 +165,39 @@ try {
   await id("engine-ready").first().waitFor({ timeout: 150_000 });
   notice("E2E", "Engines ready");
 
-  // 1. Manual path
+  // 1. Manual path (from the Projects screen, whatever the workspace opened on)
+  await id("nav-overview").click();
   await id("new-project").click();
   await id("new-name").fill("Projet test");
   await id("new-create").click();
+  // A new project opens on its sheet: dates, then the calendar is made from them.
+  await id("profile-form").waitFor({ timeout: 60_000 });
+  await id("profile-start").fill("2026-01-01");
+  await id("profile-end").fill("2027-12-31");
+  await id("profile-save").click();
+  await id("setup-tab-calendar").click();
+  await id("period-T1-2026").waitFor({ timeout: 60_000 });
+  const periods = await page.locator('[data-testid^="period-T"]').count();
+  if (periods !== 8) throw new Error(`Expected 8 quarters, got ${periods}`);
+  // Places: a site placed by clicking on the map (no network needed: the map
+  // takes the click even when its tiles cannot load).
+  await id("setup-tab-places").click();
+  await id("geo-search").click();
+  await id("geo-search-panel").waitFor({ timeout: 30_000 });
+  await id("map").click({ position: { x: 200, y: 150 } });
+  await id("geo-position").waitFor({ timeout: 30_000 });
+  await id("geo-name").fill("Site de la carte");
+  await shot("place-map");
+  await id("geo-search-save").click();
+  await id("place-Site de la carte").waitFor({ timeout: 30_000 });
+  const pin = await id("place-Site de la carte").innerText();
+  if (!/\d+\.\d{4}, -?\d+\.\d{4}/.test(pin))
+    throw new Error(`Position not shown: ${pin}`);
+  await id("setup-tab-disaggregations").click();
+  await id("preset-sex").click();
+  await id("dis-sex").waitFor({ timeout: 60_000 });
+  await shot("project-sheet");
+  await id("nav-framework").click();
   await id("add-impact").click();
   await id("node-title").fill("Les enfants accèdent à l'éducation");
   await id("node-save").click();
@@ -189,6 +284,226 @@ try {
   await id("indicator-save").click();
   await page.locator(".ind-row").first().waitFor();
 
+  // Monitoring plan: a target per quarter; changing it asks for a reason.
+  await id("nav-plan").click();
+  const q1 = page.locator('[data-testid$="-T1-2026"][data-testid^="target-"]');
+  await q1.fill("40");
+  await q1.press("Enter");
+  await page.waitForTimeout(500);
+  await q1.fill("35");
+  await q1.press("Enter");
+  await id("reason-panel").waitFor({ timeout: 30_000 });
+  await id("reason-text").fill("Rentrée scolaire décalée");
+  await id("reason-save").click();
+  await page
+    .locator('[data-testid$="-T1-2026"].revised')
+    .waitFor({ timeout: 30_000 });
+  if ((await q1.inputValue()) !== "35")
+    throw new Error("Revised target not shown");
+  await shot("monitoring-plan");
+
+  // An indicator with periodic entry, broken down by sex.
+  await id("nav-indicators").click();
+  await id("add-indicator").click();
+  await id("source-routine").click();
+  await id("unit-count").click();
+  await id("indicator-name").fill("Enseignants formés");
+  await id("breakdown-sex").check();
+  await id("indicator-target").fill("100");
+  await id("indicator-save").click();
+  await page.locator(".ind-row", { hasText: "Enseignants formés" }).waitFor();
+
+  // Reception: the values of the first quarter, entered by sex, then validated.
+  await id("nav-reception").click();
+  await id("rec-period-T1-2026").click();
+  await page
+    .locator('[data-testid="rec-row-Le projet"] [data-testid="rec-open"]')
+    .click();
+  await id("entry-panel").waitFor();
+  await id("cell-Enseignants formés-sex=f").fill("12");
+  await id("cell-Enseignants formés-sex=m").fill("8");
+  await id("entry-save").click();
+  await page.waitForTimeout(300);
+  await id("entry-validate").click();
+  await page
+    .locator('[data-testid="entry-panel"] [data-testid="sub-status"]', {
+      hasText: "Validé",
+    })
+    .waitFor({ timeout: 30_000 });
+  await shot("reception-entry");
+  await page.keyboard.press("Escape");
+  await page
+    .locator('[data-testid="rec-row-Le projet"] [data-testid="sub-status"]', {
+      hasText: "Validé",
+    })
+    .waitFor({ timeout: 30_000 });
+
+  // Tracking: 20 teachers trained to date in the first quarter.
+  await id("nav-tracking").click();
+  await id("trk-period").selectOption("T1-2026");
+  const toDate = page.locator(
+    '[data-testid="trk-row-Enseignants formés"] [data-testid="trk-to-date"]',
+  );
+  await toDate.filter({ hasText: "20" }).waitFor({ timeout: 30_000 });
+  await id("trk-gap-Enseignants formés").click();
+  await id("gap-text").fill("Formateurs disponibles à partir de mars");
+  await id("gap-save").click();
+  await shot("tracking");
+  await id("trk-crosstab").click();
+  await id("xt-rows").selectOption("period");
+  await id("xt-cols").selectOption("sex");
+  await page
+    .locator('[data-testid="xt-table"] td', { hasText: "12" })
+    .first()
+    .waitFor({ timeout: 30_000 });
+  await shot("crosstab");
+  await page.keyboard.press("Escape");
+
+  // Today and agenda of the project.
+  await id("nav-today").click();
+  await id("project-today").waitFor();
+  await page
+    .locator('[data-testid^="todo-"]')
+    .first()
+    .waitFor({ timeout: 30_000 });
+  notice(
+    "E2E today",
+    (await id("today-tasks").innerText()).replace(/\s+/g, " ").slice(0, 200),
+  );
+  await shot("project-today");
+  await id("nav-agenda").click();
+  await id("calendar").waitFor();
+  await id("agenda-add-event").click();
+  await id("event-title").fill("Mission de suivi à Kara");
+  await id("event-save").click();
+  await page
+    .locator(".cal-item", { hasText: "Mission de suivi" })
+    .first()
+    .waitFor({ timeout: 30_000 });
+  await shot("agenda");
+  await id("agenda-mode-board").click();
+  await id("board-todo").waitFor();
+  await shot("task-board");
+
+  // Activities and budget: an activity already late, the M&E activities of the
+  // plan, a budget line and an expense.
+  await id("nav-workplan").click();
+  await id("wp-add").click();
+  await id("activity-title").fill("Former les relais communautaires");
+  await id("activity-start").fill("2026-01-05");
+  await id("activity-end").fill("2026-02-27");
+  await id("activity-save").click();
+  await id("act-Former les relais communautaires").waitFor();
+  await id("wp-generate").click();
+  await page.locator(".notice", { hasText: "S&E" }).first().waitFor();
+  await id("wp-tab-timeline").click();
+  await page.locator(".gantt-bar").first().waitFor();
+  await shot("workplan-timeline");
+  await id("wp-tab-budget").click();
+  await id("line-add").click();
+  await id("line-name").fill("Formations");
+  await page.locator('[data-testid^="line-amount-"]').first().fill("1000");
+  await id("line-save").click();
+  await id("line-Formations").waitFor();
+  await id("expense-add").click();
+  await id("expense-amount").fill("250");
+  await id("expense-save").click();
+  await page
+    .locator('[data-testid="budget-spent"]', { hasText: "250" })
+    .waitFor();
+  notice(
+    "E2E work plan",
+    (await id("wp-kpis").innerText()).replace(/\s+/g, " ").slice(0, 200),
+  );
+  await shot("workplan-budget");
+
+  // Accountability: a complaint, a recommendation with its action, a risk, a
+  // meeting whose decision becomes a task.
+  await id("nav-accountability").click();
+  await id("fb-add").click();
+  await id("fb-summary").fill("Distribution en retard au site de Kara");
+  await id("fb-save").click();
+  await id("fb-row").first().waitFor();
+  await id("acc-tab-recommendations").click();
+  await id("rec-add").click();
+  await id("rec-text").fill("Renforcer la supervision des relais");
+  await id("rec-resp-accepted").click();
+  await id("rec-action-add").click();
+  await id("rec-action-text").fill("Recruter un superviseur");
+  await id("rec-action-due").fill("2026-03-31");
+  await id("rec-save").click();
+  await id("rec-row").first().waitFor();
+  await id("acc-tab-risks").click();
+  await id("risk-from-logframe").click();
+  await id("risk-row").first().waitFor();
+  await id("risk-add").click();
+  await id("risk-title").fill("Saison des pluies");
+  await id("risk-save").click();
+  await page
+    .locator('[data-testid="risk-row"]', { hasText: "Saison" })
+    .waitFor();
+  await shot("risks");
+  await id("acc-tab-learning").click();
+  await id("meeting-add").click();
+  await id("meeting-title").fill("Revue trimestrielle");
+  await id("decision-add").click();
+  await id("decision-text").fill("Relancer le partenaire");
+  await id("meeting-save").click();
+  await page.locator(".link", { hasText: "Revue trimestrielle" }).waitFor();
+
+  // Evaluation: sheet, a question, a note coded by theme.
+  await id("nav-evaluations").click();
+  await id("ev-add").click();
+  await id("ev-title").fill("Évaluation à mi-parcours");
+  await id("ev-date-draft").fill("2026-12-15");
+  await id("ev-save").click();
+  await id("ev-view").waitFor();
+  await id("ev-tab-questions").click();
+  await id("evq-add").click();
+  await id("evq-text").fill("Les relais ont-ils amélioré la fréquentation ?");
+  await id("evq-save").click();
+  await id("evq-row").waitFor();
+  await id("ev-tab-qualitative").click();
+  await id("themes-open").click();
+  await id("theme-name").fill("Accès");
+  await id("theme-add").click();
+  await page
+    .locator('[data-testid="themes-panel"] li', { hasText: "Accès" })
+    .waitFor();
+  await page.keyboard.press("Escape");
+  await id("note-add").click();
+  await id("note-title").fill("Groupe de femmes, Kara");
+  await id("note-text").fill(
+    "Le centre est loin. Les femmes viennent moins pendant les pluies.",
+  );
+  await id("note-save").click();
+  await id("note-Groupe de femmes, Kara").click();
+  await id("coding-text").waitFor();
+  await page.evaluate(() => {
+    const box = document.querySelector('[data-testid="coding-text"]');
+    const node = box.firstChild.firstChild;
+    const range = document.createRange();
+    range.setStart(node, 20);
+    range.setEnd(node, node.textContent.length);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    box.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+  });
+  await id("code-theme-Accès").check();
+  await id("code-save").click();
+  await page.locator('[data-testid="coding-text"] mark').first().waitFor();
+  await shot("coding");
+  await page.keyboard.press("Escape");
+  await id("theme-summary").waitFor();
+
+  // The project's today lists the late activity and the late action.
+  await id("nav-today").click();
+  const followUp = await id("today-registers").innerText();
+  notice("E2E today follow-up", followUp.replace(/\s+/g, " ").slice(0, 240));
+  if (!/Former les relais/.test(followUp) || !/supervision/.test(followUp))
+    throw new Error(`Today misses the follow-up: ${followUp}`);
+
   await id("nav-analysis").click();
   await id("comparison").waitFor({ timeout: 120_000 });
   const current = await id("current-value").innerText();
@@ -217,6 +532,7 @@ try {
   await shot("manual-workshop");
 
   await id("nav-report").click();
+  await id("report-tab-survey").click();
   await id("report-content").waitFor();
   await id("generate-report").click();
   await id("report-done").waitFor({ timeout: 180_000 });
@@ -226,6 +542,29 @@ try {
   notice(
     "E2E report",
     `Word report written, ${Math.round(statSync(report).size / 1024)} KB`,
+  );
+
+  // Periodic report in the European Union format, with a text kept for next time.
+  await id("report-tab-periodic").click();
+  await id("rep-format").selectOption("eu");
+  await id("rep-text-summary").fill(
+    "Le premier trimestre a lancé les formations.",
+  );
+  await id("rep-text-summary").blur();
+  await id("rep-generate").click();
+  await id("rep-done").waitFor({ timeout: 180_000 });
+  const periodic = path.join(work, "rapport-ue.docx");
+  if (!existsSync(periodic) || statSync(periodic).size < 10_000)
+    throw new Error("Periodic report missing or too small");
+  await shot("periodic-report");
+  await id("report-tab-exports").click();
+  await id("exp-tracking").click();
+  await id("exp-done").waitFor({ timeout: 60_000 });
+  if (!existsSync(path.join(work, "suivi.xlsx")))
+    throw new Error("Tracking table not exported");
+  notice(
+    "E2E periodic report",
+    `EU format, ${Math.round(statSync(periodic).size / 1024)} KB, tracking table in Excel`,
   );
 
   // SPSS file: its variable labels come with it.
@@ -335,30 +674,73 @@ try {
 
   // Read-only dashboard.
   await id("nav-report").click();
+  await id("report-tab-survey").click();
   await id("share-dashboard").click();
   await id("share-done").waitFor({ timeout: 180_000 });
   const board = readFileSync(path.join(work, "tableau.html"), "utf-8");
-  if (!board.includes("Lecture seule") || !board.includes("<svg"))
+  if (
+    !board.includes("Lecture seule") ||
+    !board.includes("<svg") ||
+    !board.includes("Suivi des indicateurs")
+  )
     throw new Error("Dashboard incomplete");
   notice(
     "E2E share",
     `Dashboard written, ${Math.round(board.length / 1024)} KB`,
   );
 
-  // Checks before the report, and the monitoring plan in Excel.
+  // Checks before the report.
   await id("report-checks").waitFor({ timeout: 120_000 });
   notice(
     "E2E checks",
     (await id("report-checks").innerText()).replace(/\s+/g, " ").slice(0, 200),
   );
-  await id("export-plan").click();
+  await shot("report-checks");
+
+  // The monitoring plan in Excel, from its own screen.
+  await id("nav-plan").click();
+  await id("plan-export").click();
   await id("plan-done").waitFor({ timeout: 120_000 });
   if (statSync(path.join(work, "plan.xlsx")).size < 5_000)
     throw new Error("Monitoring plan too small");
-  await shot("report-checks");
 
   // 2. Example project
   await id("close-project").click();
+
+  // Workspace today: the tasks of every project.
+  await id("nav-ws_today").click();
+  await id("workspace-today").waitFor();
+  await page
+    .locator('[data-testid^="todo-"]')
+    .first()
+    .waitFor({ timeout: 60_000 });
+  await shot("workspace-today");
+  await id("nav-overview").click();
+
+  // Workspace: the project card shows its calendar, and the next deadline is listed.
+  await id("ws-card").first().waitFor({ timeout: 60_000 });
+  await id("ws-deadlines").waitFor({ timeout: 60_000 });
+  notice(
+    "E2E workspace",
+    (await id("ws-card").first().innerText())
+      .replace(/\s+/g, " ")
+      .slice(0, 200),
+  );
+  await shot("workspace");
+
+  // Portfolio dashboard: the project with its three progress measures, and the note.
+  await id("nav-ws_dashboard").click();
+  await id("dash-row").first().waitFor({ timeout: 60_000 });
+  notice(
+    "E2E dashboard",
+    (await id("dash-table").innerText()).replace(/\s+/g, " ").slice(0, 200),
+  );
+  await shot("dashboard");
+  await id("dash-note").click();
+  await id("dash-done").waitFor({ timeout: 60_000 });
+  if (!existsSync(path.join(work, "portefeuille.docx")))
+    throw new Error("Portfolio note missing");
+  await id("nav-overview").click();
 
   // Sample size, from the home screen without a project.
   await id("open-sample").click();
@@ -370,6 +752,10 @@ try {
   await shot("sample-size");
   await page.keyboard.press("Escape");
   await id("open-example").click();
+  // The example opens on its day of work; its survey results are in the overview.
+  await id("project-today").waitFor({ timeout: 180_000 });
+  await shot("example-today");
+  await id("nav-overview").click();
   await id("overview-table").waitFor({ timeout: 180_000 });
   await page
     .locator('[data-testid^="status-"]')
@@ -398,6 +784,49 @@ try {
   );
   await shot("example-test-fr");
 
+  // Logframe matrix: the assumptions are edited in place.
+  await id("nav-framework").click();
+  await id("framework-tab-matrix").click();
+  await id("logframe-matrix").waitFor();
+  const ass = page.locator('[data-testid^="matrix-assumptions-"]').first();
+  await ass.click();
+  await ass.fill("Sécurité suffisante pour accéder aux écoles");
+  await id("framework-tab-chain").click();
+  await page
+    .locator(".tree-assumptions", { hasText: "Sécurité suffisante" })
+    .first()
+    .waitFor({ timeout: 30_000 });
+  await id("framework-tab-matrix").click();
+  await shot("logframe-matrix");
+
+  // Server: a KoboToolbox form becomes a dataset of the example.
+  await id("nav-data").click();
+  const cards = await id("dataset-card").count();
+  await id("open-servers").click();
+  await id("cx-add").click();
+  await id("cx-kind-kobo").click();
+  await id("cx-name").fill("Kobo test");
+  await id("cx-url").fill(koboUrl);
+  await id("cx-secret").fill(KOBO_TOKEN);
+  await id("cx-save").click();
+  await id("cx-Kobo test").waitFor({ timeout: 30_000 });
+  await id("cx-form").click();
+  await id("cx-form-item").first().click({ timeout: 60_000 });
+  await id("cx-sync").click();
+  await id("cx-sync-run").click();
+  await page
+    .locator('[data-testid="cx-sync-panel"] .notice')
+    .first()
+    .waitFor({ timeout: 120_000 });
+  const synced = await id("cx-sync-panel").innerText();
+  notice("E2E Kobo", synced.replace(/\s+/g, " ").slice(0, 160));
+  if (!/3/.test(synced)) throw new Error(`Unexpected sync: ${synced}`);
+  await shot("servers");
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape");
+  if ((await id("dataset-card").count()) !== cards + 1)
+    throw new Error("Kobo dataset not created");
+
   // 3. Language
   await id("lang-en").click();
   const label = await id("nav-overview").innerText();
@@ -411,15 +840,75 @@ try {
   await id("rounds-table").waitFor({ timeout: 120_000 });
   await shot("example-analysis-en-dark");
 
+  // Indicator library: search, then add a sheet to a result.
+  await id("nav-indicators").click();
+  const before = await page.locator(".ind-row").count();
+  await id("open-library").click();
+  await id("library-search").fill("gross enrolment primary");
+  await id("adopt-education.ger_primary").click();
+  await page
+    .locator('[data-testid="adopt-education.ger_primary"]:disabled')
+    .waitFor({ timeout: 30_000 });
+  await shot("library");
+  await page.keyboard.press("Escape");
+  if ((await page.locator(".ind-row").count()) !== before + 1)
+    throw new Error("Library indicator not added");
+
+  // Accessibility: text size from the keyboard, a row opened with Enter, the
+  // focus given back when the panel closes.
+  await page.keyboard.press("Control+=");
+  const size = await page.evaluate(() => localStorage.getItem("sme.textSize"));
+  if (size !== "1.1") throw new Error(`Text size not changed: ${size}`);
+  await page.keyboard.press("Control+0");
+  await id("nav-workplan").click();
+  await id("wp-generate").focus();
+  await page.keyboard.press("Enter");
+  const row = page.locator("tr.clickable").first();
+  await row.focus();
+  await page.keyboard.press("Enter");
+  await page.locator('[role="dialog"]').first().waitFor({ timeout: 30_000 });
+  await page.keyboard.press("Escape");
+  const back = await row.evaluate((el) => el === document.activeElement);
+  if (!back) throw new Error("Focus not given back to the row");
+
+  // Team and security: set up the team, read the audit trail, then encrypt the
+  // project. Done last: an encrypted project asks for its password when reopened.
+  await id("nav-setup").click();
+  await id("setup-tab-team").click();
+  await id("team-name").fill("Responsable S&E");
+  await id("team-start").click();
+  await id("member-add").waitFor({ timeout: 60_000 });
+  await page.locator('[data-testid="audit"] summary').click();
+  const trail = await id("audit").innerText();
+  if (!/intact/.test(trail))
+    throw new Error(`Audit trail not intact: ${trail}`);
+  await id("sec-set").click();
+  await id("sec-password").fill("e2e-password-1");
+  await id("sec-password2").fill("e2e-password-1");
+  await id("sec-confirm").click();
+  await page
+    .locator('[data-testid="protection"] .notice')
+    .first()
+    .waitFor({ timeout: 60_000 });
+  await shot("team");
+
   // Updates section (in this test build, checks are off: the update test does them).
   await id("engines-link").click();
   await id("updates-section").waitFor({ timeout: 30_000 });
   notice("E2E updates", await id("update-status").innerText());
   notice(
     "E2E",
-    "Full path verified: framework, import, cleaning, indicator, analysis, report, SPSS, quality, merge, dashboard, checks, plan, sample size, example, test, languages",
+    "Full path verified: project sheet, framework, import, cleaning, indicator, monitoring plan, periodic entry, reception and validation, tracking, gap comment, project today, agenda, work plan and budget, feedback, recommendations, risks, meetings, evaluation with coded notes, periodic report in a donor format, tracking export, analysis, report, SPSS, quality, merge, dashboard, checks, plan export, workspace today, workspace, portfolio dashboard and note, sample size, example, test, logframe matrix, Kobo server sync, languages, indicator library, place from the map, keyboard and text size, team, audit trail, encryption",
   );
+} catch (e) {
+  // The screen at the moment of failure, kept with the other screenshots.
+  const win = await app.firstWindow().catch(() => null);
+  await win
+    ?.screenshot({ path: path.join(shots, "failure.png") })
+    .catch(() => undefined);
+  throw e;
 } finally {
   await app.close();
-  rmSync(work, { recursive: true, force: true });
+  kobo.close();
+  if (!process.env.E2E_KEEP) rmSync(work, { recursive: true, force: true });
 }

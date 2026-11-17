@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou
 
-// Results framework: impact, outcomes, outputs and activities as an editable tree.
+// Logframe: the results chain as an editable tree, and the logframe matrix.
 
 import { useState } from "react";
 import { FrameworkModel, FrameworkNode, Level } from "../api";
@@ -9,6 +9,7 @@ import { useLevels } from "../frameworks";
 import { useI18n } from "../i18n";
 import { useProject } from "../state";
 import { Confirm, Empty, Field, IconButton, Notice, Panel } from "../ui";
+import { LogframeMatrix } from "./LogframeMatrix";
 import { customValid, ModelPicker } from "./ModelPicker";
 
 // Hints describe the levels of the standard chains; other models use their own words.
@@ -26,6 +27,7 @@ export function Framework() {
   const [choosing, setChoosing] = useState<FrameworkModel | null>(null);
   const levels = useLevels();
   const [deleting, setDeleting] = useState<FrameworkNode | null>(null);
+  const [tab, setTab] = useState<"chain" | "matrix">("chain");
   if (!snap) return null;
   const nodes = snap.framework;
 
@@ -72,7 +74,26 @@ export function Framework() {
 
       {error && <Notice kind="error">{error}</Notice>}
 
-      {nodes.length === 0 ? (
+      {nodes.length > 0 && (
+        <div className="tabs" role="tablist">
+          {(["chain", "matrix"] as const).map((k) => (
+            <button
+              key={k}
+              role="tab"
+              aria-selected={tab === k}
+              className="tab"
+              onClick={() => setTab(k)}
+              data-testid={`framework-tab-${k}`}
+            >
+              {t(`matrix.tab_${k}`)}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {nodes.length > 0 && tab === "matrix" ? (
+        <LogframeMatrix />
+      ) : nodes.length === 0 ? (
         <Empty
           icon="tree"
           title={t("framework.emptyTitle")}

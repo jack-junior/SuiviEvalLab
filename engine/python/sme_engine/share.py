@@ -211,6 +211,46 @@ def _indicator(ind: dict[str, Any], an: dict[str, Any], node: dict[str, Any], la
 </article>"""
 
 
+def _tracking(svc: Any, snap: dict[str, Any], lang: str, f: Fmt) -> str:
+    """The tracking table of the latest period, when the project has a calendar."""
+    from . import reception
+
+    view = reception.View(svc.project)
+    if not view.periods or not view.entry:
+        return ""
+    track = reception.track_all(view, {})
+    per = next(x for x in view.periods if x["code"] == track["period"])
+    fr = lang == "fr"
+    names = {
+        "achieved": "Atteint" if fr else "Achieved",
+        "on_track": "En bonne voie" if fr else "On track",
+        "late": "En retard" if fr else "Late",
+        "not_started": "Non démarré" if fr else "Not started",
+        "no_data": "Sans données" if fr else "No data",
+    }
+    head = (
+        ["Indicateur", "Référence", "Réalisé à date", "Cible à date", "Cible finale", "Réalisation", "Statut"]
+        if fr
+        else ["Indicator", "Baseline", "Achieved to date", "Target to date", "End target", "Achievement", "Status"]
+    )
+    inds = {i["id"]: i for i in view.entry}
+    rows = "".join(
+        f"<tr><td>{e(inds[r['indicator_id']]['name'])}</td>"
+        + "".join(
+            f"<td>{e(f.value(r.get(k), inds[r['indicator_id']]['unit']))}</td>"
+            for k in ("baseline", "to_date", "target_to_date", "target")
+        )
+        + f"<td>{e(f.pct(r.get('rate_to_date'), 0))}</td><td>{e(names.get(r['status'], r['status']))}</td></tr>"
+        for r in track["rows"]
+    )
+    title = ("Suivi des indicateurs, " if fr else "Indicator tracking, ") + (per["label_fr"] if fr else per["label_en"])
+    return (
+        f'<section class="node"><h2>{e(title)}</h2><div class="table-wrap"><table><thead><tr>'
+        + "".join(f"<th>{e(h)}</th>" for h in head)
+        + f"</tr></thead><tbody>{rows}</tbody></table></div></section>"
+    )
+
+
 def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
     t, s = T[lang], S[lang]
     f = Fmt(lang)
@@ -232,6 +272,8 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
         head = f"{level} {node['code']}".strip() + sep + node["title"]
         cards = "".join(_indicator(i, analyses[i["id"]], node, lang, f, label) for i in inds)
         sections.append(f'<section class="node"><h2>{e(head)}</h2><div class="grid">{cards}</div></section>')
+
+    tracking_html = _tracking(svc, snap, lang, f)
 
     tests = []
     for spec in snap.get("tests") or []:
@@ -303,6 +345,7 @@ def generate(svc: Any, path: Path, lang: str) -> dict[str, Any]:
   <div class="tools"><input type="search" id="q" placeholder="{e(s["search"])}" aria-label="{e(s["search"])}">
   <div class="chips">{chips}</div></div>
   <p id="none" class="muted" hidden></p>
+  {tracking_html}
   {"".join(sections)}
   {tests_html}
   <section class="node"><h2>{e(s["data"])}</h2>

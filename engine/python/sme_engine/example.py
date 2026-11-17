@@ -37,6 +37,11 @@ TEXT = {
         "i4s": "Procès-verbaux de réception des travaux",
         "q": ["2019-T4", "2020-T1", "2020-T2", "2020-T3"],
         "q_note": "Chantiers suspendus pendant le confinement",
+        "q_last": "Procès-verbaux de réception du dernier trimestre attendus de l'entreprise",
+        "country": "Irak",
+        "sector": "Éducation",
+        "level_gov": "Gouvernorat",
+        "level_district": "District",
         "source": "Enquête ménages MCNA (REACH)",
         "method": "Entretien en face à face avec un membre adulte du ménage",
         "responsible": "Chargé de suivi-évaluation",
@@ -68,6 +73,11 @@ TEXT = {
         "i4s": "Handover reports of the works",
         "q": ["2019-Q4", "2020-Q1", "2020-Q2", "2020-Q3"],
         "q_note": "Works suspended during the lockdown",
+        "q_last": "Handover reports of the last quarter awaited from the contractor",
+        "country": "Iraq",
+        "sector": "Education",
+        "level_gov": "Governorate",
+        "level_district": "District",
         "source": "MCNA household survey (REACH)",
         "method": "Face-to-face interview with an adult household member",
         "responsible": "M&E officer",
@@ -254,22 +264,54 @@ def fill_example(svc: Any, lang: str = "fr") -> None:
             },
         }
     )["saved"]
-    ends = ["2019-12-31", "2020-03-31", "2020-06-30", "2020-09-30"]
-    figures = [(5, 4, ""), (10, 9, ""), (10, 6, t["q_note"]), (10, None, "")]
-    svc.save_routine(
+    # Project sheet: dates and quarterly calendar matching the routine values above,
+    # the disaggregations, a few places, and the quarterly targets of the works.
+    from . import places, project_setup
+
+    project_setup.apply_profile(
+        p,
         {
-            "indicator_id": routine_id,
-            "values": [
-                {"period": q, "end": e, "planned": pl, "achieved": ac, "note": n}
-                for q, e, (pl, ac, n) in zip(t["q"], ends, figures, strict=True)
-            ],
-        }
+            "code": "EDU-IRQ",
+            "start": "2019-10-01",
+            "end": "2020-12-31",
+            "frequency": "quarterly",
+            "countries": [t["country"]],
+            "sectors": [t["sector"]],
+            "place_levels": [t["level_gov"], t["level_district"]],
+        },
     )
+    project_setup.generate_periods(p)
+    for key in ("sex", "status"):
+        p.insert_record("disaggregation", places.validate_disaggregation({"preset": key}, p.records("disaggregation")))
+    gov = {}
+    for name in ("Ninewa", "Anbar", "Salah al-Din"):
+        gov[name] = p.insert_record("place", {"name": name, "code": "", "level": 0, "parent_id": ""})
+    for name in ("Mosul", "Sinjar"):
+        p.insert_record("place", {"name": name, "code": "", "level": 1, "parent_id": gov["Ninewa"]})
+    codes = [x["code"] for x in p.records("period")]
+    for code, value in zip(codes, (5, 10, 10, 10, 5), strict=False):
+        p.insert_record("target", {"period": code, "value": value, "history": []}, scope=routine_id)
+    # Works reports received and validated for the first three quarters; the
+    # lockdown quarter fell short, with its explanation.
+    from . import reception
+
+    for code, achieved in zip(codes, (4, 9, 6), strict=False):
+        sub = reception.open_submission(p, code)
+        reception.save_values(p, sub, [{"indicator_id": routine_id, "value": achieved}])
+        reception.act(p, sub, "submit")
+        reception.act(p, sub, "validate")
+    p.insert_record("gap_comment", {"period": codes[2], "text": t["q_note"], "at": reception.now()}, scope=routine_id)
+    p.insert_record("gap_comment", {"period": codes[-1], "text": t["q_last"], "at": reception.now()}, scope=routine_id)
+    # The reports of the first three quarters were sent.
+    for period in p.records("period")[:3]:
+        p.update_record("period", period["id"], {**period, "reported_at": reception.now()})
 
     design = {"weights": "weights", "strata": ["population_group", "governorate_mcna"], "cluster": None}
-    for file, name, round_, id_col, round_label in (
-        ("mcna_irak_2019.xlsx", t["d2019"], "baseline", "X_uuid", "VII (2019)"),
-        ("mcna_irak_2020.xlsx", t["d2020"], "endline", "hh_id", "VIII (2020)"),
+    # Collections placed in the calendar: the 2019 round as the baseline of the first
+    # quarter, the 2020 round (collected in August and September) in the third quarter of 2020.
+    for file, name, round_, id_col, round_label, period in (
+        ("mcna_irak_2019.xlsx", t["d2019"], "baseline", "X_uuid", "VII (2019)", codes[0]),
+        ("mcna_irak_2020.xlsx", t["d2020"], "endline", "hh_id", "VIII (2020)", codes[3]),
     ):
         created = svc.import_dataset(
             {
@@ -282,6 +324,7 @@ def fill_example(svc: Any, lang: str = "fr") -> None:
                 "attribution": t["attribution"].format(round=round_label),
             }
         )["created"]
+        svc.update_dataset({"id": created, "period": period})
         rules = [
             {"kind": "duplicates", "columns": [id_col], "note": ""},
             {

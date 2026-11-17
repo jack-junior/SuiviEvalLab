@@ -1,0 +1,192 @@
+{
+  "_licence": "SPDX-License-Identifier: GPL-3.0-or-later. Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou. Definitions written for SuiviEvalLab after the cited public references.",
+  "sector": "employment",
+  "name": {
+    "fr": "Emploi, entrepreneuriat, inclusion financière",
+    "en": "Employment, entrepreneurship, financial inclusion"
+  },
+  "indicators": [
+    {
+      "id": "emp.unemployment",
+      "name": {
+        "fr": "Taux de chômage",
+        "en": "Unemployment rate"
+      },
+      "definition": {
+        "fr": "Part des personnes de la population active (15 ans et plus) qui sont sans emploi, disponibles et à la recherche d'un emploi.",
+        "en": "Share of people in the labour force (aged 15 and over) who are without work, available and seeking work."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes au chômage",
+        "en": "Unemployed people"
+      },
+      "denominator": {
+        "fr": "Population active",
+        "en": "Labour force"
+      },
+      "level": "impact",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "age", "disability"],
+      "source": "ilo",
+      "ref": "ODD 8.5.2",
+      "direction": "decrease"
+    },
+    {
+      "id": "emp.neet",
+      "name": {
+        "fr": "Jeunes ni en emploi, ni en études, ni en formation",
+        "en": "Youth not in employment, education or training"
+      },
+      "definition": {
+        "fr": "Part des jeunes de 15 à 24 ans qui ne sont ni en emploi, ni scolarisés, ni en formation.",
+        "en": "Share of young people aged 15 to 24 who are not in employment, education or training."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Jeunes ni en emploi, ni en études, ni en formation",
+        "en": "Youth not in employment, education or training"
+      },
+      "denominator": {
+        "fr": "Jeunes de 15 à 24 ans",
+        "en": "Young people aged 15 to 24"
+      },
+      "level": "impact",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "area"],
+      "source": "ilo",
+      "ref": "ODD 8.6.1",
+      "direction": "decrease"
+    },
+    {
+      "id": "emp.jobs",
+      "name": {
+        "fr": "Emplois créés, en équivalent temps plein",
+        "en": "Jobs created, in full-time equivalent"
+      },
+      "definition": {
+        "fr": "Nombre d'emplois nouveaux créés grâce au projet, rémunérés, exprimés en équivalent temps plein sur douze mois.",
+        "en": "Number of new paid jobs created thanks to the project, expressed in full-time equivalent over twelve months."
+      },
+      "type": "count",
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": ["sex", "age"],
+      "source": "ilo",
+      "unit_label": {
+        "fr": "ETP",
+        "en": "FTE"
+      }
+    },
+    {
+      "id": "emp.trained_employed",
+      "name": {
+        "fr": "Jeunes formés ayant un emploi six mois après",
+        "en": "Trained youth in work six months later"
+      },
+      "definition": {
+        "fr": "Part des jeunes ayant terminé une formation du projet qui ont un emploi salarié ou indépendant six mois après la fin de la formation.",
+        "en": "Share of young people who completed a project training who are in wage or self-employment six months after the end of the training."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Jeunes formés en emploi à six mois",
+        "en": "Trained youth in work at six months"
+      },
+      "denominator": {
+        "fr": "Jeunes ayant terminé la formation et suivis",
+        "en": "Young people who completed the training and were followed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "disability"],
+      "source": "ilo"
+    },
+    {
+      "id": "emp.businesses",
+      "name": {
+        "fr": "Entreprises créées encore en activité après six mois",
+        "en": "Businesses created still operating after six months"
+      },
+      "definition": {
+        "fr": "Nombre de micro et petites entreprises créées avec l'appui du projet qui sont encore en activité six mois après leur création.",
+        "en": "Number of micro and small businesses created with the support of the project that are still operating six months after creation."
+      },
+      "type": "count",
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": ["sex"],
+      "source": "ilo"
+    },
+    {
+      "id": "emp.income",
+      "name": {
+        "fr": "Revenu mensuel moyen des ménages appuyés",
+        "en": "Mean monthly income of supported households"
+      },
+      "definition": {
+        "fr": "Revenu mensuel moyen déclaré par les ménages appuyés, toutes sources, dans la devise du projet.",
+        "en": "Mean monthly income reported by supported households, all sources, in the project currency."
+      },
+      "type": "mean",
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["area"],
+      "source": "ilo",
+      "unit_label": {
+        "fr": "devise du projet",
+        "en": "project currency"
+      }
+    },
+    {
+      "id": "fin.account",
+      "name": {
+        "fr": "Adultes ayant un compte financier ou de monnaie mobile",
+        "en": "Adults with a financial or mobile money account"
+      },
+      "definition": {
+        "fr": "Part des adultes de 15 ans et plus qui ont un compte dans une banque, une institution financière ou auprès d'un service de monnaie mobile.",
+        "en": "Share of adults aged 15 and over who have an account at a bank, a financial institution or with a mobile money service."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Adultes ayant un compte",
+        "en": "Adults with an account"
+      },
+      "denominator": {
+        "fr": "Adultes enquêtés",
+        "en": "Adults surveyed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "age", "area"],
+      "source": "findex",
+      "ref": "ODD 8.10.2"
+    },
+    {
+      "id": "fin.savings_groups",
+      "name": {
+        "fr": "Membres des groupes d'épargne",
+        "en": "Members of savings groups"
+      },
+      "definition": {
+        "fr": "Nombre de personnes membres actives d'un groupe d'épargne et de crédit communautaire appuyé par le projet.",
+        "en": "Number of people who are active members of a community savings and loan group supported by the project."
+      },
+      "type": "count",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": ["sex"],
+      "source": "findex",
+      "aggregation": "last"
+    }
+  ]
+}

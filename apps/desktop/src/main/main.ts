@@ -5,14 +5,16 @@
 
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
 import { randomUUID } from "node:crypto";
-import { readFileSync, statSync, writeFileSync } from "node:fs";
+import { readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { EngineClient, EngineError, EngineLaunch } from "./engine";
+import { getSecret, hasSecret, setSecret } from "./secrets";
 import { Updates } from "./updates";
 
 // Engine methods the interface is allowed to call (allowlist). Methods that read or
 // write files never receive a path from the interface: they receive a `file_token`
 // obtained from a file dialog, which the main process swaps for the real path.
+const SECRET_METHODS = new Set(["connection.forms", "connection.sync", "dhis2.search", "dhis2.import", "sync.server"]);
 const ALLOWED = new Set([
   "system.ping",
   "system.versions",
@@ -76,6 +78,136 @@ const ALLOWED = new Set([
   "dataset.quality",
   "report.set_template",
   "report.clear_template",
+  "profile.set",
+  "period.generate",
+  "period.save",
+  "period.delete",
+  "period.set_state",
+  "place.save",
+  "place.import",
+  "geo.countries",
+  "geo.levels",
+  "geo.preview",
+  "geo.import",
+  "geo.search",
+  "geo.locate",
+  "place.delete",
+  "place.move",
+  "partner.save",
+  "partner.delete",
+  "partner.move",
+  "disaggregation.presets",
+  "disaggregation.save",
+  "disaggregation.delete",
+  "disaggregation.move",
+  "target.set",
+  "target.clear",
+  "library.sectors",
+  "library.search",
+  "library.adopt",
+  "submission.open",
+  "submission.get",
+  "submission.save",
+  "submission.act",
+  "submission.delete",
+  "alert.justify",
+  "tracking.table",
+  "tracking.breakdown",
+  "gap.save",
+  "period.mark_reported",
+  "today.project",
+  "agenda.list",
+  "task.save",
+  "task.delete",
+  "event.save",
+  "event.delete",
+  "agenda.export_ics",
+  "agenda.import_ics",
+  "activity.save",
+  "activity.delete",
+  "budget_line.save",
+  "budget_line.delete",
+  "expense.save",
+  "expense.delete",
+  "feedback.save",
+  "feedback.delete",
+  "recommendation.save",
+  "recommendation.delete",
+  "risk.save",
+  "risk.delete",
+  "learning_question.save",
+  "learning_question.delete",
+  "lesson.save",
+  "lesson.delete",
+  "meeting.save",
+  "meeting.delete",
+  "evaluation.save",
+  "evaluation.delete",
+  "qual_note.save",
+  "qual_note.delete",
+  "qual_theme.save",
+  "qual_theme.delete",
+  "activity.move",
+  "activity.generate_me",
+  "workplan.summary",
+  "expense.inspect",
+  "expense.import",
+  "feedback.categories",
+  "feedback.stats",
+  "risk.review",
+  "risk.from_assumptions",
+  "canevas.write",
+  "canevas.receive",
+  "personal.get",
+  "personal.task_save",
+  "personal.event_save",
+  "tracking.crosstab",
+  "quality.save",
+  "quality.delete",
+  "connection.save",
+  "connection.delete",
+  "connection.forms",
+  "connection.sync",
+  "dhis2.search",
+  "dhis2.import",
+  "people.save",
+  "reports.formats",
+  "report_format.save",
+  "report_format.delete",
+  "report_doc.get",
+  "report_doc.save",
+  "reports.generate",
+  "export.tracking",
+  "export.values",
+  "export.pack",
+  "portfolio.settings",
+  "portfolio.import_pack",
+  "portfolio.remove_pack",
+  "identity.get",
+  "identity.set_name",
+  "identity.export",
+  "team.start",
+  "member.add",
+  "member.update",
+  "team.join_file",
+  "team.join",
+  "sync.package",
+  "sync.receive",
+  "sync.folder",
+  "sync.server",
+  "conflict.resolve",
+  "project.encrypt",
+  "project.change_password",
+  "project.decrypt",
+  "project.flush",
+  "audit.list",
+  "feedback.reveal",
+  "privacy.settings",
+  "privacy.purge",
+  "attachment.add",
+  "attachment.list",
+  "attachment.delete",
+  "attachment.save_as",
 ]);
 
 // Paths chosen by the user in a dialog, by token. Tokens live for the session.
@@ -90,6 +222,21 @@ type DialogKind =
   | "html-save"
   | "xlsx-save"
   | "r-save"
+  | "ics-save"
+  | "ics-open"
+  | "xlsx-open"
+  | "pack-save"
+  | "pack-open"
+  | "pdf-save"
+  | "smeid-save"
+  | "smeid-open"
+  | "join-save"
+  | "join-open"
+  | "sync-save"
+  | "sync-open"
+  | "any-open"
+  | "any-save"
+  | "folder"
   | "template-open";
 
 // End-to-end tests answer dialogs through SME_E2E_DIALOGS (paths separated by "|").
@@ -107,7 +254,14 @@ async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token
       kind === "csv-save" ||
       kind === "html-save" ||
       kind === "xlsx-save" ||
-      kind === "r-save"
+      kind === "r-save" ||
+      kind === "ics-save" ||
+      kind === "pack-save" ||
+      kind === "pdf-save" ||
+      kind === "smeid-save" ||
+      kind === "join-save" ||
+      kind === "sync-save" ||
+      kind === "any-save"
     ) {
       const filter = {
         "project-save": { name: "SuiviEvalLab", extensions: ["sme"], file: "Projet.sme" },
@@ -116,12 +270,25 @@ async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token
         "html-save": { name: "HTML", extensions: ["html"], file: "Tableau-de-bord.html" },
         "xlsx-save": { name: "Excel", extensions: ["xlsx"], file: "Plan-de-suivi.xlsx" },
         "r-save": { name: "R", extensions: ["R"], file: "Nettoyage.R" },
+        "ics-save": { name: "iCalendar", extensions: ["ics"], file: "Agenda.ics" },
+        "pack-save": { name: "SuiviEvalLab", extensions: ["smepack"], file: "Paquet.smepack" },
+        "pdf-save": { name: "PDF", extensions: ["pdf"], file: "Portefeuille.pdf" },
+        "smeid-save": { name: "SuiviEvalLab", extensions: ["smeid"], file: "Identite.smeid" },
+        "join-save": { name: "SuiviEvalLab", extensions: ["smejoin"], file: "Invitation.smejoin" },
+        "sync-save": { name: "SuiviEvalLab", extensions: ["smesync"], file: "Paquet.smesync" },
+        "any-save": { name: "*", extensions: ["*"], file: "Document" },
       }[kind];
       const res = await dialog.showSaveDialog(win, {
         defaultPath: path.join(docs, defaultName ?? filter.file),
         filters: [{ name: filter.name, extensions: filter.extensions }],
       });
       chosen = res.canceled ? undefined : res.filePath;
+    } else if (kind === "folder") {
+      const res = await dialog.showOpenDialog(win, {
+        defaultPath: docs,
+        properties: ["openDirectory", "createDirectory"],
+      });
+      chosen = res.canceled ? undefined : res.filePaths[0];
     } else {
       const filters = {
         "project-open": [{ name: "SuiviEvalLab", extensions: ["sme"] }],
@@ -129,7 +296,26 @@ async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token
           { name: "Excel, CSV, SPSS, Stata", extensions: ["xlsx", "xlsm", "xls", "csv", "sav", "zsav", "dta"] },
         ],
         "template-open": [{ name: "Word", extensions: ["docx", "dotx"] }],
-      }[kind as "project-open" | "data-open" | "template-open"];
+        "ics-open": [{ name: "iCalendar", extensions: ["ics"] }],
+        "xlsx-open": [{ name: "Excel", extensions: ["xlsx", "xlsm"] }],
+        "pack-open": [{ name: "SuiviEvalLab", extensions: ["smepack"] }],
+        "smeid-open": [{ name: "SuiviEvalLab", extensions: ["smeid"] }],
+        "join-open": [{ name: "SuiviEvalLab", extensions: ["smejoin"] }],
+        "sync-open": [{ name: "SuiviEvalLab", extensions: ["smesync"] }],
+        "any-open": [{ name: "*", extensions: ["*"] }],
+      }[
+        kind as
+          | "project-open"
+          | "data-open"
+          | "template-open"
+          | "ics-open"
+          | "xlsx-open"
+          | "pack-open"
+          | "smeid-open"
+          | "join-open"
+          | "sync-open"
+          | "any-open"
+      ];
       const res = await dialog.showOpenDialog(win, { defaultPath: docs, properties: ["openFile"], filters });
       chosen = res.canceled ? undefined : res.filePaths[0];
     }
@@ -155,6 +341,7 @@ interface KnownProject {
   name: string;
   opened_at: string;
   summary?: ProjectSummary;
+  archived?: boolean;
 }
 const recentFile = () => path.join(app.getPath("userData"), "recent-projects.json");
 
@@ -179,7 +366,7 @@ function rememberProject(file: string, name: string): void {
   const list = readRecents();
   const old = list.find((r) => r.path === file);
   writeRecents([
-    { path: file, name, opened_at: new Date().toISOString(), summary: old?.summary },
+    { path: file, name, opened_at: new Date().toISOString(), summary: old?.summary, archived: old?.archived },
     ...list.filter((r) => r.path !== file),
   ]);
 }
@@ -266,6 +453,16 @@ function createWindow(): void {
     return { action: "deny" };
   });
   win.webContents.on("will-navigate", (e) => e.preventDefault());
+  // OpenStreetMap asks applications that show its map tiles to name themselves.
+  win.webContents.session.webRequest.onBeforeSendHeaders(
+    { urls: ["https://tile.openstreetmap.org/*"] },
+    (details, done) => {
+      details.requestHeaders["User-Agent"] =
+        `SuiviEvalLab/${app.getVersion()} (+https://github.com/jack-junior/SuiviEvalLab)`;
+      details.requestHeaders["Referer"] = "https://github.com/jack-junior/SuiviEvalLab";
+      done({ requestHeaders: details.requestHeaders });
+    },
+  );
   void win.loadFile(path.join(__dirname, "..", "renderer", "index.html"));
 }
 
@@ -277,6 +474,18 @@ app.whenReady().then(() => {
     (method, params) => win?.webContents.send("engine:event", { method, params }),
   );
   engine.start();
+  // An encrypted project is written back to its file every minute, and the shared
+  // folder of a team is read and written every five minutes (section 7.2).
+  setInterval(() => void engine?.call("project.flush", {}).catch(() => undefined), 60_000);
+  setInterval(() => {
+    void engine
+      ?.call("sync.folder", {})
+      .then((r) => {
+        const sync = (r as { sync?: { applied?: number } }).sync;
+        if (sync && sync.applied) win?.webContents.send("engine:event", { method: "sync.done", params: sync });
+      })
+      .catch(() => undefined);
+  }, 300_000);
 
   ipcMain.handle("engine:call", async (_e, method: unknown, params: unknown) => {
     if (typeof method !== "string" || !ALLOWED.has(method)) {
@@ -290,9 +499,40 @@ app.whenReady().then(() => {
       args.path = file;
       delete args.file_token;
     }
+    delete args.target; // a second file (where a joined project is written) also comes from a dialog
+    if (typeof args.target_token === "string") {
+      const file = pickedFiles.get(args.target_token);
+      if (!file) return { ok: false, error: "Unknown file token", key: "file_token" };
+      args.target = file;
+      delete args.target_token;
+    }
+    // A secret typed for a server goes to the encrypted store, not to the engine;
+    // the calls to that server receive it from there.
+    const typedSecret = method === "connection.save" && typeof args.secret === "string" ? args.secret : null;
+    // The access key of the relay server is kept like the other secrets, under the project's own id.
+    if (method === "sync.server" && typeof args.secret === "string" && typeof args.connection_id === "string")
+      setSecret(args.connection_id, args.secret);
+    delete args.secret;
+    if (SECRET_METHODS.has(method) && typeof args.connection_id === "string") {
+      const secret = getSecret(args.connection_id);
+      if (secret) args.secret = secret;
+    }
     try {
       const result = await engine!.call(method, args);
-      if ((method === "project.create" || method === "project.open" || method === "project.rename") && result) {
+      if (typedSecret !== null && result) {
+        const id = (args.id as string) || (result as { created?: string }).created;
+        if (id) setSecret(id, typedSecret);
+      }
+      // Whether each server connection has its secret stored, for the interface.
+      const snap = result as { connections?: { id: string; has_secret?: boolean }[] } | null;
+      if (snap && Array.isArray(snap.connections)) for (const c of snap.connections) c.has_secret = hasSecret(c.id);
+      if (
+        (method === "project.create" ||
+          method === "project.open" ||
+          method === "project.rename" ||
+          method === "team.join") &&
+        result
+      ) {
         const info = (result as { project?: { path: string; name: string } }).project;
         if (info) {
           rememberProject(info.path, info.name);
@@ -316,15 +556,122 @@ app.whenReady().then(() => {
       "html-save",
       "xlsx-save",
       "r-save",
+      "ics-save",
+      "ics-open",
+      "xlsx-open",
+      "pack-save",
+      "pack-open",
+      "pdf-save",
+      "smeid-save",
+      "smeid-open",
+      "join-save",
+      "join-open",
+      "sync-save",
+      "sync-open",
+      "any-open",
+      "any-save",
+      "folder",
       "template-open",
     ];
     if (typeof kind !== "string" || !kinds.includes(kind as DialogKind)) return null;
     return pickFile(kind as DialogKind, typeof defaultName === "string" ? defaultName.slice(0, 120) : undefined);
   });
-  ipcMain.handle("project:recents", () => listProjects());
+  // Known projects, each with what the engine reads of it without opening it
+  // (calendar, next deadline, counts). The paths come from this list only.
+  const workspaceList = async () => {
+    const list = listProjects();
+    try {
+      const res = (await engine!.call("workspace.summaries", {
+        paths: list.filter((r) => r.exists).map((r) => r.path),
+      })) as { projects: { path: string }[] };
+      const by = new Map(res.projects.map((p) => [p.path, p]));
+      return list.map((r) => ({ ...r, card: by.get(r.path) ?? null }));
+    } catch {
+      return list;
+    }
+  };
+  ipcMain.handle("project:recents", () => workspaceList());
+  // Agenda of all known projects and of the user, between two dates.
+  ipcMain.handle("workspace:agenda", async (_e, range: unknown) => {
+    const r = (range ?? {}) as { start?: unknown; end?: unknown; lang?: unknown };
+    if (typeof r.start !== "string" || typeof r.end !== "string") return { events: [], tasks: [] };
+    return engine!.call("workspace.agenda", {
+      paths: listProjects()
+        .filter((p) => p.exists)
+        .map((p) => p.path),
+      start: r.start,
+      end: r.end,
+      lang: r.lang === "en" ? "en" : "fr",
+    });
+  });
+  // Portfolio dashboard (M14): the projects of this computer that are not archived,
+  // and the packs received from other offices.
+  const portfolioArgs = () => {
+    const list = listProjects().filter((p) => p.exists);
+    return { paths: list.map((p) => p.path), archived: list.filter((p) => p.archived).map((p) => p.path) };
+  };
+  ipcMain.handle("portfolio:dashboard", async () => {
+    try {
+      return { ok: true, result: await engine!.call("portfolio.dashboard", portfolioArgs()) };
+    } catch (err) {
+      const e = err as EngineError;
+      return { ok: false, error: e.message, key: e.key ?? "unknown" };
+    }
+  });
+  ipcMain.handle("portfolio:export", async (_e, kind: unknown, token: unknown, lang: unknown) => {
+    const target = typeof token === "string" ? pickedFiles.get(token) : undefined;
+    if (!target || (kind !== "note" && kind !== "html" && kind !== "pdf")) return { ok: false, key: "file_token" };
+    const language = lang === "en" ? "en" : "fr";
+    try {
+      if (kind !== "pdf") {
+        await engine!.call("portfolio.export", { ...portfolioArgs(), kind, target, lang: language });
+        return { ok: true };
+      }
+      // The PDF is the HTML page printed by a hidden window.
+      const page = path.join(app.getPath("temp"), `portefeuille-${randomUUID()}.html`);
+      await engine!.call("portfolio.export", { ...portfolioArgs(), kind: "html", target: page, lang: language });
+      const printer = new BrowserWindow({ show: false, webPreferences: { javascript: false } });
+      try {
+        await printer.loadFile(page);
+        const pdf = await printer.webContents.printToPDF({ pageSize: "A4", landscape: true, printBackground: true });
+        writeFileSync(target, pdf);
+      } finally {
+        printer.destroy();
+        try {
+          unlinkSync(page);
+        } catch {
+          /* a temporary file */
+        }
+      }
+      return { ok: true };
+    } catch (err) {
+      const e = err as EngineError;
+      return { ok: false, error: e.message, key: e.key ?? "unknown" };
+    }
+  });
+  ipcMain.handle("project:archive", (_e, file: unknown, archived: unknown) => {
+    if (typeof file === "string")
+      writeRecents(readRecents().map((r) => (r.path === file ? { ...r, archived: archived === true } : r)));
+    return workspaceList();
+  });
+  // A known project as the model of a new one: same design, no data.
+  ipcMain.handle("project:duplicate", async (_e, file: unknown, token: unknown, name: unknown) => {
+    const target = typeof token === "string" ? pickedFiles.get(token) : undefined;
+    if (typeof file !== "string" || !readRecents().some((r) => r.path === file) || !target)
+      return { ok: false, key: "file_token" };
+    const title = typeof name === "string" && name.trim() ? name.trim().slice(0, 200) : path.parse(target).name;
+    try {
+      await engine!.call("project.duplicate_model", { source: file, target, name: title });
+      rememberProject(target, title);
+      return { ok: true, result: await workspaceList() };
+    } catch (err) {
+      const e = err as EngineError;
+      return { ok: false, error: e.message, key: e.key ?? "unknown" };
+    }
+  });
   ipcMain.handle("project:forget", (_e, file: unknown) => {
     if (typeof file === "string") writeRecents(readRecents().filter((r) => r.path !== file));
-    return listProjects();
+    return workspaceList();
   });
   ipcMain.handle("project:reveal", (_e, file: unknown) => {
     if (typeof file === "string" && readRecents().some((r) => r.path === file)) shell.showItemInFolder(file);
@@ -392,5 +739,8 @@ let quitting = false;
 app.on("window-all-closed", () => {
   if (quitting) return;
   quitting = true;
-  void (engine ? engine.stopAndWait(5000) : Promise.resolve()).finally(() => app.quit());
+  // Closing the project writes an encrypted one back and removes its decrypted copy.
+  void (engine ? engine.call("project.close", {}).catch(() => undefined) : Promise.resolve())
+    .then(() => (engine ? engine.stopAndWait(5000) : undefined))
+    .finally(() => app.quit());
 });

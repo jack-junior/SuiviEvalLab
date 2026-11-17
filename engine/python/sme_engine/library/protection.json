@@ -1,0 +1,145 @@
+{
+  "_licence": "SPDX-License-Identifier: GPL-3.0-or-later. Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou. Definitions written for SuiviEvalLab after the cited public references.",
+  "sector": "protection",
+  "name": { "fr": "Protection", "en": "Protection" },
+  "indicators": [
+    {
+      "id": "protection.uasc_care",
+      "name": {
+        "fr": "Enfants non accompagnés ou séparés placés dans une prise en charge adaptée",
+        "en": "Unaccompanied or separated children in appropriate care"
+      },
+      "definition": {
+        "fr": "Part des enfants non accompagnés ou séparés enregistrés qui bénéficient d'une prise en charge alternative adaptée et suivie, ou qui ont été réunis avec leur famille.",
+        "en": "Share of registered unaccompanied or separated children who are in appropriate, monitored alternative care or have been reunified with their family."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Enfants en prise en charge adaptée ou réunifiés",
+        "en": "Children in appropriate care or reunified"
+      },
+      "denominator": {
+        "fr": "Enfants non accompagnés ou séparés enregistrés",
+        "en": "Registered unaccompanied or separated children"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": ["sex", "age"],
+      "source": "cpms"
+    },
+    {
+      "id": "protection.case_closed_goals",
+      "name": {
+        "fr": "Dossiers de protection de l'enfance clos avec les objectifs du plan atteints",
+        "en": "Child protection cases closed with case plan goals met"
+      },
+      "definition": {
+        "fr": "Part des dossiers de gestion de cas clos pendant la période dont les objectifs du plan de prise en charge ont été atteints.",
+        "en": "Share of case management files closed during the period in which the case plan goals were met."
+      },
+      "type": "percent",
+      "numerator": { "fr": "Dossiers clos avec objectifs atteints", "en": "Cases closed with goals met" },
+      "denominator": { "fr": "Dossiers clos pendant la période", "en": "Cases closed in the period" },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": ["sex", "age"],
+      "source": "cpms"
+    },
+    {
+      "id": "protection.pss_children",
+      "name": {
+        "fr": "Enfants ayant participé à des activités de soutien psychosocial structurées",
+        "en": "Children who took part in structured psychosocial support activities"
+      },
+      "definition": {
+        "fr": "Nombre d'enfants ayant suivi au moins le nombre minimal de séances prévu par le programme de soutien psychosocial pendant la période.",
+        "en": "Number of children who attended at least the minimum number of sessions planned by the psychosocial support programme during the period."
+      },
+      "type": "count",
+      "aggregation": "sum",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": ["sex", "age", "disability"],
+      "source": "cpms"
+    },
+    {
+      "id": "protection.gbv_72h",
+      "name": {
+        "fr": "Survivantes et survivants de viol ayant reçu des soins cliniques dans les 72 heures",
+        "en": "Rape survivors who received clinical care within 72 hours"
+      },
+      "definition": {
+        "fr": "Part des survivantes et survivants de viol pris en charge dans les structures appuyées qui ont reçu des soins cliniques, dont la prophylaxie post-exposition, dans les 72 heures suivant l'incident.",
+        "en": "Share of rape survivors seen in supported facilities who received clinical care, including post-exposure prophylaxis, within 72 hours of the incident."
+      },
+      "type": "percent",
+      "numerator": { "fr": "Survivants pris en charge dans les 72 heures", "en": "Survivors cared for within 72 hours" },
+      "denominator": { "fr": "Survivants de viol pris en charge", "en": "Rape survivors cared for" },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": ["age"],
+      "source": "iasc_gbv",
+      "benchmark": {
+        "fr": "Données sensibles : ne rapporter que des agrégats, jamais d'informations permettant d'identifier une personne.",
+        "en": "Sensitive data: report aggregates only, never information that could identify a person."
+      }
+    },
+    {
+      "id": "protection.birth_registration",
+      "name": {
+        "fr": "Enfants de moins de cinq ans dont la naissance a été enregistrée",
+        "en": "Children under five whose birth has been registered"
+      },
+      "definition": {
+        "fr": "Part des enfants de moins de cinq ans dont la naissance a été déclarée à l'état civil.",
+        "en": "Share of children under five whose birth has been registered with a civil authority."
+      },
+      "type": "percent",
+      "numerator": { "fr": "Enfants dont la naissance est enregistrée", "en": "Children with registered birth" },
+      "denominator": { "fr": "Enfants de moins de cinq ans", "en": "Children under five" },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "area"],
+      "source": "sdg",
+      "ref": "ODD 16.9.1"
+    },
+    {
+      "id": "protection.cfs",
+      "name": { "fr": "Espaces amis des enfants fonctionnels", "en": "Functional child-friendly spaces" },
+      "definition": {
+        "fr": "Nombre d'espaces amis des enfants ouverts au moins cinq jours par semaine avec du personnel formé à la fin de la période.",
+        "en": "Number of child-friendly spaces open at least five days a week with trained staff at the end of the period."
+      },
+      "type": "count",
+      "aggregation": "last",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": [],
+      "source": "cpms"
+    },
+    {
+      "id": "protection.psea_trained",
+      "name": {
+        "fr": "Personnes formées à la prévention de l'exploitation et des abus sexuels",
+        "en": "People trained on protection from sexual exploitation and abuse"
+      },
+      "definition": {
+        "fr": "Nombre de membres du personnel, de partenaires et de volontaires ayant suivi une formation sur la prévention de l'exploitation et des abus sexuels pendant la période.",
+        "en": "Number of staff, partners and volunteers who completed a training on protection from sexual exploitation and abuse during the period."
+      },
+      "type": "count",
+      "aggregation": "sum",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": ["sex"],
+      "source": null
+    }
+  ]
+}

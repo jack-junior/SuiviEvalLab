@@ -19,6 +19,7 @@ import hashlib
 import os
 import re
 import sqlite3
+import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -78,17 +79,69 @@ def snapshot(conn: sqlite3.Connection, project: Path, force: bool = False) -> Pa
     # Several copies in the same second are numbered after the highest one, even if older ones were pruned.
     n = max((int(m.group(1)[1:]) if (m := ID.match(p.name)) and m.group(1) else 0 for p in same), default=-1) + 1
     target = d / (f"{stamp}.sme" if n == 0 else f"{stamp}-{n}.sme")
-    dst = sqlite3.connect(target)
+    # Written under another name, then renamed: a copy cut short (the application
+    # closed during it) is never taken for a copy.
+    part = target.with_name(target.name + ".part")
+    for stale in d.glob("*.part"):
+        stale.unlink(missing_ok=True)
+    dst = sqlite3.connect(part)
     try:
         conn.backup(dst)
     finally:
         dst.close()
+    os.replace(part, target)
     for old in _copies(project)[KEEP:]:
         old.unlink(missing_ok=True)
     return target
 
 
+_PENDING: dict[str, threading.Thread] = {}
+# Result of the check made at opening, per project: "checking", "ok" or "damaged".
+INTEGRITY: dict[str, str] = {}
+
+
+def integrity(project: Path) -> str:
+    return INTEGRITY.get(str(project), "ok")
+
+
+def snapshot_later(project: Path) -> None:
+    """The integrity check and the copy at opening, made beside the work so that
+    opening a large project does not wait for them. It reads the file through its own connection; a change
+    made meanwhile waits for the copy to end (a second at most for a large project)."""
+
+    def run() -> None:
+        try:
+            conn = sqlite3.connect(f"file:{project}?mode=ro", uri=True, timeout=30)
+            try:
+                # Integrity first: a damaged file is not copied over the good copies.
+                ok = conn.execute("PRAGMA quick_check").fetchone()[0] == "ok"
+                INTEGRITY[str(project)] = "ok" if ok else "damaged"
+                if ok:
+                    snapshot(conn, project)
+            finally:
+                conn.close()
+        except sqlite3.DatabaseError:
+            INTEGRITY[str(project)] = "damaged"
+        except (OSError, sqlite3.Error):
+            pass  # a copy that cannot be written must not stop the user from working
+
+    INTEGRITY[str(project)] = "checking"
+
+    wait(project)
+    t = threading.Thread(target=run, name="backup", daemon=True)
+    _PENDING[str(project)] = t
+    t.start()
+
+
+def wait(project: Path) -> None:
+    """Wait for a copy being made of this project."""
+    t = _PENDING.pop(str(project), None)
+    if t is not None:
+        t.join()
+
+
 def listing(project: Path) -> list[dict[str, Any]]:
+    wait(project)
     out = []
     for p in _copies(project):
         try:
@@ -123,6 +176,7 @@ def restore(project: Path, backup_id: str) -> None:
     source = folder(project) / backup_id
     if not source.is_file():
         raise RpcError("Unknown backup", INVALID_PARAMS, data={"key": "backup_not_found"})
+    wait(project)
     content = source.read_bytes()  # read first: the copy below may prune the oldest copies
     if project.is_file():
         conn = sqlite3.connect(project)

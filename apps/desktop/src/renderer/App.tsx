@@ -4,22 +4,33 @@
 // Application shell: sidebar navigation, top bar, and the screen for the current view.
 
 import { useCallback, useEffect, useState } from "react";
-import { appInfo, AppInfo, call, EngineCallError, Versions } from "./api";
+import { appInfo, AppInfo, call, EngineCallError, onEngineEvent, recents, Versions } from "./api";
 import { Lang, useI18n } from "./i18n";
 import logo from "./logo.svg";
+import { Accountability } from "./screens/Accountability";
+import { Agenda } from "./screens/Agenda";
 import { Analysis } from "./screens/Analysis";
+import { Dashboard } from "./screens/Dashboard";
 import { Data } from "./screens/Data";
 import { Engines, EngineStatus } from "./screens/Engines";
+import { Evaluations } from "./screens/Evaluations";
 import { Framework } from "./screens/Framework";
 import { Home } from "./screens/Home";
 import { Indicators } from "./screens/Indicators";
 import { Overview } from "./screens/Overview";
+import { Plan } from "./screens/Plan";
+import { Reception } from "./screens/Reception";
 import { Report } from "./screens/Report";
+import { Setup } from "./screens/Setup";
 import { Tests } from "./screens/Tests";
+import { ProjectTodayScreen, WorkspaceToday } from "./screens/Today";
+import { Tracking } from "./screens/Tracking";
+import { Workplan } from "./screens/Workplan";
 import { Workshop } from "./screens/Workshop";
 import { TrustDialog } from "./TrustDialog";
 import { useProject, View } from "./state";
-import { Icon } from "./ui";
+import { Icon, Notice } from "./ui";
+import { stepTextSize, TEXT_SIZES, textSize, toggleTheme } from "./display";
 import { UpdateBanner } from "./updates";
 
 const LANGS: { code: Lang; label: string; name: string }[] = [
@@ -27,15 +38,50 @@ const LANGS: { code: Lang; label: string; name: string }[] = [
   { code: "en", label: "EN", name: "English" },
 ];
 
-const NAV: { view: View; icon: string }[] = [
-  { view: "overview", icon: "gauge" },
-  { view: "framework", icon: "tree" },
-  { view: "indicators", icon: "target" },
-  { view: "data", icon: "table" },
-  { view: "analysis", icon: "chart" },
-  { view: "tests", icon: "scale" },
-  { view: "workshop", icon: "calc" },
-  { view: "report", icon: "doc" },
+// Project menu, in the order of use (specification 3.3).
+const NAV: { group?: string; items: { view: View; icon: string }[] }[] = [
+  {
+    items: [
+      { view: "today", icon: "home" },
+      { view: "tracking", icon: "gauge" },
+      { view: "reception", icon: "open" },
+      { view: "agenda", icon: "calendar" },
+      { view: "workplan", icon: "list" },
+      { view: "accountability", icon: "chat" },
+    ],
+  },
+  {
+    group: "nav.group_design",
+    items: [
+      { view: "framework", icon: "tree" },
+      { view: "indicators", icon: "target" },
+      { view: "plan", icon: "plan" },
+    ],
+  },
+  {
+    group: "nav.group_surveys",
+    items: [
+      { view: "overview", icon: "chart" },
+      { view: "data", icon: "table" },
+      { view: "analysis", icon: "chart" },
+      { view: "tests", icon: "scale" },
+      { view: "workshop", icon: "calc" },
+      { view: "evaluations", icon: "clipboard" },
+    ],
+  },
+  {
+    items: [
+      { view: "report", icon: "doc" },
+      { view: "setup", icon: "people" },
+    ],
+  },
+];
+
+const WS_NAV: { view: View; icon: string; label: string }[] = [
+  { view: "ws_today", icon: "home", label: "nav.today" },
+  { view: "ws_dashboard", icon: "gauge", label: "nav.dashboard" },
+  { view: "overview", icon: "folder", label: "nav.projects" },
+  { view: "ws_agenda", icon: "calendar", label: "nav.agenda" },
 ];
 
 export function App() {
@@ -56,6 +102,34 @@ export function App() {
       );
   }, []);
 
+  // The workspace opens on today's work when there are projects to work on.
+  useEffect(() => {
+    recents()
+      .then((list) => {
+        if (list.some((r) => r.exists)) go("ws_today");
+      })
+      .catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // The integrity check of a project runs beside the work after opening: its result
+  // is read again a moment later.
+  const checking = snap?.project.integrity === "checking";
+  useEffect(() => {
+    if (!checking) return;
+    const timer = window.setTimeout(() => void run("project.get"), 2500);
+    return () => window.clearTimeout(timer);
+  }, [checking, snap, run]);
+
+  // Changes received in the background from the team's shared folder.
+  useEffect(
+    () =>
+      onEngineEvent((e) => {
+        if (e.method === "sync.done") void run("project.get");
+      }),
+    [run],
+  );
+
   useEffect(() => {
     appInfo()
       .then(setInfo)
@@ -72,11 +146,20 @@ export function App() {
   const ready = !!versions?.r && !engineError && !versions?.r_error;
   const engineState = engineError || versions?.r_error ? "error" : ready ? "ready" : "waiting";
 
-  const toggleTheme = () => {
-    const r = document.documentElement;
-    const dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
-    r.dataset.theme = dark ? "light" : "dark";
-  };
+  const [size, setSize] = useState(textSize);
+  const resize = (step: -1 | 0 | 1) => setSize(stepTextSize(step));
+  // Text size from the keyboard, as in a browser: Ctrl and +, Ctrl and -, Ctrl and 0.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      const step = e.key === "+" || e.key === "=" ? 1 : e.key === "-" ? -1 : e.key === "0" ? 0 : null;
+      if (step === null) return;
+      e.preventDefault();
+      setSize(stepTextSize(step));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const closeProject = async () => {
     await run("project.close");
@@ -90,13 +173,19 @@ export function App() {
         indicators: snap.indicators.length,
         data: snap.datasets.length,
         workshop: snap.analyses.length,
+        reception:
+          snap.submissions.filter((s) => s.status === "submitted" || s.status === "review").length || undefined,
       }
     : {};
   const showEngines = view === "engines";
-  const title = showEngines ? t("engines.title") : snap ? t(`nav.${view}`) : t("nav.home");
+  const wsView = (WS_NAV.find((n) => n.view === view) ?? WS_NAV[1]).label;
+  const title = showEngines ? t("engines.title") : snap ? t(`nav.${view}`) : t(wsView);
 
   return (
     <div className={`app${folded ? " folded" : ""}`}>
+      <a className="skip-link" href="#content">
+        {t("app.skip")}
+      </a>
       <aside className="side" aria-label={t("nav.label")}>
         <div className="side-top">
           <span className="brand">
@@ -125,21 +214,26 @@ export function App() {
               {snap.project.name}
             </div>
             <nav aria-label={t("nav.steps")}>
-              {NAV.map((n) => (
-                <a
-                  key={n.view}
-                  href={`#${n.view}`}
-                  aria-current={view === n.view ? "page" : undefined}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    go(n.view);
-                  }}
-                  data-testid={`nav-${n.view}`}
-                >
-                  <Icon name={n.icon} />
-                  <span className="nav-label">{t(`nav.${n.view}`)}</span>
-                  {counts[n.view] !== undefined && <span className="nav-count">{counts[n.view]}</span>}
-                </a>
+              {NAV.map((g, gi) => (
+                <div key={gi} className="nav-group">
+                  {g.group && <div className="group-title nav-sub">{t(g.group)}</div>}
+                  {g.items.map((n) => (
+                    <a
+                      key={n.view}
+                      href={`#${n.view}`}
+                      aria-current={view === n.view ? "page" : undefined}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        go(n.view);
+                      }}
+                      data-testid={`nav-${n.view}`}
+                    >
+                      <Icon name={n.icon} />
+                      <span className="nav-label">{t(`nav.${n.view}`)}</span>
+                      {counts[n.view] !== undefined && <span className="nav-count">{counts[n.view]}</span>}
+                    </a>
+                  ))}
+                </div>
               ))}
             </nav>
             <button className="link side-close" onClick={closeProject} data-testid="close-project">
@@ -148,17 +242,21 @@ export function App() {
           </div>
         ) : (
           <nav className="fold-hide" aria-label={t("nav.steps")}>
-            <a
-              href="#home"
-              aria-current={!showEngines ? "page" : undefined}
-              onClick={(e) => {
-                e.preventDefault();
-                go("overview");
-              }}
-            >
-              <Icon name="home" />
-              <span className="nav-label">{t("nav.home")}</span>
-            </a>
+            {WS_NAV.map((n) => (
+              <a
+                key={n.view}
+                href={`#${n.view}`}
+                aria-current={!showEngines && view === n.view ? "page" : undefined}
+                onClick={(e) => {
+                  e.preventDefault();
+                  go(n.view);
+                }}
+                data-testid={`nav-${n.view}`}
+              >
+                <Icon name={n.icon} />
+                <span className="nav-label">{t(n.label)}</span>
+              </a>
+            ))}
           </nav>
         )}
 
@@ -196,6 +294,32 @@ export function App() {
                 </button>
               ))}
             </div>
+            <div className="text-size" role="group" aria-label={t("side.textSize", { n: Math.round(size * 100) })}>
+              <button
+                className="icon-btn"
+                onClick={() => resize(-1)}
+                disabled={size <= TEXT_SIZES[0]}
+                aria-label={t("side.textSmaller")}
+                title={t("side.textSmaller")}
+                data-testid="text-smaller"
+              >
+                <span aria-hidden="true" className="a-small">
+                  A
+                </span>
+              </button>
+              <button
+                className="icon-btn"
+                onClick={() => resize(1)}
+                disabled={size >= TEXT_SIZES[TEXT_SIZES.length - 1]}
+                aria-label={t("side.textLarger")}
+                title={t("side.textLarger")}
+                data-testid="text-larger"
+              >
+                <span aria-hidden="true" className="a-large">
+                  A
+                </span>
+              </button>
+            </div>
             <button className="icon-btn" onClick={toggleTheme} aria-label={t("side.theme")} data-testid="theme">
               <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
                 <circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" strokeWidth="1.4" />
@@ -206,7 +330,7 @@ export function App() {
         </div>
       </aside>
 
-      <div className="main">
+      <main className="main" id="content" tabIndex={-1}>
         <div className="bar">
           <div className="crumb">
             SuiviEvalLab <span aria-hidden="true">/</span>{" "}
@@ -227,6 +351,11 @@ export function App() {
           </span>
         </div>
         <UpdateBanner />
+        {snap?.project.integrity === "damaged" && (
+          <div className="banner-wrap">
+            <Notice kind="error">{t("app.damaged")}</Notice>
+          </div>
+        )}
         <TrustDialog />
         <div
           className={(view === "analysis" || view === "tests" || view === "workshop") && snap ? "col col-split" : "col"}
@@ -234,11 +363,37 @@ export function App() {
           {showEngines ? (
             <Engines info={info} versions={versions} error={engineError} onRecheck={loadVersions} />
           ) : !snap ? (
-            <Home enginesReady={ready} />
+            view === "ws_today" ? (
+              <WorkspaceToday />
+            ) : view === "ws_agenda" ? (
+              <Agenda scope="workspace" />
+            ) : view === "ws_dashboard" ? (
+              <Dashboard />
+            ) : (
+              <Home enginesReady={ready} />
+            )
+          ) : view === "today" ? (
+            <ProjectTodayScreen />
+          ) : view === "reception" ? (
+            <Reception />
+          ) : view === "tracking" ? (
+            <Tracking />
+          ) : view === "agenda" ? (
+            <Agenda scope="project" />
+          ) : view === "workplan" ? (
+            <Workplan />
+          ) : view === "accountability" ? (
+            <Accountability />
+          ) : view === "evaluations" ? (
+            <Evaluations />
+          ) : view === "setup" ? (
+            <Setup />
           ) : view === "framework" ? (
             <Framework />
           ) : view === "indicators" ? (
             <Indicators />
+          ) : view === "plan" ? (
+            <Plan />
           ) : view === "data" ? (
             <Data />
           ) : view === "analysis" ? (
@@ -253,7 +408,7 @@ export function App() {
             <Overview />
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

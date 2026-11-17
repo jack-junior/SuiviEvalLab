@@ -6,14 +6,15 @@
 import { useEffect, useState } from "react";
 import { call, openFile, pick } from "../api";
 import { Lang, useI18n } from "../i18n";
-import { useProject } from "../state";
+import { useProject, View } from "../state";
 import { Icon, Notice } from "../ui";
+import { Exports, PeriodicReports } from "./Periodic";
 import { ReportContent } from "./ReportContent";
 
 interface CheckItem {
   key: string;
   severity: "warning" | "info";
-  view: "indicators" | "analysis" | "data";
+  view: View;
   id: string | null;
   name: string;
   detail?: string;
@@ -76,13 +77,48 @@ function Checks() {
   );
 }
 
+type Tab = "periodic" | "survey" | "exports";
+const TABS: Tab[] = ["periodic", "survey", "exports"];
+
 export function Report() {
+  const { t } = useI18n();
+  const { snap } = useProject();
+  const [tab, setTab] = useState<Tab>("periodic");
+  const hasIndicators = !!snap?.indicators.length;
+  return (
+    <div className="inner wide stack-lg">
+      <div>
+        <h1>{t("nav.report")}</h1>
+        <p className="lead">{t("rep.lead")}</p>
+      </div>
+      <div className="tabs" role="tablist">
+        {TABS.map((k) => (
+          <button
+            key={k}
+            role="tab"
+            aria-selected={tab === k}
+            className="tab"
+            onClick={() => setTab(k)}
+            data-testid={`report-tab-${k}`}
+          >
+            {t(`rep.tab_${k}`)}
+          </button>
+        ))}
+      </div>
+      {tab === "periodic" && <PeriodicReports />}
+      {tab === "periodic" && hasIndicators && <Checks />}
+      {tab === "survey" && <SurveyReport />}
+      {tab === "exports" && <Exports />}
+    </div>
+  );
+}
+
+function SurveyReport() {
   const { t, lang } = useI18n();
   const { snap, run, error, busy, go } = useProject();
   const [reportLang, setReportLang] = useState<Lang>(lang);
   const [done, setDone] = useState<{ token: string; name: string } | null>(null);
   const [shared, setShared] = useState<{ token: string; name: string } | null>(null);
-  const [planned, setPlanned] = useState<{ token: string; name: string } | null>(null);
   const [templateNote, setTemplateNote] = useState<{ kind: "ok" | "info"; text: string } | null>(null);
   if (!snap) return null;
   const ready = snap.indicators.length > 0;
@@ -115,20 +151,9 @@ export function Report() {
     if (r) setShared(file);
   };
 
-  const exportPlan = async () => {
-    setPlanned(null);
-    const file = await pick("xlsx-save", `${t("plan.file")} ${snap.project.name.slice(0, 50)}.xlsx`);
-    if (!file) return;
-    const r = await run("report.plan", { file_token: file.token, lang: reportLang }, "plan");
-    if (r) setPlanned(file);
-  };
-
   return (
-    <div className="inner">
-      <div>
-        <h1>{t("nav.report")}</h1>
-        <p className="lead">{t("report.lead")}</p>
-      </div>
+    <div className="stack-lg">
+      <p className="lead">{t("report.lead")}</p>
       {error && <Notice kind="error">{error}</Notice>}
 
       <section className="stack">
@@ -220,24 +245,6 @@ export function Report() {
           </button>
         </Notice>
       )}
-
-      <section className="stack" data-testid="plan-section">
-        <h2>{t("plan.title")}</h2>
-        <p className="muted">{t("plan.text")}</p>
-        <div className="row-actions start">
-          <button className="btn" onClick={exportPlan} disabled={!ready || busy === "plan"} data-testid="export-plan">
-            <Icon name="table" /> {busy === "plan" ? t("plan.exporting") : t("plan.action")}
-          </button>
-        </div>
-        {planned && (
-          <Notice kind="ok">
-            <span data-testid="plan-done">{t("plan.done", { name: planned.name })}</span>{" "}
-            <button className="link" onClick={() => openFile(planned.token)}>
-              {t("report.shareOpen")}
-            </button>
-          </Notice>
-        )}
-      </section>
 
       <section className="stack" data-testid="share-section">
         <h2>{t("report.shareTitle")}</h2>

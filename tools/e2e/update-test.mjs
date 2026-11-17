@@ -119,11 +119,15 @@ const folder = readdirSync(programs)
   .find((d) => existsSync(path.join(d, "SuiviEvalLab.exe")));
 if (!folder) throw new Error(`SuiviEvalLab.exe not found under ${programs}`);
 const installed = path.join(folder, "SuiviEvalLab.exe");
+// The version as the installer recorded it. The file version of the executable
+// cannot tell 1.0.0-beta.1 from 1.0.0-beta.2 (both read 1.0.0.0).
 const productVersion = () =>
   execFileSync("powershell", [
     "-NoProfile",
     "-Command",
-    `(Get-Item '${installed}').VersionInfo.ProductVersion`,
+    "(Get-ItemProperty 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*' " +
+      "| Where-Object { $_.DisplayName -like 'SuiviEvalLab*' } " +
+      "| Select-Object -First 1 -ExpandProperty DisplayVersion)",
   ])
     .toString()
     .trim();

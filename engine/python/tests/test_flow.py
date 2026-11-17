@@ -19,6 +19,7 @@ import polars as pl
 import pytest
 from docx import Document
 
+from sme_engine import sync
 from sme_engine.methods import register
 from sme_engine.r_bridge import RBridge, find_rscript
 from sme_engine.rpc import Server
@@ -71,6 +72,15 @@ def test_example_project_analysis_and_report(engine, tmp_path):
     assert primary["baseline"] == pytest.approx(expected_base, abs=1e-9)
     assert primary["current"] == pytest.approx(expected_end, abs=1e-9)
     assert primary["status"] in ("achieved", "on_track", "late")
+
+    # Survey estimates in the tracking table, at the periods of their collections.
+    rows = engine("tracking.table", {"period": snap["periods"][-1]["code"]})["rows"]
+    survey = next(r for r in rows if r["indicator_id"] == primary["indicator_id"])
+    assert survey["kind"] == "survey"
+    values = [p["value"] for p in survey["series"]]
+    assert values[0] == pytest.approx(expected_base, abs=1e-9) and values[3] == pytest.approx(expected_end, abs=1e-9)
+    assert survey["to_date"] == pytest.approx(expected_end, abs=1e-9)
+    assert survey["series"][3]["ci"][0] < values[3] < survey["series"][3]["ci"][1]
 
     dropout_id = next(i["id"] for i in snap["indicators"] if i.get("column") == "child_dropout_school")
     dropout = engine("analysis.indicator", {"id": dropout_id})
@@ -251,6 +261,7 @@ def test_test_assistant_on_real_data(engine, tmp_path):
     engine("project.create", {"path": str(old), "name": "ancien"})
     engine("project.close")
     con = sqlite3.connect(old)
+    sync.attach(con)
     con.execute("DROP TABLE saved_test")
     con.execute("PRAGMA user_version = 1")
     con.commit()
@@ -473,7 +484,7 @@ def test_monitoring_plan_workbook(engine, tmp_path):
     assert first["Mode de calcul"].startswith("Part des observations où")
     assert "À moins de 2 km" in first["Mode de calcul"]  # labels, not codes
     assert first["Cible"] == "90,0 %"
-    fw = pl.read_excel(out["path"], sheet_name="Cadre de résultats")
+    fw = pl.read_excel(out["path"], sheet_name="Chaîne des résultats")
     assert fw.height == len(snap["framework"])
     with pytest.raises(AssertionError, match="invalid_params"):
         engine("indicator.save", {"id": ind["id"], "indicator": {**spec, "frequency": "weekly"}})

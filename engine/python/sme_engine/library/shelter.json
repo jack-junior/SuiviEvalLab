@@ -1,0 +1,186 @@
+{
+  "_licence": "SPDX-License-Identifier: GPL-3.0-or-later. Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou. Definitions written for SuiviEvalLab after the cited public references.",
+  "sector": "shelter",
+  "name": {
+    "fr": "Abris et articles non alimentaires",
+    "en": "Shelter and non-food items"
+  },
+  "indicators": [
+    {
+      "id": "shelter.covered_space",
+      "name": {
+        "fr": "Surface couverte de vie par personne",
+        "en": "Covered living space per person"
+      },
+      "definition": {
+        "fr": "Surface couverte moyenne par personne dans les abris, hors espaces de cuisine, de lavage et d'assainissement, en mètres carrés.",
+        "en": "Mean covered area per person in shelters, excluding cooking, bathing and sanitation spaces, in square metres."
+      },
+      "type": "mean",
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": [],
+      "source": "sphere",
+      "unit_label": {
+        "fr": "m²",
+        "en": "m²"
+      },
+      "benchmark": {
+        "fr": "Repère Sphère : au moins 3,5 m² par personne en climat chaud.",
+        "en": "Sphere benchmark: at least 3.5 m² per person in warm climates."
+      }
+    },
+    {
+      "id": "shelter.adequate",
+      "name": {
+        "fr": "Ménages vivant dans un abri adéquat",
+        "en": "Households living in adequate shelter"
+      },
+      "definition": {
+        "fr": "Part des ménages dont l'abri offre une surface suffisante, une protection contre les intempéries, l'intimité et la sécurité selon les critères du projet.",
+        "en": "Share of households whose shelter offers enough space, protection from the weather, privacy and safety according to the project criteria."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Ménages dans un abri adéquat",
+        "en": "Households in adequate shelter"
+      },
+      "denominator": {
+        "fr": "Ménages enquêtés",
+        "en": "Households surveyed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["area"],
+      "source": "sphere"
+    },
+    {
+      "id": "shelter.kits",
+      "name": {
+        "fr": "Kits d'abri distribués",
+        "en": "Shelter kits distributed"
+      },
+      "definition": {
+        "fr": "Nombre de kits d'abri (bâches, cordes, outils, fixations) remis aux ménages.",
+        "en": "Number of shelter kits (tarpaulins, rope, tools, fixings) given to households."
+      },
+      "type": "count",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": [],
+      "source": "sphere"
+    },
+    {
+      "id": "shelter.repaired",
+      "name": {
+        "fr": "Abris réparés ou construits",
+        "en": "Shelters repaired or built"
+      },
+      "definition": {
+        "fr": "Nombre d'abris réparés, renforcés ou construits et remis aux ménages, conformes aux normes du projet.",
+        "en": "Number of shelters repaired, upgraded or built and handed over to households, meeting the project standards."
+      },
+      "type": "count",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": [],
+      "source": "sphere"
+    },
+    {
+      "id": "shelter.nfi_households",
+      "name": {
+        "fr": "Ménages ayant reçu des articles non alimentaires",
+        "en": "Households that received non-food items"
+      },
+      "definition": {
+        "fr": "Nombre de ménages ayant reçu un kit d'articles non alimentaires (couchage, cuisine, éclairage, vêtements) pendant la période.",
+        "en": "Number of households that received a kit of non-food items (bedding, cooking, lighting, clothing) during the period."
+      },
+      "type": "count",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": [],
+      "source": "sphere"
+    },
+    {
+      "id": "shelter.sleeping",
+      "name": {
+        "fr": "Personnes disposant de couchage suffisant",
+        "en": "People with enough bedding"
+      },
+      "definition": {
+        "fr": "Part des personnes enquêtées disposant d'au moins une natte ou un matelas et d'une couverture adaptés au climat.",
+        "en": "Share of people surveyed who have at least a mat or mattress and a blanket suited to the climate."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes disposant de couchage suffisant",
+        "en": "People with enough bedding"
+      },
+      "denominator": {
+        "fr": "Personnes enquêtées",
+        "en": "People surveyed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "age"],
+      "source": "sphere"
+    },
+    {
+      "id": "shelter.nfi_meet_needs",
+      "name": {
+        "fr": "Ménages dont les articles reçus répondent aux besoins",
+        "en": "Households whose items met their needs"
+      },
+      "definition": {
+        "fr": "Part des ménages enquêtés après distribution qui déclarent que les articles reçus correspondent à leurs besoins et sont de qualité suffisante.",
+        "en": "Share of households surveyed after distribution who report that the items received matched their needs and were of sufficient quality."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Ménages satisfaits des articles reçus",
+        "en": "Households satisfied with the items received"
+      },
+      "denominator": {
+        "fr": "Ménages enquêtés",
+        "en": "Households surveyed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": [],
+      "source": "sphere"
+    },
+    {
+      "id": "shelter.tenure",
+      "name": {
+        "fr": "Ménages bénéficiant d'une sécurité d'occupation",
+        "en": "Households with security of tenure"
+      },
+      "definition": {
+        "fr": "Part des ménages appuyés qui disposent d'un accord écrit ou reconnu les protégeant d'une expulsion forcée du terrain ou du logement.",
+        "en": "Share of supported households that have a written or recognised agreement protecting them from forced eviction from the land or dwelling."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Ménages avec accord d'occupation",
+        "en": "Households with a tenure agreement"
+      },
+      "denominator": {
+        "fr": "Ménages appuyés enquêtés",
+        "en": "Supported households surveyed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": [],
+      "source": "sphere"
+    }
+  ]
+}

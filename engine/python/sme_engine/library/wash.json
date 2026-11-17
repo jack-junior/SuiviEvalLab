@@ -1,0 +1,197 @@
+{
+  "_licence": "SPDX-License-Identifier: GPL-3.0-or-later. Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou. Definitions written for SuiviEvalLab after the cited public references.",
+  "sector": "wash",
+  "name": { "fr": "Eau, assainissement et hygiène", "en": "Water, sanitation and hygiene" },
+  "indicators": [
+    {
+      "id": "wash.basic_water",
+      "name": {
+        "fr": "Population utilisant au moins un service d'eau potable de base",
+        "en": "Population using at least a basic drinking water service"
+      },
+      "definition": {
+        "fr": "Part de la population qui boit l'eau d'une source améliorée dont la collecte prend au plus 30 minutes aller-retour, file d'attente comprise.",
+        "en": "Share of the population drinking water from an improved source with a collection time of no more than 30 minutes round trip, queuing included."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes des ménages utilisant une source améliorée à 30 minutes au plus",
+        "en": "Household members using an improved source within 30 minutes"
+      },
+      "denominator": { "fr": "Population des ménages enquêtés", "en": "Population of surveyed households" },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["area"],
+      "source": "jmp",
+      "ref": "ODD 1.4.1"
+    },
+    {
+      "id": "wash.safe_water",
+      "name": {
+        "fr": "Population utilisant un service d'eau potable géré en toute sécurité",
+        "en": "Population using a safely managed drinking water service"
+      },
+      "definition": {
+        "fr": "Part de la population qui utilise une source améliorée située sur place, disponible en cas de besoin et exempte de contamination fécale et chimique prioritaire.",
+        "en": "Share of the population using an improved source located on premises, available when needed and free from faecal and priority chemical contamination."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes utilisant une source améliorée sur place, disponible et non contaminée",
+        "en": "People using an improved source on premises, available and uncontaminated"
+      },
+      "denominator": { "fr": "Population des ménages enquêtés", "en": "Population of surveyed households" },
+      "level": "impact",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["area"],
+      "source": "jmp",
+      "ref": "ODD 6.1.1"
+    },
+    {
+      "id": "wash.basic_sanitation",
+      "name": {
+        "fr": "Population utilisant au moins un service d'assainissement de base",
+        "en": "Population using at least a basic sanitation service"
+      },
+      "definition": {
+        "fr": "Part de la population qui utilise une installation sanitaire améliorée non partagée avec d'autres ménages.",
+        "en": "Share of the population using an improved sanitation facility not shared with other households."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes utilisant une installation améliorée non partagée",
+        "en": "People using an improved facility not shared"
+      },
+      "denominator": { "fr": "Population des ménages enquêtés", "en": "Population of surveyed households" },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["area"],
+      "source": "jmp",
+      "ref": "ODD 6.2.1"
+    },
+    {
+      "id": "wash.open_defecation",
+      "name": {
+        "fr": "Population pratiquant la défécation à l'air libre",
+        "en": "Population practising open defecation"
+      },
+      "definition": {
+        "fr": "Part de la population qui défèque dans la nature (champs, brousse, plans d'eau, plages) ou avec les déchets solides, faute d'installation sanitaire.",
+        "en": "Share of the population disposing of faeces in fields, bush, open bodies of water, beaches or with solid waste, for lack of a facility."
+      },
+      "type": "percent",
+      "numerator": { "fr": "Personnes pratiquant la défécation à l'air libre", "en": "People practising open defecation" },
+      "denominator": { "fr": "Population des ménages enquêtés", "en": "Population of surveyed households" },
+      "direction": "decrease",
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["area"],
+      "source": "jmp"
+    },
+    {
+      "id": "wash.basic_hygiene",
+      "name": {
+        "fr": "Population disposant d'un service d'hygiène de base",
+        "en": "Population with a basic hygiene service"
+      },
+      "definition": {
+        "fr": "Part de la population disposant à domicile d'un dispositif de lavage des mains avec de l'eau et du savon.",
+        "en": "Share of the population with a handwashing facility with soap and water at home."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes des ménages où un dispositif avec eau et savon a été observé",
+        "en": "Members of households where a facility with water and soap was observed"
+      },
+      "denominator": { "fr": "Population des ménages enquêtés", "en": "Population of surveyed households" },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["area"],
+      "source": "jmp",
+      "ref": "ODD 6.2.1"
+    },
+    {
+      "id": "wash.litres_pp",
+      "name": {
+        "fr": "Quantité moyenne d'eau utilisée par personne et par jour",
+        "en": "Average quantity of water used per person per day"
+      },
+      "definition": {
+        "fr": "Litres d'eau utilisés en moyenne par personne et par jour pour la boisson, la cuisine et l'hygiène personnelle et domestique.",
+        "en": "Average litres of water used per person per day for drinking, cooking and personal and domestic hygiene."
+      },
+      "type": "mean",
+      "unit_label": { "fr": "litres", "en": "litres" },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": [],
+      "source": "sphere",
+      "benchmark": {
+        "fr": "Sphère : 15 litres par personne et par jour au minimum, à adapter au contexte.",
+        "en": "Sphere: at least 15 litres per person per day, adapted to the context."
+      }
+    },
+    {
+      "id": "wash.people_per_latrine",
+      "name": { "fr": "Nombre de personnes par latrine", "en": "Number of people per latrine" },
+      "definition": {
+        "fr": "Population desservie divisée par le nombre de latrines fonctionnelles dans les sites ou zones du projet.",
+        "en": "Population served divided by the number of functional latrines in the project sites or areas."
+      },
+      "type": "ratio",
+      "multiplier": 1,
+      "numerator": { "fr": "Population desservie", "en": "Population served" },
+      "denominator": { "fr": "Latrines fonctionnelles", "en": "Functional latrines" },
+      "direction": "decrease",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": [],
+      "source": "sphere",
+      "benchmark": {
+        "fr": "Sphère : 20 personnes au plus par toilette commune à moyen terme.",
+        "en": "Sphere: no more than 20 people per shared toilet in the medium term."
+      }
+    },
+    {
+      "id": "wash.functional_points",
+      "name": { "fr": "Points d'eau fonctionnels", "en": "Functional water points" },
+      "definition": {
+        "fr": "Part des points d'eau construits ou réhabilités par le projet qui fournissent de l'eau le jour de la visite de suivi.",
+        "en": "Share of water points built or rehabilitated by the project that deliver water on the day of the monitoring visit."
+      },
+      "type": "percent",
+      "numerator": { "fr": "Points d'eau fonctionnels lors de la visite", "en": "Water points functional at the visit" },
+      "denominator": { "fr": "Points d'eau visités", "en": "Water points visited" },
+      "level": "output",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": [],
+      "source": null
+    },
+    {
+      "id": "wash.people_reached_water",
+      "name": {
+        "fr": "Personnes ayant accès à l'eau potable grâce au projet",
+        "en": "People with access to safe water through the project"
+      },
+      "definition": {
+        "fr": "Nombre de personnes desservies par les points d'eau construits, réhabilités ou approvisionnés par le projet, comptées une seule fois.",
+        "en": "Number of people served by water points built, rehabilitated or supplied by the project, each counted once."
+      },
+      "type": "count",
+      "aggregation": "last",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": ["sex", "age"],
+      "source": null
+    }
+  ]
+}

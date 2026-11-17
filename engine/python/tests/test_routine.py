@@ -12,7 +12,7 @@ import sqlite3
 import pytest
 from docx import Document
 
-from sme_engine import frameworks, project, routine
+from sme_engine import frameworks, project, routine, sync
 from sme_engine.methods import register
 from sme_engine.r_bridge import RBridge, find_rscript
 from sme_engine.rpc import Server
@@ -61,9 +61,12 @@ def test_usaid_and_world_bank_projects(call, tmp_path):
     do = call("framework.add", {"parent_id": goal, "title": "DO 1"})["created"]
     ir = call("framework.add", {"parent_id": do, "title": "IR 1.1"})["created"]
     sub = call("framework.add", {"parent_id": ir, "title": "Sub-IR 1.1.1"})["created"]
+    act = call("framework.add", {"parent_id": sub, "title": "Activity 1.1.1.1"})["created"]
+    assert call("project.get")["framework"][-1]["level"] == "detail"
     with pytest.raises(RuntimeError, match="node_no_children"):
-        call("framework.add", {"parent_id": sub, "title": "Too deep"})
-    # USAID: indicators on every level, including the fourth.
+        call("framework.add", {"parent_id": act, "title": "Too deep"})
+    call("framework.delete", {"id": act})
+    # USAID: indicators on the four levels of results.
     call("indicator.save", {"node_id": sub, "indicator": {"name": "Ind", "unit": "count", "source_type": "routine"}})
     fw = call("project.get")["framework"]
     assert fw[0]["assumptions"] == "Stabilité politique"
@@ -71,9 +74,12 @@ def test_usaid_and_world_bank_projects(call, tmp_path):
     # Back to the standard model: the fourth level then carries no indicator, so it is refused.
     with pytest.raises(RuntimeError, match="framework_model_indicators"):
         call("framework.set_model", {"model": {"id": "standard"}})
-    # The World Bank model has two levels only: refused while four are used.
-    with pytest.raises(RuntimeError, match="framework_model_too_shallow"):
+    # The World Bank model: the fourth level holds activities, without indicators.
+    with pytest.raises(RuntimeError, match="framework_model_indicators"):
         call("framework.set_model", {"model": {"id": "worldbank"}})
+    # A model with two levels only: refused while four are used.
+    with pytest.raises(RuntimeError, match="framework_model_too_shallow"):
+        call("framework.set_model", {"model": {"id": "custom", "levels": [{"fr": "A"}, {"fr": "B"}]}})
     snap = call(
         "framework.set_model",
         {"model": {"id": "custom", "levels": [{"fr": "A"}, {"fr": "B"}, {"fr": "C"}, {"fr": "D"}]}},
@@ -87,6 +93,7 @@ def test_migration_from_version_2(tmp_path, call):
     call("framework.add", {"title": "Impact"})
     call("project.close")
     conn = sqlite3.connect(path)
+    sync.attach(conn)
     conn.executescript(
         "ALTER TABLE framework_node DROP COLUMN assumptions; DROP TABLE routine_value; PRAGMA user_version = 2;"
     )
@@ -157,7 +164,17 @@ def test_paste_from_excel():
 
 @needs_r
 def test_routine_indicator_through_report_plan_and_dashboard(call, tmp_path):
-    call("project.create", {"path": str(tmp_path / "r.sme"), "name": "Formation", "model": {"id": "eu"}})
+    profile = {"start": "2026-01-01", "end": "2026-12-31", "frequency": "quarterly"}
+    call(
+        "project.create",
+        {
+            "path": str(tmp_path / "r.sme"),
+            "name": "Formation",
+            "model": {"id": "eu"},
+            "profile": profile,
+            "disaggregations": ["sex"],
+        },
+    )
     root = call("framework.add", {"title": "Objectif global"})["created"]
     so = call("framework.add", {"parent_id": root, "title": "Objectif spécifique"})["created"]
     out = call("framework.add", {"parent_id": so, "title": "Les agents de santé sont formés"})["created"]
@@ -166,18 +183,24 @@ def test_routine_indicator_through_report_plan_and_dashboard(call, tmp_path):
         "unit": "count",
         "source_type": "routine",
         "aggregation": "sum",
-        "categories": ["Femmes", "Hommes"],
+        "breakdowns": ["sex"],
         "target": 1500,
         "frequency": "quarterly",
     }
     ind = call("indicator.save", {"node_id": out, "indicator": spec})["saved"]
-    values = [
-        {"period": "2026-T1", "end": "2026-03-31", "by": {"Femmes": 180, "Hommes": 140}, "planned": 300},
-        {"period": "2026-T2", "end": "2026-06-30", "by": {"Femmes": 300, "Hommes": 250}, "planned": 400},
-    ]
-    res = call("routine.save", {"indicator_id": ind, "values": values})
-    an = res["analysis"]
-    assert res["saved"] == 2 and an["current"] == 870 and an["status"] == "on_track" and res["project"]
+    call("target.set", {"indicator_id": ind, "period": "T1-2026", "value": 300})
+    call("target.set", {"indicator_id": ind, "period": "T2-2026", "value": 400})
+    for period, (f, m) in (("T1-2026", (180, 140)), ("T2-2026", (300, 250))):
+        sub = call("submission.open", {"period": period})["created"]
+        cells = [
+            {"indicator_id": ind, "cats": {"sex": "f"}, "value": f},
+            {"indicator_id": ind, "cats": {"sex": "m"}, "value": m},
+        ]
+        call("submission.save", {"id": sub, "values": cells})
+        call("submission.act", {"id": sub, "action": "validate"})
+    an = call("analysis.indicator", {"id": ind})
+    assert an["current"] == 870 and an["status"] == "on_track"
+    assert an["by_total"] == {"Femme": 480, "Homme": 390}
     row = call("analysis.overview")["rows"][0]
     assert row["current"] == 870 and row["status"] == "on_track"
     assert not [i for i in call("report.checks")["items"] if i["severity"] == "warning"]
@@ -186,9 +209,9 @@ def test_routine_indicator_through_report_plan_and_dashboard(call, tmp_path):
     call("report.generate", {"path": str(report), "lang": "fr"})
     text = "\n".join(p.text for p in Document(report).paragraphs)
     cells = [c.text for t in Document(report).tables for r in t.rows for c in r.cells]
-    assert "870 en cumul au terme de la période 2026-T2" in text
-    assert "Produit" in text  # the EU name of the level, not "Extrant"
-    assert "2026-T1" in cells and "Prévu à date" in cells
+    assert "870 en cumul au terme de la période T2 2026" in text
+    assert "Produit" in text  # the name of the level in the model
+    assert "T1 2026" in cells and "Prévu à date" in cells
     assert "Indicateur de suivi de routine" in text
 
     plan = call("report.plan", {"path": str(tmp_path / "p.xlsx"), "lang": "fr"})
@@ -196,8 +219,8 @@ def test_routine_indicator_through_report_plan_and_dashboard(call, tmp_path):
 
     sheet = pl.read_excel(plan["path"], sheet_name="Plan de suivi", read_options={"header_row": 3})
     first = sheet.row(0, named=True)
-    assert first["Niveau"] == "Produit" and first["Mode de calcul"].startswith("Suivi de routine")
+    assert first["Niveau"] == "Produit" and first["Mode de calcul"].startswith("Saisie périodique")
 
     board = call("report.share", {"path": str(tmp_path / "b.html"), "lang": "fr"})
     html = open(board["path"], encoding="utf-8").read()
-    assert "2026-T2" in html and "Produit" in html
+    assert "T2 2026" in html and "Produit" in html

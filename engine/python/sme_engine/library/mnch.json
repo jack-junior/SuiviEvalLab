@@ -1,0 +1,295 @@
+{
+  "_licence": "SPDX-License-Identifier: GPL-3.0-or-later. Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou. Definitions written for SuiviEvalLab after the cited public references.",
+  "sector": "mnch",
+  "name": {
+    "fr": "Santé maternelle, néonatale et infantile, vaccination",
+    "en": "Maternal, newborn and child health, immunization"
+  },
+  "indicators": [
+    {
+      "id": "mnch.mmr",
+      "name": {
+        "fr": "Ratio de mortalité maternelle",
+        "en": "Maternal mortality ratio"
+      },
+      "definition": {
+        "fr": "Nombre de décès maternels (pendant la grossesse ou dans les 42 jours suivant sa fin, de causes liées à la grossesse) pour 100 000 naissances vivantes.",
+        "en": "Number of maternal deaths (during pregnancy or within 42 days of its end, from pregnancy-related causes) per 100,000 live births."
+      },
+      "type": "ratio",
+      "numerator": {
+        "fr": "Nombre de décès maternels",
+        "en": "Number of maternal deaths"
+      },
+      "denominator": {
+        "fr": "Nombre de naissances vivantes",
+        "en": "Number of live births"
+      },
+      "level": "impact",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": [],
+      "source": "who_100",
+      "ref": "ODD 3.1.1",
+      "direction": "decrease",
+      "multiplier": 100000
+    },
+    {
+      "id": "mnch.u5mr",
+      "name": {
+        "fr": "Taux de mortalité des moins de cinq ans",
+        "en": "Under-five mortality rate"
+      },
+      "definition": {
+        "fr": "Probabilité de décéder entre la naissance et le cinquième anniversaire, pour 1 000 naissances vivantes.",
+        "en": "Probability of dying between birth and the fifth birthday, per 1,000 live births."
+      },
+      "type": "ratio",
+      "numerator": {
+        "fr": "Décès d'enfants avant cinq ans (méthode des tables de mortalité)",
+        "en": "Deaths of children before age five (life-table method)"
+      },
+      "denominator": {
+        "fr": "Naissances vivantes",
+        "en": "Live births"
+      },
+      "level": "impact",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "area"],
+      "source": "who_100",
+      "ref": "ODD 3.2.1",
+      "direction": "decrease",
+      "multiplier": 1000
+    },
+    {
+      "id": "mnch.nmr",
+      "name": {
+        "fr": "Taux de mortalité néonatale",
+        "en": "Neonatal mortality rate"
+      },
+      "definition": {
+        "fr": "Nombre de décès d'enfants dans les 28 premiers jours de vie pour 1 000 naissances vivantes.",
+        "en": "Number of deaths of children in the first 28 days of life per 1,000 live births."
+      },
+      "type": "ratio",
+      "numerator": {
+        "fr": "Décès dans les 28 premiers jours",
+        "en": "Deaths in the first 28 days"
+      },
+      "denominator": {
+        "fr": "Naissances vivantes",
+        "en": "Live births"
+      },
+      "level": "impact",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "area"],
+      "source": "who_100",
+      "ref": "ODD 3.2.2",
+      "direction": "decrease",
+      "multiplier": 1000
+    },
+    {
+      "id": "mnch.facility_delivery",
+      "name": {
+        "fr": "Accouchements en établissement de santé",
+        "en": "Births in a health facility"
+      },
+      "definition": {
+        "fr": "Part des naissances vivantes survenues dans un établissement de santé.",
+        "en": "Share of live births that took place in a health facility."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Nombre d'accouchements en établissement de santé",
+        "en": "Number of births in a health facility"
+      },
+      "denominator": {
+        "fr": "Nombre attendu de naissances vivantes dans la zone",
+        "en": "Expected number of live births in the area"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": ["area"],
+      "source": "dhs",
+      "aggregation": "sum"
+    },
+    {
+      "id": "mnch.anc1",
+      "name": {
+        "fr": "Femmes enceintes vues au moins une fois en consultation prénatale",
+        "en": "Pregnant women seen at least once in antenatal care"
+      },
+      "definition": {
+        "fr": "Part des femmes enceintes ayant eu au moins une consultation prénatale avec un personnel qualifié.",
+        "en": "Share of pregnant women who had at least one antenatal visit with a skilled provider."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Nombre de premières consultations prénatales",
+        "en": "Number of first antenatal visits"
+      },
+      "denominator": {
+        "fr": "Nombre attendu de grossesses dans la zone",
+        "en": "Expected number of pregnancies in the area"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": ["age"],
+      "source": "who_100",
+      "aggregation": "sum"
+    },
+    {
+      "id": "mnch.ors_zinc",
+      "name": {
+        "fr": "Enfants ayant eu la diarrhée traités par SRO et zinc",
+        "en": "Children with diarrhoea treated with ORS and zinc"
+      },
+      "definition": {
+        "fr": "Part des enfants de moins de cinq ans ayant eu la diarrhée dans les deux semaines précédant l'enquête qui ont reçu une solution de réhydratation orale et du zinc.",
+        "en": "Share of children under five with diarrhoea in the two weeks before the survey who received oral rehydration salts and zinc."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Enfants ayant eu la diarrhée et reçu SRO et zinc",
+        "en": "Children with diarrhoea who received ORS and zinc"
+      },
+      "denominator": {
+        "fr": "Enfants de moins de cinq ans ayant eu la diarrhée dans les deux semaines",
+        "en": "Children under five with diarrhoea in the past two weeks"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "area"],
+      "source": "mics"
+    },
+    {
+      "id": "mnch.ari_care",
+      "name": {
+        "fr": "Enfants avec symptômes d'infection respiratoire conduits en consultation",
+        "en": "Children with symptoms of respiratory infection taken for care"
+      },
+      "definition": {
+        "fr": "Part des enfants de moins de cinq ans ayant présenté des symptômes d'infection respiratoire aiguë dans les deux semaines précédant l'enquête pour qui des conseils ou un traitement ont été recherchés auprès d'un prestataire de santé.",
+        "en": "Share of children under five with symptoms of acute respiratory infection in the two weeks before the survey for whom advice or treatment was sought from a health provider."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Enfants avec symptômes conduits chez un prestataire",
+        "en": "Children with symptoms taken to a provider"
+      },
+      "denominator": {
+        "fr": "Enfants de moins de cinq ans avec symptômes dans les deux semaines",
+        "en": "Children under five with symptoms in the past two weeks"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "area"],
+      "source": "mics"
+    },
+    {
+      "id": "mnch.dropout_penta",
+      "name": {
+        "fr": "Taux d'abandon entre Penta 1 et Penta 3",
+        "en": "Dropout rate between Penta 1 and Penta 3"
+      },
+      "definition": {
+        "fr": "Part des enfants ayant reçu la première dose de vaccin pentavalent qui n'ont pas reçu la troisième.",
+        "en": "Share of children who received the first dose of pentavalent vaccine and did not receive the third."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Doses de Penta 1 administrées moins doses de Penta 3 administrées",
+        "en": "Penta 1 doses given minus Penta 3 doses given"
+      },
+      "denominator": {
+        "fr": "Doses de Penta 1 administrées",
+        "en": "Penta 1 doses given"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": [],
+      "source": "who_unicef_immunization",
+      "direction": "decrease",
+      "aggregation": "sum",
+      "benchmark": {
+        "fr": "Un abandon supérieur à 10 % signale un problème de suivi des enfants.",
+        "en": "A dropout above 10% signals a problem in following up children."
+      }
+    },
+    {
+      "id": "mnch.mcv2",
+      "name": {
+        "fr": "Couverture en deuxième dose de vaccin contre la rougeole",
+        "en": "Second dose of measles-containing vaccine coverage"
+      },
+      "definition": {
+        "fr": "Part des enfants de la tranche d'âge recommandée ayant reçu la deuxième dose d'un vaccin contenant la valence rougeole.",
+        "en": "Share of children in the recommended age group who received the second dose of a measles-containing vaccine."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Doses de RR2 ou VAR2 administrées",
+        "en": "MCV2 doses given"
+      },
+      "denominator": {
+        "fr": "Population cible de la période",
+        "en": "Target population of the period"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": ["sex"],
+      "source": "who_unicef_immunization",
+      "aggregation": "sum"
+    },
+    {
+      "id": "mnch.zero_dose_reached",
+      "name": {
+        "fr": "Enfants zéro dose rattrapés",
+        "en": "Zero-dose children reached"
+      },
+      "definition": {
+        "fr": "Nombre d'enfants n'ayant reçu aucune dose de vaccin pentavalent qui ont été identifiés et ont reçu une première dose pendant la période.",
+        "en": "Number of children who had received no dose of pentavalent vaccine who were identified and received a first dose during the period."
+      },
+      "type": "count",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": ["sex", "age"],
+      "source": "who_unicef_immunization"
+    },
+    {
+      "id": "mnch.pnc_newborn",
+      "name": {
+        "fr": "Nouveau-nés ayant reçu des soins postnatals dans les deux jours",
+        "en": "Newborns who received postnatal care within two days"
+      },
+      "definition": {
+        "fr": "Part des nouveau-nés ayant reçu un contrôle de santé dans les deux jours suivant la naissance.",
+        "en": "Share of newborns who received a health check within two days after birth."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Nouveau-nés contrôlés dans les deux jours",
+        "en": "Newborns checked within two days"
+      },
+      "denominator": {
+        "fr": "Naissances vivantes des deux dernières années",
+        "en": "Live births in the past two years"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "area"],
+      "source": "mics"
+    }
+  ]
+}

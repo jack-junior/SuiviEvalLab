@@ -8,6 +8,8 @@ import { useEffect, useState } from "react";
 import {
   call,
   FrameworkModel,
+  archiveProject,
+  duplicateProject,
   forgetProject,
   pick,
   Recent,
@@ -21,6 +23,8 @@ import { useProject } from "../state";
 import { Confirm, Field, Icon, IconButton, Notice, Panel } from "../ui";
 import { customValid, ModelPicker, useModels } from "./ModelPicker";
 import { SampleSizePanel } from "./SampleSize";
+import { JoinPanel } from "./Team";
+import { Deadlines, ProjectCard } from "./Workspace";
 
 const REOPEN_KEY = "sme.reopenLast";
 let reopenTried = false; // once per app session
@@ -34,8 +38,10 @@ function readReopen(): boolean {
 }
 
 export function Home({ enginesReady }: { enginesReady: boolean }) {
-  const { t, tn, lang, date } = useI18n();
-  const { run, busy, error, go } = useProject();
+  const { t, tn, lang } = useI18n();
+  const { run, busy, error, go, describe } = useProject();
+  const [archivedShown, setArchivedShown] = useState(false);
+  const [dupError, setDupError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [list, setList] = useState<Recent[] | null>(null);
   const [creating, setCreating] = useState(false);
@@ -43,12 +49,13 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
   const [reopen, setReopen] = useState(readReopen);
   const [history, setHistory] = useState<Recent | null>(null);
   const [sampling, setSampling] = useState(false);
+  const [joining, setJoining] = useState(false);
   const models = useModels();
   const [model, setModel] = useState<FrameworkModel | null>(null);
   const chosen = model ?? models?.[0] ?? null;
 
   const opened = (s: Snapshot | null) => {
-    if (s) go(s.indicators.length ? "overview" : "framework");
+    if (s) go(!s.profile.start ? "setup" : s.indicators.length ? "today" : "framework");
   };
 
   const openRecent = async (r: Recent) => {
@@ -107,10 +114,24 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
     );
   };
 
+  const archivedCount = (list ?? []).filter((r) => r.archived).length;
   const shown = (list ?? []).filter((r) => {
     const q = query.trim().toLowerCase();
+    if (!!r.archived !== archivedShown) return false;
     return !q || r.name.toLowerCase().includes(q) || r.path.toLowerCase().includes(q);
   });
+
+  // A project as the model of a new one: its design, none of its data.
+  const duplicate = async (r: Recent) => {
+    setDupError(null);
+    const file = await pick("project-save", `${t("home.modelOf")} ${r.name}.sme`);
+    if (!file) return;
+    try {
+      setList(await duplicateProject(r.path, file.token, file.name.replace(/\.sme$/i, "")));
+    } catch (e) {
+      setDupError(describe(e));
+    }
+  };
 
   return (
     <div className="inner wide">
@@ -157,7 +178,14 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
           <Icon name="calc" /> {t("sample.open")}
         </button>{" "}
         {t("sample.openHint")}
+        <br />
+        <button className="link" onClick={() => setJoining(true)} disabled={!enginesReady} data-testid="open-join">
+          <Icon name="people" /> {t("team.joinLink")}
+        </button>{" "}
+        {t("team.joinHint")}
       </p>
+
+      {list && <Deadlines list={list} onOpen={openRecent} />}
 
       <section className="stack" data-testid="my-projects">
         <div className="section-head">
@@ -173,55 +201,72 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
           )}
         </div>
         {list && list.length === 0 && <p className="muted">{t("home.noProjects")}</p>}
+        {dupError && <Notice kind="error">{dupError}</Notice>}
+        {(archivedCount > 0 || archivedShown) && (
+          <div>
+            <button className="link small" onClick={() => setArchivedShown(!archivedShown)} data-testid="show-archived">
+              {archivedShown ? t("home.showActive") : t("home.showArchived", { n: archivedCount })}
+            </button>
+          </div>
+        )}
         {shown.length > 0 && (
-          <div className="projects">
+          <div className="ws-grid">
             {shown.map((r) => (
-              <div key={r.path} className={`project-row${r.exists ? "" : " missing"}`}>
-                <button
-                  className="project-open"
-                  onClick={() => openRecent(r)}
-                  disabled={!r.exists || !!busy}
-                  data-testid="project-row"
-                  title={r.path}
-                >
-                  <span className="project-title">{r.name}</span>
-                  <span className="project-path">{r.exists ? r.path : t("home.missingFile")}</span>
-                  <span className="project-meta">
-                    {r.modified ? t("home.modified", { date: date(r.modified) }) : ""}
-                    {r.summary && r.summary.indicators > 0 && (
-                      <span className="project-status">
-                        {tn("home.indicators", r.summary.indicators)}
-                        {r.summary.achieved > 0 && (
-                          <span className="st-ok">{tn("home.achieved", r.summary.achieved)}</span>
-                        )}
-                        {r.summary.on_track > 0 && (
-                          <span className="st-mid">{tn("home.onTrack", r.summary.on_track)}</span>
-                        )}
-                        {r.summary.late > 0 && <span className="st-late">{tn("home.late", r.summary.late)}</span>}
-                      </span>
+              <ProjectCard
+                key={r.path}
+                r={r}
+                busy={!!busy}
+                onOpen={() => openRecent(r)}
+                status={
+                  r.summary &&
+                  r.summary.indicators > 0 && (
+                    <span className="project-status">
+                      {r.summary.achieved > 0 && (
+                        <span className="st-ok">{tn("home.achieved", r.summary.achieved)}</span>
+                      )}
+                      {r.summary.on_track > 0 && (
+                        <span className="st-mid">{tn("home.onTrack", r.summary.on_track)}</span>
+                      )}
+                      {r.summary.late > 0 && <span className="st-late">{tn("home.late", r.summary.late)}</span>}
+                    </span>
+                  )
+                }
+                tools={
+                  <>
+                    {r.exists && (
+                      <IconButton
+                        icon="history"
+                        label={t("backups.open")}
+                        onClick={() => setHistory(r)}
+                        testId="project-backups"
+                      />
                     )}
-                  </span>
-                </button>
-                <div className="row-tools">
-                  {r.exists && (
+                    {r.exists && (
+                      <IconButton icon="folder" label={t("home.reveal")} onClick={() => void revealProject(r.path)} />
+                    )}
+                    {r.exists && (
+                      <IconButton
+                        icon="plus"
+                        label={t("home.duplicate")}
+                        onClick={() => void duplicate(r)}
+                        testId="project-duplicate"
+                      />
+                    )}
                     <IconButton
-                      icon="history"
-                      label={t("backups.open")}
-                      onClick={() => setHistory(r)}
-                      testId="project-backups"
+                      icon="lock"
+                      label={r.archived ? t("home.unarchive") : t("home.archive")}
+                      onClick={() => archiveProject(r.path, !r.archived).then(setList)}
+                      testId="project-archive"
                     />
-                  )}
-                  {r.exists && (
-                    <IconButton icon="folder" label={t("home.reveal")} onClick={() => void revealProject(r.path)} />
-                  )}
-                  <IconButton
-                    icon="close"
-                    label={t("home.forget")}
-                    onClick={() => forgetProject(r.path).then(setList)}
-                    testId="project-forget"
-                  />
-                </div>
-              </div>
+                    <IconButton
+                      icon="close"
+                      label={t("home.forget")}
+                      onClick={() => forgetProject(r.path).then(setList)}
+                      testId="project-forget"
+                    />
+                  </>
+                }
+              />
             ))}
           </div>
         )}
@@ -233,6 +278,15 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
         )}
       </section>
       {sampling && <SampleSizePanel onClose={() => setSampling(false)} />}
+      {joining && (
+        <JoinPanel
+          onClose={() => setJoining(false)}
+          onJoined={() => {
+            setJoining(false);
+            go("today");
+          }}
+        />
+      )}
       {creating && (
         <Panel
           title={t("home.newTitle")}

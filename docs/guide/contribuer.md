@@ -87,6 +87,8 @@ cd engine/python && python -m ruff check . && python -m ruff format --check . &&
 cd apps/desktop && npm run lint && npm run typecheck && npm run build
 ```
 
+`npm run lint` vérifie aussi les traductions, les en-têtes de licence et le **contraste des couleurs** de l'interface (niveau AA des WCAG 2.1, en thème clair et sombre).
+
 5. **Une pull request** vers `main`, avec une capture d'écran pour tout changement visible.
 6. **L'intégration continue** doit être verte (voir ci-dessous).
 7. **Fusion** par « Squash and merge » : la branche devient un seul commit sur `main`. Personne ne pousse directement sur `main`.
@@ -108,6 +110,33 @@ Les décisions techniques importantes font l'objet d'une courte fiche dans `docs
 
 Les captures d'écran du parcours complet sont conservées 30 jours avec chaque exécution.
 
+## Les tests de recette et de performance
+
+Les **tests de recette** (`engine/python/tests/test_acceptance.py`) jouent les parcours de la section 11 du cahier des charges : un projet de trois ans avec quatre partenaires, trente sites et quarante indicateurs saisis et validés sur douze trimestres (dont deux par canevas Excel), chaque chiffre du tableau de suivi étant recalculé indépendamment ; une équipe de trois membres et deux partenaires synchronisée par paquets, dossier partagé et serveur relais, avec conflits ; un portefeuille de cinq projets.
+
+Les **seuils de performance** de la section 9 se mesurent avec :
+
+```bash
+python tools/bench/bench.py [dossier de travail]
+```
+
+Le script construit un projet de 300 indicateurs, 40 périodes et 500 sites (2,4 millions de valeurs), vingt projets ordinaires et un fichier de 500 000 lignes, puis chronomètre l'ouverture, le tableau de suivi, le tableau de bord et l'import. Il échoue si un seuil est dépassé. Mesures de référence (machine Linux ordinaire) : ouverture 0,3 s, tableau de suivi 0,3 s, filtré 0,2 s, tableau de bord de 20 projets 0,6 s, import de 500 000 lignes 0,8 s. Le premier affichage après l'arrivée de quarante périodes d'un coup calcule chaque période une fois (environ 8 s), puis le résultat est gardé.
+
+## Signer l'installeur
+
+L'installeur est signé par le workflow de publication quand le certificat de signature de code de l'organisation se trouve dans les secrets du dépôt (Settings, Secrets and variables, Actions) :
+
+| Secret | Contenu |
+|---|---|
+| `WIN_CSC_LINK` | Le certificat et sa clé privée au format `.pfx`, encodé en base64 (`base64 -w0 certificat.pfx`) |
+| `WIN_CSC_KEY_PASSWORD` | Le mot de passe du fichier `.pfx` |
+
+Le workflow vérifie la signature de l'installeur produit et échoue si elle n'est pas valide. Sans ces secrets, l'installeur est construit sans signature et un avertissement l'indique.
+
+Les certificats délivrés depuis 2023 sont souvent conservés sur un module matériel ou un service en ligne (Azure Trusted Signing, SSL.com eSigner, DigiCert KeyLocker) plutôt que dans un fichier `.pfx`. Dans ce cas, la signature se fait par l'outil du fournisseur, appelé depuis le workflow à la place des deux secrets ci-dessus ; electron-builder accepte une commande de signature personnalisée (`win.signtoolOptions.sign`).
+
+Une fois le certificat en place, renseigner `publisherName` dans la configuration `build.win` de `apps/desktop/package.json` avec le nom exact du certificat : les mises à jour automatiques vérifieront alors que chaque nouvelle version est signée par le même éditeur.
+
 ## Publier une version
 
 1. Mettre le nouveau numéro de version dans `apps/desktop/package.json` et `engine/python/sme_engine/__init__.py`, compléter `.github/release-notes.md`, fusionner dans `main`.
@@ -116,8 +145,8 @@ Les captures d'écran du parcours complet sont conservées 30 jours avec chaque 
 ```bash
 git checkout main
 git pull
-git tag v0.4.0
-git push origin v0.4.0
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
 3. Le workflow de publication construit l'installeur, refait les tests, et publie la version sur GitHub avec l'installeur, son empreinte SHA-256 et les fichiers lus par les mises à jour automatiques. Les versions inférieures à 1.0 sont publiées comme préversions.

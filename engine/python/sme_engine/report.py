@@ -52,7 +52,13 @@ T = {
         "col_status": "Statut",
         "status": {"achieved": "Atteint", "on_track": "En bonne voie", "late": "En retard", "unknown": "Non évalué"},
         "results": "Résultats par résultat attendu",
-        "levels": {"impact": "Impact", "outcome": "Effet", "output": "Extrant", "activity": "Activité"},
+        "levels": {
+            "impact": "Impact",
+            "outcome": "Effet",
+            "output": "Produit",
+            "activity": "Activité",
+            "detail": "Détail",
+        },
         "definition": "Définition : ",
         "source": "Source : ",
         "no_data": "Aucune donnée disponible pour cet indicateur.",
@@ -83,7 +89,7 @@ T = {
         "col_group": "Groupe",
         "chart_target": "Cible",
         "chart_ylab_percent": "% des observations",
-        "framework": "Cadre de résultats",
+        "framework": "Chaîne des résultats",
         "tests_title": "Analyses complémentaires",
         "test_untitled": "Test statistique",
         "test_failed": "Ce test n'a pas pu être recalculé : {detail}",
@@ -167,7 +173,13 @@ T = {
         "col_status": "Status",
         "status": {"achieved": "Achieved", "on_track": "On track", "late": "Late", "unknown": "Not assessed"},
         "results": "Results by expected result",
-        "levels": {"impact": "Impact", "outcome": "Outcome", "output": "Output", "activity": "Activity"},
+        "levels": {
+            "impact": "Impact",
+            "outcome": "Outcome",
+            "output": "Output",
+            "activity": "Activity",
+            "detail": "Detail",
+        },
         "definition": "Definition: ",
         "source": "Source: ",
         "no_data": "No data available for this indicator.",
@@ -193,7 +205,7 @@ T = {
         "col_group": "Group",
         "chart_target": "Target",
         "chart_ylab_percent": "% of observations",
-        "framework": "Results framework",
+        "framework": "Results chain",
         "tests_title": "Additional analyses",
         "test_untitled": "Statistical test",
         "test_failed": "This test could not be recalculated: {detail}",
@@ -365,7 +377,7 @@ def _move_after(anchor: Any, elements: list[Any]) -> None:
     ref_parent.remove(anchor._p)
 
 
-def _table(doc: Any, header: list[str], rows: list[list[str]], widths: list[float] | None = None) -> None:
+def _table(doc: Any, header: list[str], rows: list[list[str]], widths: list[float] | None = None) -> Any:
     table = doc.add_table(rows=1, cols=len(header))
     try:
         table.style = "Table Grid"
@@ -396,6 +408,7 @@ def _table(doc: Any, header: list[str], rows: list[list[str]], widths: list[floa
             for i, w in enumerate(widths):
                 row.cells[i].width = Cm(w)
     doc.add_paragraph()
+    return table
 
 
 def _setup(doc: Any) -> None:
@@ -561,7 +574,7 @@ def _routine_section(doc: Any, svc: Any, ind: dict[str, Any], an: dict[str, Any]
         },
     )
     doc.add_picture(str(png), width=Cm(15))
-    cats = ind.get("categories") or []
+    cats: list[str] = []  # breakdowns are shown by the tracking report (J5)
     header = [
         rt["col_period"],
         rt["col_achieved"],

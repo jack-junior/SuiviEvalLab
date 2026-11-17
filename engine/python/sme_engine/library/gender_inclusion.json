@@ -1,0 +1,192 @@
+{
+  "_licence": "SPDX-License-Identifier: GPL-3.0-or-later. Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou. Definitions written for SuiviEvalLab after the cited public references.",
+  "sector": "gender_inclusion",
+  "name": {
+    "fr": "Genre, handicap, inclusion",
+    "en": "Gender, disability, inclusion"
+  },
+  "indicators": [
+    {
+      "id": "gender.ipv",
+      "name": {
+        "fr": "Femmes ayant subi des violences d'un partenaire au cours des 12 derniers mois",
+        "en": "Women subjected to partner violence in the past 12 months"
+      },
+      "definition": {
+        "fr": "Part des femmes de 15 ans et plus ayant déjà eu un partenaire qui ont subi des violences physiques, sexuelles ou psychologiques de la part d'un partenaire actuel ou ancien au cours des 12 derniers mois.",
+        "en": "Share of ever-partnered women aged 15 and over subjected to physical, sexual or psychological violence by a current or former partner in the past 12 months."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Femmes ayant subi ces violences dans les 12 mois",
+        "en": "Women subjected to such violence in the 12 months"
+      },
+      "denominator": {
+        "fr": "Femmes ayant déjà eu un partenaire",
+        "en": "Ever-partnered women"
+      },
+      "level": "impact",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["age", "area"],
+      "source": "sdg",
+      "ref": "ODD 5.2.1",
+      "direction": "decrease"
+    },
+    {
+      "id": "gender.decisions",
+      "name": {
+        "fr": "Femmes participant aux décisions du ménage",
+        "en": "Women taking part in household decisions"
+      },
+      "definition": {
+        "fr": "Part des femmes en union qui participent, seules ou avec leur conjoint, aux trois décisions suivantes : leurs propres soins de santé, les achats importants du ménage, les visites à leur famille.",
+        "en": "Share of women in a union who take part, alone or with their partner, in the three following decisions: their own health care, major household purchases, visits to their family."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Femmes participant aux trois décisions",
+        "en": "Women taking part in the three decisions"
+      },
+      "denominator": {
+        "fr": "Femmes en union enquêtées",
+        "en": "Women in a union surveyed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["age", "area"],
+      "source": "dhs"
+    },
+    {
+      "id": "gender.attitudes",
+      "name": {
+        "fr": "Personnes justifiant qu'un mari frappe sa femme",
+        "en": "People who justify wife beating"
+      },
+      "definition": {
+        "fr": "Part des personnes enquêtées qui estiment qu'un mari a le droit de frapper sa femme pour au moins une des raisons proposées.",
+        "en": "Share of people surveyed who consider that a husband is justified in beating his wife for at least one of the reasons given."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes justifiant pour au moins une raison",
+        "en": "People justifying it for at least one reason"
+      },
+      "denominator": {
+        "fr": "Personnes enquêtées",
+        "en": "People surveyed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "age"],
+      "source": "dhs",
+      "direction": "decrease"
+    },
+    {
+      "id": "gender.women_leadership",
+      "name": {
+        "fr": "Femmes dans les instances de décision appuyées",
+        "en": "Women in the decision-making bodies supported"
+      },
+      "definition": {
+        "fr": "Part des sièges des comités, conseils ou bureaux appuyés par le projet occupés par des femmes.",
+        "en": "Share of the seats of the committees, councils or boards supported by the project held by women."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Sièges occupés par des femmes",
+        "en": "Seats held by women"
+      },
+      "denominator": {
+        "fr": "Sièges des instances appuyées",
+        "en": "Seats of the bodies supported"
+      },
+      "level": "outcome",
+      "collection": "routine",
+      "frequency": "semiannual",
+      "breakdowns": [],
+      "source": "sdg",
+      "ref": "ODD 5.5",
+      "aggregation": "last"
+    },
+    {
+      "id": "gender.women_participants",
+      "name": {
+        "fr": "Femmes parmi les participants aux activités",
+        "en": "Women among participants in activities"
+      },
+      "definition": {
+        "fr": "Part des femmes parmi les personnes ayant participé aux formations, réunions et autres activités du projet.",
+        "en": "Share of women among the people who took part in the trainings, meetings and other activities of the project."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Participantes",
+        "en": "Women participants"
+      },
+      "denominator": {
+        "fr": "Participants",
+        "en": "Participants"
+      },
+      "level": "output",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": [],
+      "source": "chs",
+      "aggregation": "sum"
+    },
+    {
+      "id": "inclusion.wg_difficulty",
+      "name": {
+        "fr": "Personnes ayant des difficultés fonctionnelles",
+        "en": "People with functional difficulties"
+      },
+      "definition": {
+        "fr": "Part des personnes de 5 ans et plus qui ont beaucoup de difficultés ou ne peuvent pas du tout dans au moins un des six domaines des questions courtes du Groupe de Washington.",
+        "en": "Share of people aged 5 and over who have a lot of difficulty or cannot do at all in at least one of the six domains of the Washington Group short set."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes avec beaucoup de difficultés dans au moins un domaine",
+        "en": "People with a lot of difficulty in at least one domain"
+      },
+      "denominator": {
+        "fr": "Personnes enquêtées de 5 ans et plus",
+        "en": "People surveyed aged 5 and over"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "age"],
+      "source": "wg"
+    },
+    {
+      "id": "inclusion.accessible_facilities",
+      "name": {
+        "fr": "Infrastructures appuyées accessibles aux personnes handicapées",
+        "en": "Supported facilities accessible to people with disabilities"
+      },
+      "definition": {
+        "fr": "Part des infrastructures construites ou réhabilitées par le projet (écoles, points d'eau, latrines, centres de santé) qui respectent les critères d'accessibilité retenus.",
+        "en": "Share of the facilities built or rehabilitated by the project (schools, water points, latrines, health centres) that meet the accessibility criteria adopted."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Infrastructures accessibles",
+        "en": "Accessible facilities"
+      },
+      "denominator": {
+        "fr": "Infrastructures construites ou réhabilitées",
+        "en": "Facilities built or rehabilitated"
+      },
+      "level": "output",
+      "collection": "routine",
+      "frequency": "quarterly",
+      "breakdowns": [],
+      "source": "sphere",
+      "aggregation": "last"
+    }
+  ]
+}

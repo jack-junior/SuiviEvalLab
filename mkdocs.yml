@@ -65,13 +65,35 @@ nav:
   - Architecture et choix techniques: architecture.md
   - Manuel de l'application:
       - Prise en main et accueil: manuel/accueil.md
+      - Fiche du projet: manuel/projet.md
+      - Aujourd'hui, agenda et tâches: manuel/quotidien.md
       - Vue d'ensemble et cadre de résultats: manuel/cadre.md
       - Indicateurs: manuel/indicateurs.md
+      - Réception et suivi des indicateurs: manuel/suivi.md
+      - Activités et budget: manuel/activites.md
+      - Redevabilité, apprentissage et évaluations: manuel/redevabilite.md
       - Données: manuel/donnees.md
       - Analyse et tests: manuel/analyse.md
       - Analyses libres: manuel/analyses-libres.md
+      - Rapports périodiques et exports: manuel/rapports-periodiques.md
       - Rapport et livrables: manuel/rapport.md
+      - Tableau de bord et portefeuille: manuel/portefeuille.md
       - Outils: manuel/outils.md
+  - Guides:
+      - Guide de l'administrateur: administration.md
+      - Guide du partenaire: partenaire.md
+      - Installer le serveur relais: serveur.md
+      - Protection des données: protection-donnees.md
   - Contribuer: contribuer.md
   - Tester: tester.md
+  - Test pilote: recette.md
   - Annexes: annexes.md
+  - English:
+      - Overview: en/index.md
+      - User guide: en/user-guide.md
+      - Administrator guide: en/administration.md
+      - Partner guide: en/partner.md
+      - Installing the relay server: en/server.md
+      - Data protection: en/data-protection.md
+      - Contributing and testing: en/contributing.md
+      - Pilot test: en/pilot.md

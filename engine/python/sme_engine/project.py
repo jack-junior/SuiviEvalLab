@@ -22,15 +22,15 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from . import frameworks
+from . import backups, frameworks, monitoring, registers, security
 from .rpc import INVALID_PARAMS, RpcError
 
 APPLICATION_ID = 0x534D4531  # "SME1": marks a file as a SuiviEvalLab project
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 6
 EXTENSION = ".sme"
 
-# Framework levels, from the top. The interface translates them; projects store keys.
-LEVELS = ("impact", "outcome", "output", "activity")
+# Framework levels, from the top. They mark the depth; the model of the project names them.
+LEVELS = frameworks.KEYS
 
 _SCHEMA = """
 CREATE TABLE meta (
@@ -40,7 +40,7 @@ CREATE TABLE meta (
 CREATE TABLE framework_node (
     id          TEXT PRIMARY KEY,
     parent_id   TEXT REFERENCES framework_node(id) ON DELETE CASCADE,
-    level       TEXT NOT NULL CHECK (level IN ('impact', 'outcome', 'output', 'activity')),
+    level       TEXT NOT NULL CHECK (level IN ('impact', 'outcome', 'output', 'activity', 'detail')),
     title       TEXT NOT NULL,
     description TEXT NOT NULL DEFAULT '',
     assumptions TEXT NOT NULL DEFAULT '',  -- logframe column: assumptions and risks
@@ -81,6 +81,37 @@ CREATE TABLE analysis (
     spec        TEXT NOT NULL            -- JSON, see analyses.py
 );
 
+CREATE TABLE period (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL            -- JSON, see schedule.py
+);
+
+CREATE TABLE place (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL            -- JSON, see places.py: name, code, level, parent
+);
+
+CREATE TABLE partner (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL            -- JSON, see places.py: name, acronym, role, places
+);
+
+CREATE TABLE disaggregation (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL            -- JSON, see places.py: name, categories
+);
+
+CREATE TABLE target (
+    id           TEXT PRIMARY KEY,
+    indicator_id TEXT NOT NULL REFERENCES indicator(id) ON DELETE CASCADE,
+    position     INTEGER NOT NULL,
+    spec         TEXT NOT NULL           -- JSON, see targets.py: period, value, history
+);
+
 CREATE TABLE cleaning_rule (
     id          TEXT PRIMARY KEY,
     dataset_id  TEXT NOT NULL REFERENCES dataset(id) ON DELETE CASCADE,
@@ -88,6 +119,64 @@ CREATE TABLE cleaning_rule (
     spec        TEXT NOT NULL            -- JSON, see cleaning.py
 );
 """
+
+# Version 6: monitoring. JSON records, plus the value table of monitoring.py.
+_ATTACHMENT_SCHEMA = """
+CREATE TABLE IF NOT EXISTS attachment (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL,           -- JSON, see attachments.py
+    data        BLOB NOT NULL
+);
+"""
+
+_V6_SCHEMA = (
+    """
+-- Redundant with the unique index of value, which starts with submission_id (1.0).
+DROP INDEX IF EXISTS value_submission;
+CREATE TABLE IF NOT EXISTS submission (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL            -- JSON, see reception.py
+);
+CREATE TABLE IF NOT EXISTS gap_comment (
+    id           TEXT PRIMARY KEY,
+    indicator_id TEXT NOT NULL REFERENCES indicator(id) ON DELETE CASCADE,
+    position     INTEGER NOT NULL,
+    spec         TEXT NOT NULL           -- JSON: period, text, at
+);
+CREATE TABLE IF NOT EXISTS justification (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL            -- JSON: key of the alert, text, at
+);
+CREATE TABLE IF NOT EXISTS task (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL            -- JSON, see agenda.py
+);
+CREATE TABLE IF NOT EXISTS connection (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL            -- JSON, see connectors.py; never the secret
+);
+CREATE TABLE IF NOT EXISTS quality_review (
+    id           TEXT PRIMARY KEY,
+    indicator_id TEXT NOT NULL REFERENCES indicator(id) ON DELETE CASCADE,
+    position     INTEGER NOT NULL,
+    spec         TEXT NOT NULL           -- JSON, see quality_review in reception_rpc.py
+);
+CREATE TABLE IF NOT EXISTS event (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL            -- JSON, see agenda.py
+);
+"""
+    + monitoring.SCHEMA
+    + registers.SCHEMA
+    + security.AUDIT_SCHEMA
+    + _ATTACHMENT_SCHEMA
+)
 
 
 def _now() -> str:
@@ -113,9 +202,33 @@ def _text(params: dict[str, Any], name: str, *, required: bool = True, max_len: 
 class Project:
     """An open .sme file."""
 
-    def __init__(self, path: Path, conn: sqlite3.Connection):
-        self.path = path
+    def __init__(
+        self, path: Path, conn: sqlite3.Connection, work: Path | None = None, key: tuple[bytes, bytes] | None = None
+    ):
+        from . import sync
+
+        self.path = path  # the file the user knows; for an encrypted project, the encrypted one
         self.conn = conn
+        self.work = work  # the private decrypted copy of an encrypted project
+        self.key = key  # (key, salt) of an encrypted project
+        self.clock = sync.CLOCKS.pop(id(conn), None) or sync.attach(conn)
+        try:
+            sync.install_triggers(conn)
+        except sqlite3.OperationalError:
+            pass  # a project read without being changed (workspace, portfolio)
+
+    @property
+    def encrypted(self) -> bool:
+        return self.work is not None
+
+    def flush(self) -> None:
+        """Write the decrypted working copy back to the encrypted file."""
+        if self.work is None or self.key is None:
+            return
+        from . import security
+
+        self.conn.commit()
+        security.encrypt_file(self.work, self.path, key_salt=self.key)
 
     # ----- opening and creating -------------------------------------------------
 
@@ -133,22 +246,53 @@ class Project:
             conn.execute(f"PRAGMA application_id = {APPLICATION_ID}")
             conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
             conn.executescript(_SCHEMA)
+            conn.executescript(_V6_SCHEMA)
             now = _now()
             conn.executemany(
                 "INSERT INTO meta(key, value) VALUES (?, ?)",
-                [("name", name), ("created_at", now), ("updated_at", now), ("app_schema", str(SCHEMA_VERSION))],
+                [
+                    ("name", name),
+                    ("created_at", now),
+                    ("updated_at", now),
+                    ("app_schema", str(SCHEMA_VERSION)),
+                    ("uid", uuid.uuid4().hex),
+                ],
             )
             if model:
                 conn.execute("INSERT INTO meta(key, value) VALUES ('framework_model', ?)", (json.dumps(model),))
         return cls(path, conn)
 
     @classmethod
-    def open(cls, path: str | Path) -> Project:
+    def open(cls, path: str | Path, password: str | None = None) -> Project:
+        from . import security
+
         path = Path(path)
         if not path.is_file():
             raise _err(f"File not found: {path}", "project_not_found")
+        work, key = None, None
+        if security.is_encrypted(path):
+            if not password:
+                raise _err("This project is protected by a password", "password_required")
+            plain, k, salt = security.decrypt_file(path, password)
+            work, key = security.work_path(path), (k, salt)
+            # A working copy left by a stop of the computer is newer than the file: keep it.
+            keep = False
+            if work.is_file():
+                try:
+                    with sqlite3.connect(work) as old:
+                        left = old.execute("SELECT value FROM meta WHERE key = 'updated_at'").fetchone()
+                    tmp = work.with_suffix(".check")
+                    tmp.write_bytes(plain)
+                    with sqlite3.connect(tmp) as fresh:
+                        saved = fresh.execute("SELECT value FROM meta WHERE key = 'updated_at'").fetchone()
+                    tmp.unlink()
+                    keep = bool(left and saved and left[0] > saved[0])
+                except sqlite3.DatabaseError:
+                    keep = False
+            if not keep:
+                work.write_bytes(plain)
         try:
-            conn = cls._connect(path)
+            conn = cls._connect(work or path)
             app_id = conn.execute("PRAGMA application_id").fetchone()[0]
             version = conn.execute("PRAGMA user_version").fetchone()[0]
         except sqlite3.DatabaseError:
@@ -159,14 +303,28 @@ class Project:
         if version > SCHEMA_VERSION:
             conn.close()
             raise _err(f"Project made with a newer version (schema {version})", "project_too_new")
+        # A copy of an encrypted project would be written in clear: none is made.
+        # Before a migration the copy is made first, so the old version is kept too;
+        # otherwise it is made beside the work, once the project is open.
+        later = work is None and version >= SCHEMA_VERSION
         try:
-            from . import backups
-
-            backups.snapshot(conn, path)  # before any migration, so the old version is kept too
+            if work is None and not later:
+                backups.snapshot(conn, path)
         except (OSError, sqlite3.Error):
             pass  # a copy that cannot be written must not stop the user from working
         cls._migrate(conn, version)
-        return cls(path, conn)
+        conn.executescript(_V6_SCHEMA)  # tables added during 1.0 work, all "IF NOT EXISTS"
+        # When the project was last opened, for "what changed since"; not a change of the project.
+        with conn:
+            row = conn.execute("SELECT value FROM meta WHERE key = 'opened_at'").fetchone()
+            conn.execute(
+                "INSERT OR REPLACE INTO meta(key, value) VALUES ('previous_open', ?)", (row[0] if row else "",)
+            )
+            conn.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('opened_at', ?)", (_now(),))
+        project = cls(path, conn, work, key)
+        if later:
+            backups.snapshot_later(path)
+        return project
 
     @staticmethod
     def _migrate(conn: sqlite3.Connection, version: int) -> None:
@@ -193,18 +351,98 @@ class Project:
                     "CREATE TABLE IF NOT EXISTS analysis "
                     "(id TEXT PRIMARY KEY, position INTEGER NOT NULL, spec TEXT NOT NULL)"
                 )
+            if version < 5:
+                # 1.0: a fifth framework level, project calendar, places, partners,
+                # disaggregations and targets by period.
+                Project._migrate_v5(conn)
+            if version < 6:
+                # 1.0: submissions and their values, gap comments, justifications,
+                # tasks and events. Routine values of 0.4 and 0.5 move into submissions.
+                conn.executescript(_V6_SCHEMA)
+                # A lasting identity, written into the Excel templates sent to partners.
+                conn.execute("INSERT OR IGNORE INTO meta(key, value) VALUES ('uid', ?)", (uuid.uuid4().hex,))
+                from .reception import migrate_routine
+
+                migrate_routine(conn)
             conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+
+    _V5_TABLES = ("period", "place", "partner", "disaggregation")
+
+    @staticmethod
+    def _migrate_v5(conn: sqlite3.Connection) -> None:
+        sql = conn.execute("SELECT sql FROM sqlite_master WHERE name = 'framework_node'").fetchone()[0]
+        if "'detail'" not in sql:
+            # SQLite cannot change a CHECK constraint: rebuild the table. The foreign keys
+            # are off while the rows move, so the cascade does not empty the indicators.
+            conn.commit()
+            conn.execute("PRAGMA foreign_keys = OFF")
+            try:
+                with conn:
+                    # A new table renamed into place: renaming the old one would make SQLite
+                    # rewrite the references of the indicators to follow it.
+                    conn.execute(
+                        "CREATE TABLE framework_node_v5 (id TEXT PRIMARY KEY, parent_id TEXT REFERENCES "
+                        "framework_node(id) ON DELETE CASCADE, level TEXT NOT NULL CHECK (level IN "
+                        "('impact', 'outcome', 'output', 'activity', 'detail')), title TEXT NOT NULL, "
+                        "description TEXT NOT NULL DEFAULT '', assumptions TEXT NOT NULL DEFAULT '', "
+                        "position INTEGER NOT NULL)"
+                    )
+                    conn.execute(
+                        "INSERT INTO framework_node_v5(id, parent_id, level, title, description, assumptions, "
+                        "position) SELECT id, parent_id, level, title, description, assumptions, position "
+                        "FROM framework_node"
+                    )
+                    conn.execute("DROP TABLE framework_node")
+                    conn.execute("ALTER TABLE framework_node_v5 RENAME TO framework_node")
+                    conn.execute("DROP INDEX IF EXISTS framework_node_parent")
+                    conn.execute("CREATE INDEX framework_node_parent ON framework_node(parent_id, position)")
+            finally:
+                conn.execute("PRAGMA foreign_keys = ON")
+        for table in Project._V5_TABLES:
+            conn.execute(
+                f"CREATE TABLE IF NOT EXISTS {table} "
+                "(id TEXT PRIMARY KEY, position INTEGER NOT NULL, spec TEXT NOT NULL)"
+            )
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS target (id TEXT PRIMARY KEY, indicator_id TEXT NOT NULL "
+            "REFERENCES indicator(id) ON DELETE CASCADE, position INTEGER NOT NULL, spec TEXT NOT NULL)"
+        )
+        # The World Bank model of 0.4 and 0.5 had two levels; 1.0 adds components and
+        # activities. Projects made with it keep their own two levels as a custom model.
+        row = conn.execute("SELECT value FROM meta WHERE key = 'framework_model'").fetchone()
+        if row:
+            try:
+                old = json.loads(row[0])
+            except ValueError:
+                old = {}
+            if isinstance(old, dict) and old.get("id") == "worldbank":
+                custom = {"id": "custom", "levels": [dict(x) for x in frameworks.WORLDBANK_V04]}
+                conn.execute("UPDATE meta SET value = ? WHERE key = 'framework_model'", (json.dumps(custom),))
 
     @staticmethod
     def _connect(path: Path) -> sqlite3.Connection:
-        conn = sqlite3.connect(path, isolation_level="DEFERRED")
+        # A change waits up to 30 s for a reader to finish (the copy made at opening).
+        conn = sqlite3.connect(path, isolation_level="DEFERRED", timeout=30)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
         conn.execute("PRAGMA journal_mode = DELETE")  # a single file the user can copy or email
+        from . import sync
+
+        sync.CLOCKS[id(conn)] = sync.attach(conn)  # the triggers of shared tables call it
         return conn
 
     def close(self) -> None:
+        from . import sync
+
+        try:
+            if self.conn.execute("SELECT 1 FROM member LIMIT 1").fetchone():
+                sync.compact(self.conn)  # the change log of a team project stays small
+        except sqlite3.Error:
+            pass
+        self.flush()
         self.conn.close()
+        if self.work is not None:
+            self.work.unlink(missing_ok=True)
 
     # ----- metadata -------------------------------------------------------------
 
@@ -219,6 +457,9 @@ class Project:
         }
         return {
             "path": str(self.path),
+            "uid": meta.get("uid", ""),
+            "encrypted": self.encrypted,
+            "integrity": backups.integrity(self.path),
             "name": meta.get("name", self.path.stem),
             "created_at": meta.get("created_at"),
             "updated_at": meta.get("updated_at"),
@@ -291,6 +532,16 @@ class Project:
         if row is None:
             raise _err(f"Unknown framework node: {node_id}", "node_not_found")
         return row
+
+    def replace_raw(self, dataset_id: str, blob: bytes) -> None:
+        """New data for a dataset synchronised with a server (Kobo, ODK). Imported
+        files are never changed; a synchronised dataset is the server's latest
+        state, and each synchronisation is listed in its spec."""
+        with self.conn:
+            cur = self.conn.execute("UPDATE dataset SET raw = ? WHERE id = ?", (blob, dataset_id))
+            if cur.rowcount != 1:
+                raise _err("Unknown dataset", "dataset_not_found")
+        self._touch()
 
     def add_node(
         self, parent_id: str | None, title: str, description: str = "", assumptions: str = ""
@@ -374,6 +625,21 @@ class Project:
         "saved_test": None,
         "routine_value": "indicator_id",
         "analysis": None,
+        "period": None,
+        "place": None,
+        "partner": None,
+        "disaggregation": None,
+        "target": "indicator_id",
+        "submission": None,
+        "gap_comment": "indicator_id",
+        "justification": None,
+        "task": None,
+        "event": None,
+        "quality_review": "indicator_id",
+        "connection": None,
+        "member": None,
+        "attachment": None,
+        **{t: None for t in registers.TABLES},
     }
 
     def records(self, table: str, scope: str | None = None) -> list[dict[str, Any]]:

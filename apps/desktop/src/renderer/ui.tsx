@@ -4,12 +4,16 @@
 // Shared interface pieces: icons, buttons, fields, side panel, confirm dialog,
 // empty states, status labels, progress bar and the results chart.
 
-import { ReactNode, useEffect, useId, useRef } from "react";
+import { KeyboardEvent as ReactKeyboardEvent, ReactNode, useEffect, useId, useRef } from "react";
 import type { Estimate, Status } from "./api";
 import { useI18n } from "./i18n";
 
 const PATHS: Record<string, ReactNode> = {
+  list: <path d="M7 4.5h8M7 9h8M7 13.5h8M3.2 4.5h.6M3.2 9h.6M3.2 13.5h.6" />,
+  chat: <path d="M3 4.2h12v7.6H8.6L5.4 14.6v-2.8H3zM6 7.2h6M6 9.4h4" />,
+  clipboard: <path d="M6.2 3.5H4.5v11.5h9V3.5h-1.7M6.5 2.6h5v2h-5zM6.5 8.2l1.5 1.5 3-3M6.5 12h5" />,
   plus: <path d="M9 3.5v11M3.5 9h11" />,
+  search: <path d="M8 13A5 5 0 1 0 8 3a5 5 0 0 0 0 10zM11.6 11.6L15 15" />,
   edit: <path d="M11.8 3.6l2.6 2.6-7.6 7.6-3.3.7.7-3.3zM10.4 5l2.6 2.6" />,
   trash: <path d="M3.5 5h11M7.2 5V3.6h3.6V5M5 5l.7 9.4h6.6L13 5M7.6 7.6v4.6M10.4 7.6v4.6" />,
   up: <path d="M9 14V4M4.8 8.2L9 4l4.2 4.2" />,
@@ -30,6 +34,15 @@ const PATHS: Record<string, ReactNode> = {
   history: <path d="M3.4 9a5.6 5.6 0 1 0 1.7-4M3.2 2.8v2.6h2.6M9 6v3.2l2.2 1.4" />,
   calc: <path d="M4.5 2.5h9v13h-9zM6.5 5h5v2.5h-5zM6.5 10h.1M9 10h.1M11.5 10h.1M6.5 12.8h.1M9 12.8h.1M11.5 12.8h.1" />,
   scale: <path d="M9 3v12M5 15h8M3.5 6.5h11M3.5 6.5L2 10.5h3zM14.5 6.5L13 10.5h3" />,
+  plan: <path d="M3 3.5h12v11H3zM3 7h12M7.5 3.5v11M11.2 7v7.5" />,
+  calendar: <path d="M3 4.5h12v10H3zM3 7.5h12M6 2.8v3M12 2.8v3M6 10.2h.1M9 10.2h.1M12 10.2h.1M6 12.6h.1M9 12.6h.1" />,
+  pin: (
+    <path d="M9 15.5s4.5-4.4 4.5-8a4.5 4.5 0 0 0-9 0c0 3.6 4.5 8 4.5 8zM9 9a1.6 1.6 0 1 0 0-3.2A1.6 1.6 0 0 0 9 9z" />
+  ),
+  lock: <path d="M4.5 8h9v6.5h-9zM6.3 8V5.8a2.7 2.7 0 0 1 5.4 0V8" />,
+  people: (
+    <path d="M6.5 8.5a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6zM2.5 14.5c0-2.3 1.8-3.8 4-3.8s4 1.5 4 3.8M12 8.3a2 2 0 1 0 0-4M13 10.9c1.5.4 2.5 1.6 2.5 3.6" />
+  ),
 };
 
 export function Icon({ name, size = 18 }: { name: keyof typeof PATHS | string; size?: number }) {
@@ -106,12 +119,15 @@ export function Panel({
   children,
   footer,
   testId,
+  wide,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
   testId?: string;
+  /** A wider panel, for grids of values. */
+  wide?: boolean;
 }) {
   const { t } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
@@ -127,13 +143,47 @@ export function Panel({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-  // Focus the first field once, when the panel opens.
+  // Focus the first field once, when the panel opens (the panel itself if it has
+  // none); give the focus back to where it was when the panel closes.
   useEffect(() => {
-    ref.current?.querySelector<HTMLElement>("input, textarea, select")?.focus();
+    const before = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const first = ref.current?.querySelector<HTMLElement>("input, textarea, select");
+    (first ?? ref.current)?.focus();
+    return () => {
+      if (before?.isConnected) before.focus();
+    };
   }, []);
+  // Tab stays inside the panel while it is open.
+  const trap = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "Tab" || !ref.current) return;
+    const items = [
+      ...ref.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]',
+      ),
+    ].filter((el) => el.offsetParent !== null);
+    if (!items.length) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (e.shiftKey && (document.activeElement === first || document.activeElement === ref.current)) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
   return (
     <div className="panel-layer" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="panel" role="dialog" aria-modal="true" aria-label={title} ref={ref} data-testid={testId}>
+      <div
+        className={`panel${wide ? " wide" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        ref={ref}
+        tabIndex={-1}
+        onKeyDown={trap}
+        data-testid={testId}
+      >
         <div className="panel-head">
           <h2>{title}</h2>
           <IconButton icon="close" label={t("common.close")} onClick={onClose} />
@@ -292,6 +342,20 @@ export function ResultChart({
       )}
     </svg>
   );
+}
+
+/** Props of a table row that opens something: reachable with Tab, opened with Enter or Space. */
+export function rowOpen(open: () => void) {
+  return {
+    tabIndex: 0,
+    onClick: open,
+    onKeyDown: (e: ReactKeyboardEvent<HTMLElement>) => {
+      if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
+        e.preventDefault();
+        open();
+      }
+    },
+  };
 }
 
 export function Notice({ kind = "info", children }: { kind?: "info" | "error" | "ok"; children: ReactNode }) {

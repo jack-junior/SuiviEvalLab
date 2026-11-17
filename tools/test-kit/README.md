@@ -17,6 +17,7 @@ about 50 MB); they are downloaded and checked by SHA-256.
     cp tools/test-kit/LISEZMOI.txt tools/test-kit/SOURCES.txt build/test-kit/
     PYTHONPATH=engine/python python tools/test-kit/expected.py build/test-kit   # runs every scenario in the engine
     python tools/test-kit/guide.py build/test-kit                              # writes the guide
+    python tools/test-kit/pilot_form.py build/test-kit                         # feedback form of the 1.0 pilot
 
 `expected.py` plays each scenario through the engine as a tester would and
 writes `expected.json`. `check_in_r.R` recomputes the survey estimates of

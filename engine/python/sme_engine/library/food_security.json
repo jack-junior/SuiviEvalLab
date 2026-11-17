@@ -1,0 +1,246 @@
+{
+  "_licence": "SPDX-License-Identifier: GPL-3.0-or-later. Copyright (C) 2026 GAYI Komi Selassi and SANOUSSI Moudjibou. Definitions written for SuiviEvalLab after the cited public references.",
+  "sector": "food_security",
+  "name": {
+    "fr": "Sécurité alimentaire et moyens d'existence",
+    "en": "Food security and livelihoods"
+  },
+  "indicators": [
+    {
+      "id": "food.fcs_acceptable",
+      "name": {
+        "fr": "Ménages ayant un score de consommation alimentaire acceptable",
+        "en": "Households with an acceptable food consumption score"
+      },
+      "definition": {
+        "fr": "Part des ménages dont le score de consommation alimentaire, calculé sur les sept derniers jours à partir de la fréquence de consommation de huit groupes d'aliments pondérés, dépasse le seuil acceptable (35, ou 42 là où sucre et huile sont consommés presque chaque jour).",
+        "en": "Share of households whose food consumption score, computed over the past seven days from the weighted consumption frequency of eight food groups, is above the acceptable threshold (35, or 42 where sugar and oil are eaten almost daily)."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Ménages au profil acceptable",
+        "en": "Households with acceptable profile"
+      },
+      "denominator": {
+        "fr": "Ménages enquêtés",
+        "en": "Households surveyed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["status"],
+      "source": "wfp_fcs"
+    },
+    {
+      "id": "food.rcsi",
+      "name": {
+        "fr": "Indice réduit des stratégies d'adaptation moyen",
+        "en": "Average reduced coping strategies index"
+      },
+      "definition": {
+        "fr": "Moyenne de l'indice calculé à partir de cinq stratégies alimentaires adoptées pendant les sept derniers jours, chacune pondérée selon sa gravité. Plus il est élevé, plus le ménage est sous pression.",
+        "en": "Mean of the index computed from five food-related coping strategies used in the past seven days, each weighted by severity. The higher it is, the more stressed the household."
+      },
+      "type": "mean",
+      "direction": "decrease",
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["status"],
+      "source": "wfp_fcs"
+    },
+    {
+      "id": "food.lcs_emergency",
+      "name": {
+        "fr": "Ménages ayant recours à des stratégies d'adaptation d'urgence",
+        "en": "Households using emergency livelihood coping strategies"
+      },
+      "definition": {
+        "fr": "Part des ménages ayant utilisé au moins une stratégie d'urgence pendant les 30 derniers jours (vente des dernières femelles reproductrices, vente de la maison ou de terres, mendicité...).",
+        "en": "Share of households that used at least one emergency strategy in the past 30 days (selling last female animals, selling house or land, begging...)."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Ménages ayant utilisé une stratégie d'urgence",
+        "en": "Households using an emergency strategy"
+      },
+      "denominator": {
+        "fr": "Ménages enquêtés",
+        "en": "Households surveyed"
+      },
+      "direction": "decrease",
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["status"],
+      "source": "wfp_fcs"
+    },
+    {
+      "id": "food.hdds",
+      "name": {
+        "fr": "Score de diversité alimentaire des ménages moyen",
+        "en": "Average household dietary diversity score"
+      },
+      "definition": {
+        "fr": "Nombre moyen de groupes d'aliments, sur douze, consommés par le ménage au cours des 24 dernières heures.",
+        "en": "Average number of food groups, out of twelve, eaten by the household in the past 24 hours."
+      },
+      "type": "mean",
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": [],
+      "source": "fao_hdds"
+    },
+    {
+      "id": "food.mddw",
+      "name": {
+        "fr": "Femmes atteignant la diversité alimentaire minimale",
+        "en": "Women achieving minimum dietary diversity"
+      },
+      "definition": {
+        "fr": "Part des femmes de 15 à 49 ans ayant consommé des aliments d'au moins cinq des dix groupes définis au cours des 24 dernières heures.",
+        "en": "Share of women aged 15 to 49 who ate foods from at least five of the ten defined groups in the past 24 hours."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Femmes ayant consommé au moins cinq groupes",
+        "en": "Women who ate at least five groups"
+      },
+      "denominator": {
+        "fr": "Femmes de 15 à 49 ans enquêtées",
+        "en": "Women aged 15 to 49 surveyed"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["age"],
+      "source": "fao_mddw"
+    },
+    {
+      "id": "food.fies",
+      "name": {
+        "fr": "Prévalence de l'insécurité alimentaire modérée ou grave (échelle FIES)",
+        "en": "Prevalence of moderate or severe food insecurity (FIES)"
+      },
+      "definition": {
+        "fr": "Part de la population en insécurité alimentaire modérée ou grave, mesurée par l'échelle de l'expérience de l'insécurité alimentaire à huit questions.",
+        "en": "Share of the population in moderate or severe food insecurity, measured with the eight-question Food Insecurity Experience Scale."
+      },
+      "type": "percent",
+      "numerator": {
+        "fr": "Personnes en insécurité modérée ou grave",
+        "en": "People in moderate or severe insecurity"
+      },
+      "denominator": {
+        "fr": "Population enquêtée",
+        "en": "Population surveyed"
+      },
+      "direction": "decrease",
+      "level": "impact",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex"],
+      "source": "sdg",
+      "ref": "ODD 2.1.2"
+    },
+    {
+      "id": "food.cash_households",
+      "name": {
+        "fr": "Ménages ayant reçu un transfert monétaire",
+        "en": "Households that received a cash transfer"
+      },
+      "definition": {
+        "fr": "Nombre de ménages ayant reçu au moins un transfert monétaire du projet pendant la période, comptés une seule fois.",
+        "en": "Number of households that received at least one cash transfer from the project during the period, each counted once."
+      },
+      "type": "count",
+      "aggregation": "last",
+      "level": "output",
+      "collection": "routine",
+      "frequency": "monthly",
+      "breakdowns": ["status"],
+      "source": null
+    },
+    {
+      "id": "food.yield",
+      "name": {
+        "fr": "Rendement moyen de la culture principale",
+        "en": "Average yield of the main crop"
+      },
+      "definition": {
+        "fr": "Production récoltée divisée par la surface cultivée, en kilogrammes par hectare, chez les producteurs appuyés.",
+        "en": "Harvested production divided by area cultivated, in kilograms per hectare, among supported farmers."
+      },
+      "type": "mean",
+      "unit_label": {
+        "fr": "kg par hectare",
+        "en": "kg per hectare"
+      },
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "annual",
+      "breakdowns": ["sex"],
+      "source": null
+    },
+    {
+      "id": "food.improved_practices",
+      "name": {
+        "fr": "Producteurs appliquant des pratiques ou technologies améliorées",
+        "en": "Producers applying improved practices or technologies"
+      },
+      "definition": {
+        "fr": "Nombre de producteurs ayant appliqué au moins une pratique de gestion ou une technologie améliorée promue par le projet pendant la campagne.",
+        "en": "Number of producers who applied at least one improved management practice or technology promoted by the project during the season."
+      },
+      "type": "count",
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex", "age"],
+      "source": "ftf"
+    },
+    {
+      "id": "food.area_improved",
+      "name": {
+        "fr": "Superficie cultivée avec des pratiques améliorées",
+        "en": "Area cultivated with improved practices"
+      },
+      "definition": {
+        "fr": "Superficie en hectares cultivée avec au moins une pratique ou technologie améliorée promue par le projet.",
+        "en": "Area in hectares cultivated with at least one improved practice or technology promoted by the project."
+      },
+      "type": "count",
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": [],
+      "source": "ftf",
+      "unit_label": {
+        "fr": "ha",
+        "en": "ha"
+      }
+    },
+    {
+      "id": "food.sales",
+      "name": {
+        "fr": "Valeur des ventes des producteurs appuyés",
+        "en": "Value of sales of supported producers"
+      },
+      "definition": {
+        "fr": "Valeur totale des ventes de produits agricoles réalisées par les producteurs appuyés pendant la campagne, dans la devise du projet.",
+        "en": "Total value of the sales of agricultural products made by supported producers during the season, in the project currency."
+      },
+      "type": "count",
+      "level": "outcome",
+      "collection": "survey",
+      "frequency": "rounds",
+      "breakdowns": ["sex"],
+      "source": "ftf",
+      "unit_label": {
+        "fr": "devise du projet",
+        "en": "project currency"
+      }
+    }
+  ]
+}
