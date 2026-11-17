@@ -2598,6 +2598,14 @@ export const fr = {
   "errors.test_no_pairs": "Moins de 3 identifiants se retrouvent dans les deux jeux de données.",
   "setup.tab_team": "Équipe et sécurité",
   "team.fingerprintCol": "Empreinte",
+  "app.damaged":
+    "Le fichier du projet est endommagé (erreur de disque ou copie interrompue). Fermez le projet et rétablissez sa dernière copie automatique : écran Projets, « Copies automatiques » du projet. Aucune nouvelle copie n'est faite tant que le fichier est endommagé.",
+  "app.skip": "Aller au contenu",
+  "side.textSize": "Taille du texte : {n} %",
+  "side.textSmaller": "Réduire le texte (Ctrl -)",
+  "side.textLarger": "Agrandir le texte (Ctrl +)",
+  "errors.sync_not_for_me": "Ce fichier est destiné à d'autres membres de l'équipe : il ne contient rien pour vous.",
+  "sync.projectId": "Identifiant du projet, à inscrire sur le serveur avec sa clé d'accès :",
 };
 
 export type MessageKey = keyof typeof fr;
@@ -5157,4 +5165,12 @@ export const en: Record<MessageKey, string> = {
   "errors.test_no_pairs": "Fewer than 3 identifiers are found in both datasets.",
   "setup.tab_team": "Team and security",
   "team.fingerprintCol": "Fingerprint",
+  "app.damaged":
+    "The project file is damaged (disk error or interrupted copy). Close the project and restore its latest automatic copy: Projects screen, Automatic copies of the project. No new copy is made while the file is damaged.",
+  "app.skip": "Skip to content",
+  "side.textSize": "Text size: {n}%",
+  "side.textSmaller": "Smaller text (Ctrl -)",
+  "side.textLarger": "Larger text (Ctrl +)",
+  "errors.sync_not_for_me": "This file is for other members of the team: it holds nothing for you.",
+  "sync.projectId": "Project identifier, to write on the server with its access key:",
 };

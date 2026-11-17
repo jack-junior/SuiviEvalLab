@@ -6,11 +6,24 @@
 
 ## Status
 
-Version **0.5.0**: results framework on your donor's model (standard, EU logframe, USAID, UN, World Bank or custom levels), survey indicators (shares with one or several conditions, means, counts, ratios, crossed breakdowns) and routine monitoring indicators entered period by period, import of Excel, Kobo (with questionnaire labels), CSV, SPSS or Stata data, merge and stacking of files, a cleaning journal with computed variables, classes, dates and durations, consistency checks and text cleaning, exportable as an R script, a data table to correct cells by hand, a formula editor and R scripts, indicators estimated in R with their confidence intervals and survey design, baseline and endline comparison, a test assistant that concludes in words, custom analyses on the model of JASP (descriptives, crosstabs, means, correlations, regressions, difference in differences) following the survey design, a Word report in French or English on your organisation's own template, with its content chosen section by section, a read-only HTML dashboard to share, a data quality diagnosis, checks before the report, automatic project copies, a sample size calculator and the monitoring plan in Excel. An example project runs on real public survey data. See the [roadmap](docs/roadmap.md).
+Version **1.0** in final acceptance (pilot test with M&E practitioners). It covers the whole M&E workflow:
+
+- project sheet, reporting calendar, places, partners, disaggregations;
+- logframe on the donor's model and a library of 146 indicator sheets in 16 sectors;
+- targets by period and the monitoring plan;
+- reception of partner and site data (entry, Excel forms, KoboToolbox, ODK, DHIS2), checks, validation, period locking;
+- indicator tracking with the calculation rules of the specification, gap comments, unique people counted once;
+- activities and budget, feedback and complaints, recommendations, risks, learning, evaluations;
+- survey analysis in R with confidence intervals and survey design;
+- periodic reports in the formats of twenty donors, the survey report and exports;
+- agenda and tasks across projects, portfolio dashboard;
+- team work, partners included, offline, with signed and encrypted exchanges by package, shared folder or a self-hosted relay server, an audit trail and project encryption.
+
+An example project runs on real public survey data.
 
 ## Documentation
 
-The user and contributor guide (French) is published at <https://jack-junior.github.io/SuiviEvalLab/>. Its sources are in [docs/guide](docs/guide); `python tools/docs/build_word.py` produces the Word version.
+The user, administrator, partner, server and contributor guides (French and English) are published at <https://jack-junior.github.io/SuiviEvalLab/>. Its sources are in [docs/guide](docs/guide); `python tools/docs/build_word.py` produces the Word version (`--lang en` for English).
 
 ## Example data
 
@@ -20,11 +33,11 @@ The example project uses extracts of the REACH Initiative Iraq Multi-Cluster Nee
 
 1. Download `SuiviEvalLab-<version>-installation.exe` from the [Releases](../../releases) page.
 2. Run it.
-3. The installer is not signed yet. If Windows shows "Windows protected your PC", click **More info**, then **Run anyway**.
+3. Published versions are signed. A working version may not be: if Windows shows "Windows protected your PC", click **More info**, then **Run anyway**.
 
 No administrator rights needed. Python and R are included.
 
-From 0.3.0 on, the app updates itself: it downloads new versions in the background and installs them when you restart it. Your projects are separate files and are never touched by an update.
+The app updates itself: it downloads new versions in the background and installs them when you restart it. Your projects are separate files and are never touched by an update.
 
 ## Develop
 
@@ -34,7 +47,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and workflow, [docs/conventions
 apps/desktop      Electron + React + TypeScript interface
 engine/python     Business engine (Python)
 engine/r          Statistical engine (R)
-tools/            Build scripts, smoke and end-to-end tests
+server/           Relay server for team synchronisation (optional, self-hosted)
+tools/            Build scripts, smoke, end-to-end and performance tests
 docs/             Developer documentation and decision records
 ```
 

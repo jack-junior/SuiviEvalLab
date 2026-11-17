@@ -840,6 +840,23 @@ try {
   if ((await page.locator(".ind-row").count()) !== before + 1)
     throw new Error("Library indicator not added");
 
+  // Accessibility: text size from the keyboard, a row opened with Enter, the
+  // focus given back when the panel closes.
+  await page.keyboard.press("Control+=");
+  const size = await page.evaluate(() => localStorage.getItem("sme.textSize"));
+  if (size !== "1.1") throw new Error(`Text size not changed: ${size}`);
+  await page.keyboard.press("Control+0");
+  await id("nav-workplan").click();
+  await id("wp-generate").focus();
+  await page.keyboard.press("Enter");
+  const row = page.locator("tr.clickable").first();
+  await row.focus();
+  await page.keyboard.press("Enter");
+  await page.locator('[role="dialog"]').first().waitFor({ timeout: 30_000 });
+  await page.keyboard.press("Escape");
+  const back = await row.evaluate((el) => el === document.activeElement);
+  if (!back) throw new Error("Focus not given back to the row");
+
   // Team and security: set up the team, read the audit trail, then encrypt the
   // project. Done last: an encrypted project asks for its password when reopened.
   await id("nav-setup").click();
@@ -867,7 +884,7 @@ try {
   notice("E2E updates", await id("update-status").innerText());
   notice(
     "E2E",
-    "Full path verified: project sheet, framework, import, cleaning, indicator, monitoring plan, periodic entry, reception and validation, tracking, gap comment, project today, agenda, work plan and budget, feedback, recommendations, risks, meetings, evaluation with coded notes, periodic report in a donor format, tracking export, analysis, report, SPSS, quality, merge, dashboard, checks, plan export, workspace today, workspace, portfolio dashboard and note, sample size, example, test, logframe matrix, Kobo server sync, languages, indicator library, team, audit trail, encryption",
+    "Full path verified: project sheet, framework, import, cleaning, indicator, monitoring plan, periodic entry, reception and validation, tracking, gap comment, project today, agenda, work plan and budget, feedback, recommendations, risks, meetings, evaluation with coded notes, periodic report in a donor format, tracking export, analysis, report, SPSS, quality, merge, dashboard, checks, plan export, workspace today, workspace, portfolio dashboard and note, sample size, example, test, logframe matrix, Kobo server sync, languages, indicator library, keyboard and text size, team, audit trail, encryption",
   );
 } catch (e) {
   // The screen at the moment of failure, kept with the other screenshots.

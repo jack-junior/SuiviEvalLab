@@ -125,7 +125,7 @@ def make_handler(store: Store):
             if size <= 0 or size > MAX_FILE:
                 return self._reply(413)
             data = self.rfile.read(size)
-            if not data.startswith(b"SMESYNC1"):
+            if not data.startswith(b"SMESYNC"):  # a synchronisation file, whatever its version
                 return self._reply(400)
             seq = store.add(uid, self.headers.get("X-Author", ""), data)
             self._reply(201, json.dumps({"seq": seq}).encode())

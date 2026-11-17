@@ -29,7 +29,8 @@ import { Workplan } from "./screens/Workplan";
 import { Workshop } from "./screens/Workshop";
 import { TrustDialog } from "./TrustDialog";
 import { useProject, View } from "./state";
-import { Icon } from "./ui";
+import { Icon, Notice } from "./ui";
+import { stepTextSize, TEXT_SIZES, textSize, toggleTheme } from "./display";
 import { UpdateBanner } from "./updates";
 
 const LANGS: { code: Lang; label: string; name: string }[] = [
@@ -111,6 +112,15 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The integrity check of a project runs beside the work after opening: its result
+  // is read again a moment later.
+  const checking = snap?.project.integrity === "checking";
+  useEffect(() => {
+    if (!checking) return;
+    const timer = window.setTimeout(() => void run("project.get"), 2500);
+    return () => window.clearTimeout(timer);
+  }, [checking, snap, run]);
+
   // Changes received in the background from the team's shared folder.
   useEffect(
     () =>
@@ -136,11 +146,20 @@ export function App() {
   const ready = !!versions?.r && !engineError && !versions?.r_error;
   const engineState = engineError || versions?.r_error ? "error" : ready ? "ready" : "waiting";
 
-  const toggleTheme = () => {
-    const r = document.documentElement;
-    const dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
-    r.dataset.theme = dark ? "light" : "dark";
-  };
+  const [size, setSize] = useState(textSize);
+  const resize = (step: -1 | 0 | 1) => setSize(stepTextSize(step));
+  // Text size from the keyboard, as in a browser: Ctrl and +, Ctrl and -, Ctrl and 0.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      const step = e.key === "+" || e.key === "=" ? 1 : e.key === "-" ? -1 : e.key === "0" ? 0 : null;
+      if (step === null) return;
+      e.preventDefault();
+      setSize(stepTextSize(step));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const closeProject = async () => {
     await run("project.close");
@@ -164,6 +183,9 @@ export function App() {
 
   return (
     <div className={`app${folded ? " folded" : ""}`}>
+      <a className="skip-link" href="#content">
+        {t("app.skip")}
+      </a>
       <aside className="side" aria-label={t("nav.label")}>
         <div className="side-top">
           <span className="brand">
@@ -272,6 +294,32 @@ export function App() {
                 </button>
               ))}
             </div>
+            <div className="text-size" role="group" aria-label={t("side.textSize", { n: Math.round(size * 100) })}>
+              <button
+                className="icon-btn"
+                onClick={() => resize(-1)}
+                disabled={size <= TEXT_SIZES[0]}
+                aria-label={t("side.textSmaller")}
+                title={t("side.textSmaller")}
+                data-testid="text-smaller"
+              >
+                <span aria-hidden="true" className="a-small">
+                  A
+                </span>
+              </button>
+              <button
+                className="icon-btn"
+                onClick={() => resize(1)}
+                disabled={size >= TEXT_SIZES[TEXT_SIZES.length - 1]}
+                aria-label={t("side.textLarger")}
+                title={t("side.textLarger")}
+                data-testid="text-larger"
+              >
+                <span aria-hidden="true" className="a-large">
+                  A
+                </span>
+              </button>
+            </div>
             <button className="icon-btn" onClick={toggleTheme} aria-label={t("side.theme")} data-testid="theme">
               <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
                 <circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" strokeWidth="1.4" />
@@ -282,7 +330,7 @@ export function App() {
         </div>
       </aside>
 
-      <div className="main">
+      <main className="main" id="content" tabIndex={-1}>
         <div className="bar">
           <div className="crumb">
             SuiviEvalLab <span aria-hidden="true">/</span>{" "}
@@ -303,6 +351,11 @@ export function App() {
           </span>
         </div>
         <UpdateBanner />
+        {snap?.project.integrity === "damaged" && (
+          <div className="banner-wrap">
+            <Notice kind="error">{t("app.damaged")}</Notice>
+          </div>
+        )}
         <TrustDialog />
         <div
           className={(view === "analysis" || view === "tests" || view === "workshop") && snap ? "col col-split" : "col"}
@@ -355,7 +408,7 @@ export function App() {
             <Overview />
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

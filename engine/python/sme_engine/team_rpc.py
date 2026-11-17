@@ -116,6 +116,13 @@ def _join_copy(p: Project, member: dict[str, Any], target: Path) -> None:
             conn.execute(f"DROP TRIGGER {name}")
         if set(member["roles"]) == {"partner"}:
             mine = set(member.get("partner_ids") or [])
+            # A partner gets the keys of its own partners, never the office key.
+            office = security.unb64(p.meta()["office_key"])
+            conn.execute("DELETE FROM meta WHERE key = 'office_key' OR key LIKE 'partner_key:%'")
+            conn.executemany(
+                "INSERT INTO meta(key, value) VALUES (?, ?)",
+                [(f"partner_key:{pid}", security.b64(sync.partner_key(office, pid))) for pid in sorted(mine)],
+            )
             for t in PERSONAL_TABLES_PARTNER_DROPS:
                 conn.execute(f"DELETE FROM {t}") if conn.execute(
                     "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (t,)
@@ -190,8 +197,9 @@ def register_team(server: Server, svc: Service) -> None:
             key = sync._key_expr(table, cols, "t")
             if table == "meta":
                 rows = p.conn.execute(
-                    f"SELECT {key} FROM {table} t WHERE t.key NOT IN ('updated_at', 'opened_at', 'previous_open') "
-                    "AND t.key NOT LIKE 'rev:%'"
+                    f"SELECT {key} FROM {table} t WHERE t.key NOT IN ({','.join('?' * len(sync.LOCAL_META))}) "
+                    "AND t.key NOT LIKE 'rev:%' AND t.key NOT LIKE 'partner_key:%'",
+                    sync.LOCAL_META,
                 ).fetchall()
             else:
                 rows = p.conn.execute(f"SELECT {key} FROM {table} t").fetchall()

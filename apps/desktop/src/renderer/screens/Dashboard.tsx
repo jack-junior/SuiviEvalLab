@@ -20,7 +20,7 @@ import {
 } from "../api";
 import { useI18n } from "../i18n";
 import { useProject } from "../state";
-import { Empty, Field, Icon, IconButton, Notice, Panel, Progress } from "../ui";
+import { Empty, Field, Icon, IconButton, Notice, Panel, Progress, rowOpen } from "../ui";
 
 const STATUSES: PortfolioStatus[] = ["on_track", "watch", "difficulty", "unknown"];
 type Filter = { donor: string; country: string; sector: string; manager: string; status: string };
@@ -217,7 +217,7 @@ export function Dashboard() {
                   <tr
                     key={c.path}
                     className={c.source === "file" ? "clickable" : ""}
-                    onClick={() => open(c)}
+                    {...(c.source === "file" ? rowOpen(() => void open(c)) : {})}
                     data-testid="dash-row"
                   >
                     <td style={{ borderLeft: `4px solid ${c.profile.color ?? "var(--ligne)"}` }}>

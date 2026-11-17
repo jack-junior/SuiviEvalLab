@@ -30,7 +30,7 @@ import {
 import { useI18n } from "../i18n";
 import { Attachments } from "../Attachments";
 import { useProject } from "../state";
-import { Confirm, Empty, Field, Icon, IconButton, Notice, Panel } from "../ui";
+import { Confirm, Empty, Field, Icon, IconButton, Notice, Panel, rowOpen } from "../ui";
 
 type Tab = "feedback" | "recommendations" | "risks" | "learning";
 const TABS: Tab[] = ["feedback", "recommendations", "risks", "learning"];
@@ -158,7 +158,7 @@ function FeedbackTab() {
             </thead>
             <tbody>
               {list.map((f) => (
-                <tr key={f.id} className="clickable" onClick={() => setEditing(f)} data-testid="fb-row">
+                <tr key={f.id} className="clickable" {...rowOpen(() => setEditing(f))} data-testid="fb-row">
                   <td className="small">{day(f.received)}</td>
                   <td>{catName(f.category)}</td>
                   <td>
@@ -577,7 +577,7 @@ function Recommendations() {
             </thead>
             <tbody>
               {snap.recommendations.map((r) => (
-                <tr key={r.id} className="clickable" onClick={() => setEditing(r)} data-testid="rec-row">
+                <tr key={r.id} className="clickable" {...rowOpen(() => setEditing(r))} data-testid="rec-row">
                   <td>{r.text}</td>
                   <td className="small">
                     {t(`recs.src_${r.source}`)}
@@ -910,7 +910,7 @@ function Risks() {
                   <tr
                     key={r.id}
                     className={`clickable${r.status === "closed" ? " muted" : ""}`}
-                    onClick={() => setEditing(r)}
+                    {...rowOpen(() => setEditing(r))}
                     data-testid="risk-row"
                   >
                     <td>

@@ -333,11 +333,12 @@ def register_canevas(server: Server, svc: Service) -> None:
         if not isinstance(path, str) or not Path(path).is_file():
             raise rc._err("No file chosen", "invalid_params")
         p = project()
-        result = canevas.receive(p, path)
+        # Lines in the order of the logframe, as when the template was written.
+        result = canevas.receive(p, path, svc.ordered_indicators())
         if result["revision"] and params.get("apply"):
             # A revision accepted: the validated submission is reopened with the reason,
             # then the template's values are applied.
             rc.act(p, result["submission_id"], "reopen", params.get("reason") or "")
-            result = {**canevas.receive(p, path), "revised": True}
+            result = {**canevas.receive(p, path, svc.ordered_indicators()), "revised": True}
         svc._results.clear()
         return {**svc.snapshot(), **result}

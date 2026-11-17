@@ -3,7 +3,7 @@
 
 """Word version of the guide, built from the same Markdown files as the site.
 
-    python tools/docs/build_word.py [output.docx]
+    python tools/docs/build_word.py [--lang en] [output.docx]
 
 Needs pandoc (3.1 or newer) and python-docx. The pages are taken in the order of
 the site navigation (mkdocs.yml); links between pages become plain text, images
@@ -30,7 +30,42 @@ from docx.shared import Cm, Pt, RGBColor
 
 ROOT = Path(__file__).resolve().parents[2]
 GUIDE = ROOT / "docs" / "guide"
-OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "build" / "SuiviEvalLab-documentation.docx"
+ARGS = sys.argv[1:]
+LANG = "en" if ARGS[:2] == ["--lang", "en"] else "fr"
+if ARGS[:1] == ["--lang"]:
+    ARGS = ARGS[2:]
+DEFAULT_NAME = "SuiviEvalLab-documentation-en.docx" if LANG == "en" else "SuiviEvalLab-documentation.docx"
+OUT = Path(ARGS[0]) if ARGS else ROOT / "build" / DEFAULT_NAME
+TEXT = {
+    "fr": {
+        "subtitle": "Documentation de l'application",
+        "content": (
+            "Présentation, manuel de l'application, guides de l'administrateur et du partenaire, "
+            "serveur, protection des données, contribution et tests"
+        ),
+        "authors": "Auteurs",
+        "licence": "Licence GPL-3.0-or-later. Dépôt : github.com/jack-junior/SuiviEvalLab",
+        "toc": "Sommaire",
+        "footer": "documentation",
+        "title": "SuiviEvalLab, documentation de l'application",
+        "keywords": "suivi-évaluation; S&E; indicateurs; enquêtes",
+        "language": "fr-FR",
+    },
+    "en": {
+        "subtitle": "Application documentation",
+        "content": (
+            "Overview, user guide, administrator and partner guides, server, data protection, contributing and testing"
+        ),
+        "authors": "Authors",
+        "licence": "Licence GPL-3.0-or-later. Repository: github.com/jack-junior/SuiviEvalLab",
+        "toc": "Contents",
+        "footer": "documentation",
+        "title": "SuiviEvalLab, application documentation",
+        "keywords": "monitoring and evaluation; M&E; indicators; surveys",
+        "language": "en-GB",
+    },
+}[LANG]
+MONTHS_EN = "January February March April May June July August September October November December".split()
 AUTHORS = ["GAYI Komi Selassi", "SANOUSSI Moudjibou"]
 BLUE = RGBColor(0x1D, 0x4F, 0x91)
 INK = RGBColor(0x1F, 0x1E, 0x1C)
@@ -46,7 +81,8 @@ def version() -> str:
 def pages() -> list[Path]:
     """Markdown files in the order of the site navigation."""
     nav = (ROOT / "mkdocs.yml").read_text(encoding="utf-8").split("\nnav:", 1)[1]
-    return [GUIDE / m for m in re.findall(r":\s*([\w/.-]+\.md)\s*$", nav, flags=re.M)]
+    found = re.findall(r":\s*([\w/.-]+\.md)\s*$", nav, flags=re.M)
+    return [GUIDE / m for m in found if m.startswith("en/") == (LANG == "en")]
 
 
 def markdown() -> str:
@@ -182,7 +218,7 @@ def page_numbers(pdf: Path, entries: list[tuple[int, str]]) -> dict[str, int]:
     ]
     found, page = {}, 0
     # Skip the cover and the table of contents (lines ending with dot leaders).
-    while page < count and ("Sommaire" in texts[page] or page == 0 or re.search(r"\.{5,}", texts[page])):
+    while page < count and (TEXT["toc"] in texts[page] or page == 0 or re.search(r"\.{5,}", texts[page])):
         page += 1
     for _, text in entries:
         number, title = text.split("  ", 1)
@@ -262,16 +298,16 @@ def finish(src: Path, dst: Path, today: str, page_of: dict[str, int] | None = No
     p = para(before=60)
     p.add_run().add_picture(str(logo), width=Cm(2.6))
     para("SuiviEvalLab", 34, True, BLUE, before=18, after=4)
-    para("Documentation de l'application", 18, False, INK, after=4)
+    para(TEXT["subtitle"], 18, False, INK, after=4)
     para(f"Version {version()}", 12, False, MUTED, after=60)
-    para("Présentation, architecture, manuel de l'application, contribution et tests", 11, False, MUTED, after=120)
-    para("Auteurs", 9, True, MUTED, after=2)
+    para(TEXT["content"], 11, False, MUTED, after=120)
+    para(TEXT["authors"], 9, True, MUTED, after=2)
     for a in AUTHORS:
         para(a, 12, False, INK, after=2)
     para(today, 11, False, MUTED, before=18)
-    p = para("Licence GPL-3.0-or-later. Dépôt : github.com/jack-junior/SuiviEvalLab", 9, False, MUTED, before=6)
+    p = para(TEXT["licence"], 9, False, MUTED, before=6)
     p.runs[0].add_break(WD_BREAK.PAGE)
-    p = para("Sommaire", 18, True, BLUE, after=12)
+    p = para(TEXT["toc"], 18, True, BLUE, after=12)
     # The TOC is a real Word field (it can be updated in Word), filled in advance with
     # the page numbers of the first rendering so it reads correctly as soon as it opens.
     toc_paras = []
@@ -296,27 +332,27 @@ def finish(src: Path, dst: Path, today: str, page_of: dict[str, int] | None = No
     sec.different_first_page_header_footer = True
     fp = sec.footer.paragraphs[0]
     fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r = fp.add_run(f"SuiviEvalLab {version()}, documentation    ")
+    r = fp.add_run(f"SuiviEvalLab {version()}, {TEXT['footer']}    ")
     r.font.size = Pt(8.5)
     r.font.color.rgb = MUTED
     field(fp, "PAGE", "1")
 
     props = doc.core_properties
-    props.title = "SuiviEvalLab, documentation de l'application"
+    props.title = TEXT["title"]
     props.subject = f"Version {version()}"
     props.author = "; ".join(AUTHORS)
     props.last_modified_by = AUTHORS[0]
-    props.keywords = "suivi-évaluation; S&E; indicateurs; enquêtes"
+    props.keywords = TEXT["keywords"]
     props.comments = ""
     props.category = "Documentation"
-    props.language = "fr-FR"
+    props.language = TEXT["language"]
     doc.save(str(dst))
     return entries
 
 
 def main() -> None:
     d = date.today()
-    today = f"{d.day} {MONTHS[d.month - 1]} {d.year}"
+    today = f"{d.day} {(MONTHS_EN if LANG == 'en' else MONTHS)[d.month - 1]} {d.year}"
     OUT.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)

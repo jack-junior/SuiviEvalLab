@@ -15,7 +15,7 @@
     "dev:ui": "vite",
     "start": "npm run build && electron .",
     "dist:win": "npm run build && electron-builder --win nsis --publish never",
-    "lint": "eslint . && prettier --check . && node ../../tools/check-i18n.mjs && node ../../tools/check-headers.mjs",
+    "lint": "eslint . && prettier --check . && node ../../tools/check-i18n.mjs && node ../../tools/check-headers.mjs && node ../../tools/check-contrast.mjs",
     "format": "prettier --write ."
   },
   "dependencies": {

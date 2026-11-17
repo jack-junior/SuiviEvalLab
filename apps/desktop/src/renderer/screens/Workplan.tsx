@@ -11,7 +11,7 @@ import { useI18n } from "../i18n";
 import { Attachments } from "../Attachments";
 import { periodLabel } from "../monitoring";
 import { useProject } from "../state";
-import { Confirm, Empty, Field, Icon, IconButton, Notice, Panel, Progress } from "../ui";
+import { Confirm, Empty, Field, Icon, IconButton, Notice, Panel, Progress, rowOpen } from "../ui";
 
 type Tab = "plan" | "timeline" | "budget";
 const TABS: Tab[] = ["plan", "timeline", "budget"];
@@ -168,7 +168,7 @@ function PlanList() {
                   <td colSpan={6}>{nodeName(g.node)}</td>
                 </tr>
                 {g.rows.map(({ a, depth }) => (
-                  <tr key={a.id} className="clickable" onClick={() => setEditing(a)} data-testid={`act-${a.title}`}>
+                  <tr key={a.id} className="clickable" {...rowOpen(() => setEditing(a))} data-testid={`act-${a.title}`}>
                     <td style={{ paddingLeft: 12 + depth * 22 }}>
                       {a.code && <span className="muted">{a.code} </span>}
                       {a.title} {a.family === "me" && <span className="tag">{t("wp.meTag")}</span>}{" "}
@@ -672,7 +672,7 @@ function Budget() {
               {snap.budget_lines.map((l) => {
                 const r = b.lines.find((x) => x.line_id === l.id)!;
                 return (
-                  <tr key={l.id} className="clickable" onClick={() => setLine(l)} data-testid={`line-${l.name}`}>
+                  <tr key={l.id} className="clickable" {...rowOpen(() => setLine(l))} data-testid={`line-${l.name}`}>
                     <td>{lineName.get(l.id)}</td>
                     <td className="small">{l.activity_id ? actName.get(l.activity_id) : ""}</td>
                     <td className="num">{money(r.planned)}</td>
@@ -742,7 +742,7 @@ function Budget() {
             </thead>
             <tbody>
               {recent.map((e) => (
-                <tr key={e.id} className="clickable" onClick={() => setExpense(e)}>
+                <tr key={e.id} className="clickable" {...rowOpen(() => setExpense(e))}>
                   <td>{day(e.date)}</td>
                   <td>{lineName.get(e.line_id)}</td>
                   <td>{e.label}</td>

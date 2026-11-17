@@ -31,6 +31,7 @@ interface SmeBridge {
   saveSummary?: (file: string, summary: Record<string, number>) => Promise<void>;
   openFile?: (token: string) => Promise<boolean>;
   workspaceAgenda?: (range: { start: string; end: string; lang: string }) => Promise<AgendaData>;
+  zoom?: (factor: number) => void;
   portfolio?: () => Promise<CallResult<Dashboard>>;
   portfolioExport?: (
     kind: string,
@@ -495,6 +496,7 @@ export interface ProjectInfo {
   path: string;
   uid: string;
   encrypted: boolean;
+  integrity: "ok" | "checking" | "damaged";
   name: string;
   created_at: string;
   updated_at: string;
@@ -1466,6 +1468,7 @@ export const revealProject = (file: string) => bridge.reveal?.(file) ?? Promise.
 export const saveSummary = (file: string, summary: Record<string, number>) =>
   bridge.saveSummary?.(file, summary) ?? Promise.resolve();
 export const openFile = (token: string) => bridge.openFile?.(token) ?? Promise.resolve(false);
+export const setZoom = (factor: number) => bridge.zoom?.(factor);
 export const workspaceAgenda = (start: string, end: string, lang: string) =>
   bridge.workspaceAgenda?.({ start, end, lang }) ?? Promise.resolve({ events: [], tasks: [] } as AgendaData);
 

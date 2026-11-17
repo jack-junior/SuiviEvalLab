@@ -22,7 +22,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from . import frameworks, monitoring, registers, security
+from . import backups, frameworks, monitoring, registers, security
 from .rpc import INVALID_PARAMS, RpcError
 
 APPLICATION_ID = 0x534D4531  # "SME1": marks a file as a SuiviEvalLab project
@@ -132,6 +132,8 @@ CREATE TABLE IF NOT EXISTS attachment (
 
 _V6_SCHEMA = (
     """
+-- Redundant with the unique index of value, which starts with submission_id (1.0).
+DROP INDEX IF EXISTS value_submission;
 CREATE TABLE IF NOT EXISTS submission (
     id          TEXT PRIMARY KEY,
     position    INTEGER NOT NULL,
@@ -301,11 +303,13 @@ class Project:
         if version > SCHEMA_VERSION:
             conn.close()
             raise _err(f"Project made with a newer version (schema {version})", "project_too_new")
+        # A copy of an encrypted project would be written in clear: none is made.
+        # Before a migration the copy is made first, so the old version is kept too;
+        # otherwise it is made beside the work, once the project is open.
+        later = work is None and version >= SCHEMA_VERSION
         try:
-            from . import backups
-
-            if work is None:  # a copy of an encrypted project would be written in clear
-                backups.snapshot(conn, path)  # before any migration, so the old version is kept too
+            if work is None and not later:
+                backups.snapshot(conn, path)
         except (OSError, sqlite3.Error):
             pass  # a copy that cannot be written must not stop the user from working
         cls._migrate(conn, version)
@@ -317,7 +321,10 @@ class Project:
                 "INSERT OR REPLACE INTO meta(key, value) VALUES ('previous_open', ?)", (row[0] if row else "",)
             )
             conn.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('opened_at', ?)", (_now(),))
-        return cls(path, conn, work, key)
+        project = cls(path, conn, work, key)
+        if later:
+            backups.snapshot_later(path)
+        return project
 
     @staticmethod
     def _migrate(conn: sqlite3.Connection, version: int) -> None:
@@ -414,7 +421,8 @@ class Project:
 
     @staticmethod
     def _connect(path: Path) -> sqlite3.Connection:
-        conn = sqlite3.connect(path, isolation_level="DEFERRED")
+        # A change waits up to 30 s for a reader to finish (the copy made at opening).
+        conn = sqlite3.connect(path, isolation_level="DEFERRED", timeout=30)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
         conn.execute("PRAGMA journal_mode = DELETE")  # a single file the user can copy or email
@@ -424,6 +432,13 @@ class Project:
         return conn
 
     def close(self) -> None:
+        from . import sync
+
+        try:
+            if self.conn.execute("SELECT 1 FROM member LIMIT 1").fetchone():
+                sync.compact(self.conn)  # the change log of a team project stays small
+        except sqlite3.Error:
+            pass
         self.flush()
         self.conn.close()
         if self.work is not None:
@@ -444,6 +459,7 @@ class Project:
             "path": str(self.path),
             "uid": meta.get("uid", ""),
             "encrypted": self.encrypted,
+            "integrity": backups.integrity(self.path),
             "name": meta.get("name", self.path.stem),
             "created_at": meta.get("created_at"),
             "updated_at": meta.get("updated_at"),

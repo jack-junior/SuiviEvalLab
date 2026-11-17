@@ -497,6 +497,9 @@ function Exchanges() {
         <div className="stack-sm">
           <h3>{t("sync.server")}</h3>
           <p className="muted small">{t("sync.serverLead")}</p>
+          <p className="small">
+            {t("sync.projectId")} <code data-testid="project-uid">{snap.project.uid}</code>
+          </p>
           <div className="row-actions start wrap">
             <input
               className="input"

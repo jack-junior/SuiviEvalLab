@@ -7,14 +7,18 @@ Deux sortes de tests se complètent. Les **tests automatiques** vérifient à ch
 | Série | Nombre | Ce qu'elle garantit |
 |---|---|---|
 | Fonctions statistiques R | 4 fichiers de tests | Chaque estimation, intervalle, comparaison, test et taille d'échantillon égale l'appel direct au package de référence (écart inférieur à 10⁻⁹) ou une valeur publiée |
-| Moteur Python | 80 tests | Fichier projet et migration, import de tous les formats, libellés Kobo, nettoyage (dont formules, corrections à la main et scripts R), qualité, fusion, indicateurs, tests, analyses libres, rapport Word et modèle d'organisation, plan Excel, tableau de bord, copies, vérifications ; les chiffres sont recalculés indépendamment avec polars et numpy, et le journal exporté en R redonne la même table |
+| Moteur Python | 145 tests | Fichier projet et reprise des versions précédentes, règles de calcul de la section 6 (chacune testée), réception, contrôles, canevas Excel, serveurs Kobo, ODK et DHIS2 simulés, registres, rapports de tous les bailleurs, exports, portefeuille, équipe, synchronisation, chiffrement, audit, copies et intégrité ; import, nettoyage, analyses et rapport d'enquête, avec les chiffres recalculés indépendamment |
+| Recette | 3 parcours | Les parcours de la section 11 du cahier des charges (voir [Contribuer](contribuer.md)) |
 | Fichiers originaux | 4 tests | Les quatre enquêtes complètes de HDX (jusqu'à 436 colonnes) s'importent, se fusionnent et s'analysent correctement |
-| Parcours complet | 1 scénario | L'application installée sous Windows est pilotée comme par un utilisateur, du projet vide au rapport |
+| Parcours complet | 1 scénario | L'application installée sous Windows est pilotée comme par un utilisateur, de la fiche du projet au chiffrement |
 | Mise à jour | 1 scénario | L'application installée se met à jour seule et respecte la stratégie de groupe |
+| Performance | 1 script | Les seuils de la section 9 (`tools/bench/bench.py`) |
 
 Ils tournent sur chaque pull request (voir [Contribuer](contribuer.md)). Une modification ne peut pas être fusionnée si l'un d'eux échoue.
 
 ## Le kit de test
+
+Le kit décrit ci-dessous couvre la partie enquêtes et analyses. Le test pilote de la version 1.0, qui couvre tout le travail de suivi, est décrit dans [Test pilote](recette.md).
 
 Le kit de test est un dossier à remettre aux testeurs. Il contient :
 

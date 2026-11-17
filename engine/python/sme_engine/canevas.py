@@ -245,7 +245,10 @@ def read(view: reception.View, path: str | Path) -> dict[str, Any]:
             if k == "fraction":
                 cell["numerator"], cell["denominator"] = row[4], row[5]
             elif k == "milestone":
-                cell["value"] = {t["done"]: 1, t["not_done"]: 0}.get(str(row[3] or "").strip())
+                # The list's words, or 1 and 0 typed over them.
+                said = str(row[3] if row[3] is not None else "").strip().lower()
+                words = {t["done"].lower(): 1, t["not_done"].lower(): 0, "1": 1, "0": 0, "1.0": 1, "0.0": 0}
+                cell["value"] = words.get(said)
             else:
                 cell["value"] = row[3]
             values.append(cell)
@@ -262,12 +265,13 @@ def read(view: reception.View, path: str | Path) -> dict[str, Any]:
         wb.close()
 
 
-def receive(p: Any, path: str | Path) -> dict[str, Any]:
+def receive(p: Any, path: str | Path, indicators: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """Read a template and store its values in the unit's submission.
 
     A template for a validated submission is a revision: it is not applied, and
-    the differences are returned so they can be looked at before reopening."""
-    view = reception.View(p)
+    the differences are returned so they can be looked at before reopening.
+    `indicators` in the order the template was written with (the logframe's)."""
+    view = reception.View(p, indicators)
     got = read(view, path)
     sub = reception.find(view, got["period"], got["place_id"], got["partner_id"])
     if sub and sub["status"] in ("validated", "locked"):

@@ -62,13 +62,32 @@ jobs:
           Remove-Item -Recurse -Force build/runtime/engine
           if ($code -ne 0) { exit $code }
 
+      # Signed when the code signing certificate is in the repository secrets
+      # (WIN_CSC_LINK: the .pfx file in base64, WIN_CSC_KEY_PASSWORD: its password);
+      # see docs/guide/signature.md. Without them the installer is built unsigned.
       - name: Build the installer
         working-directory: apps/desktop
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
         run: |
           npm ci --no-audit --no-fund
           npm run dist:win
+
+      - name: Check the signature of the installer
+        shell: pwsh
+        env:
+          SIGNED: ${{ secrets.WIN_CSC_LINK != '' }}
+        run: |
+          $exe = Get-ChildItem apps/desktop/release -Filter *.exe | Select-Object -First 1
+          $sig = Get-AuthenticodeSignature $exe.FullName
+          if ($env:SIGNED -eq "true") {
+            if ($sig.Status -ne "Valid") { Write-Error "Installer not signed: $($sig.Status)"; exit 1 }
+            Write-Output "Signed by $($sig.SignerCertificate.Subject)"
+          } else {
+            Write-Output "::warning title=Signature::The installer is not signed (no certificate in the secrets)."
+          }
 
       - name: End-to-end test of the installed app
         shell: pwsh

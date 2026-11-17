@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { OverviewRow, saveSummary } from "../api";
 import { useI18n } from "../i18n";
 import { useProject, View } from "../state";
-import { Empty, Icon, Notice, Progress, StatusTag, useValueFormat } from "../ui";
+import { Empty, Icon, Notice, Progress, StatusTag, useValueFormat, rowOpen } from "../ui";
 import { useLevels } from "../frameworks";
 
 export function Overview() {
@@ -166,7 +166,7 @@ export function Overview() {
                   const r = rows?.find((x) => x.indicator_id === ind.id);
                   const node = framework.find((n) => n.id === ind.node_id);
                   return (
-                    <tr key={ind.id} className="clickable" onClick={() => go("analysis", ind.id)}>
+                    <tr key={ind.id} className="clickable" {...rowOpen(() => go("analysis", ind.id))}>
                       <td>
                         <div className="cell-title">{ind.name}</div>
                         <div className="cell-sub">{node ? `${levels.name(node.level)} ${node.code}`.trim() : ""}</div>

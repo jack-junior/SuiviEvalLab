@@ -16,7 +16,7 @@
   --action-survol: #163e73;
   --sur-action: #ffffff;
   --action-teinte: #e6ecf5;
-  --laterite: #b4441a;
+  --laterite: #ad411a;
   --atteint: #2e6b47;
   --en-cours: #875811;
   --en-cours-fond: #f5ebd8;
@@ -3108,4 +3108,42 @@ ul.plain {
 .pf-difficulty {
   background: var(--retard-fond);
   color: var(--retard);
+}
+
+.banner-wrap {
+  margin: 0 24px;
+}
+
+/* Accessibility: a link to skip the navigation, shown when reached with Tab. */
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 100;
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: var(--action);
+  color: var(--sur-action);
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: 12px;
+}
+.main:focus {
+  outline: none;
+}
+.text-size {
+  display: inline-flex;
+  gap: 2px;
+}
+.text-size .a-small {
+  font-size: 12px;
+  font-weight: 600;
+}
+.text-size .a-large {
+  font-size: 17px;
+  font-weight: 600;
+}
+tr.clickable:focus-visible {
+  outline-offset: -2px;
 }

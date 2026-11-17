@@ -2,21 +2,18 @@
 
 ## À quoi sert l'application
 
-SuiviEvalLab est un logiciel de bureau pour les équipes de suivi-évaluation. Il couvre le travail habituel d'un chargé de S&E, depuis le cadre de résultats jusqu'au rapport remis au bailleur, dans une seule application et sur l'ordinateur de l'utilisateur :
+SuiviEvalLab est un logiciel de bureau pour les équipes de suivi-évaluation. Il réunit dans une seule application le travail d'un chargé ou d'un responsable S&E, du document de projet jusqu'au rapport remis au bailleur :
 
-- construire le cadre de résultats du projet selon le modèle du bailleur (standard, Union européenne, USAID, Nations unies, Banque mondiale, ou niveaux propres) ;
-- définir les indicateurs, leur règle de calcul, leur valeur de référence et leur cible, qu'ils viennent d'une enquête ou du suivi de routine (registres, rapports d'activité) ;
-- importer les données d'enquête (Excel, export Kobo ou ODK, CSV, SPSS, Stata) ;
-- diagnostiquer et nettoyer les données, créer des variables et contrôler leur cohérence, en gardant la trace de chaque correction ;
-- calculer les indicateurs avec leur intervalle de confiance, en tenant compte du plan de sondage ;
-- comparer la référence et la fin de projet, et tester d'autres questions avec un assistant ;
-- produire le rapport Word, le plan de suivi Excel et un tableau de bord à partager.
-
-Le parcours suit l'ordre dans lequel on travaille sur un projet réel :
-
-![Le parcours de travail dans SuiviEvalLab](img/00-parcours.png)
-
-*Figure 1. Le parcours de travail, du cadre de résultats aux livrables.*
+- décrire le projet : bailleurs, calendrier de rapportage, lieux, partenaires, désagrégations ;
+- construire le cadre logique selon le modèle du bailleur (Union européenne, USAID, Nations unies, Banque mondiale, FICR, ou niveaux propres) et choisir les indicateurs dans une bibliothèque de 146 fiches en 16 secteurs ;
+- fixer les cibles par période et tenir le plan de suivi ;
+- recevoir les données des partenaires et des sites (saisie, canevas Excel, KoboToolbox, ODK, DHIS2), les contrôler, les valider, verrouiller les périodes ;
+- lire où en est chaque indicateur, expliquer les écarts ;
+- suivre les activités, le budget, les retours et plaintes, les recommandations, les risques et les évaluations ;
+- analyser les enquêtes avec R (pondération, plan de sondage, intervalles de confiance, comparaisons) ;
+- produire les rapports périodiques au format de vingt bailleurs, le rapport d'enquête et les exports ;
+- tenir l'agenda et les tâches de tous ses projets, et voir le portefeuille d'un coup d'œil ;
+- travailler à plusieurs, partenaires compris, même hors ligne, avec des données chiffrées.
 
 ## Pour qui
 
@@ -37,7 +34,7 @@ SuiviEvalLab garde ce lien de bout en bout :
 | Rédiger le rapport | Copier-coller les chiffres et les graphiques | Rapport Word produit à partir du projet, sur le modèle de l'organisation |
 | Vérifier un résultat | Difficile | Chaque résultat fournit le script R qui le reproduit |
 
-L'application fonctionne **sans connexion internet**. Les données restent sur l'ordinateur : rien n'est envoyé vers un serveur. La seule connexion est la recherche de mises à jour, que l'utilisateur ou son organisation peut couper.
+L'application fonctionne **sans connexion internet**. Les données restent sur les ordinateurs de l'équipe : rien n'est envoyé à l'éditeur. Les seules connexions sont celles que l'utilisateur choisit (serveurs de collecte, dossier partagé ou serveur relais de l'équipe) et la recherche de mises à jour, que l'organisation peut couper.
 
 ## Le fichier projet
 
@@ -45,25 +42,21 @@ Tout le travail d'un projet tient dans **un seul fichier** à l'extension `.sme`
 
 Ce fichier peut être copié, sauvegardé ou envoyé à un collègue qui a l'application : il retrouvera le projet dans l'état exact où il a été laissé. Une copie automatique est faite à chaque ouverture, ce qui permet de revenir en arrière après une erreur (voir [Outils](manuel/outils.md)).
 
-## État du projet
+## Versions
 
-| Version | Contenu | État |
-|---|---|---|
-| 0.1 | Fondations : application Windows, moteurs Python et R intégrés, calcul de démonstration | Publiée |
-| 0.2 | Premier parcours complet : cadre, indicateurs, import, nettoyage, calcul par R, comparaison, rapport Word | Publiée |
-| 0.3 | Libellés Kobo, nouveaux types d'indicateurs, assistant de tests, modèle Word de l'organisation, SPSS et Stata, fusion de fichiers, tableau de bord partageable, diagnostic qualité, vérifications avant le rapport, copies automatiques, taille d'échantillon, plan de suivi Excel, mises à jour automatiques | Publiée |
-| 0.4 | Modèles de cadre par bailleur et hypothèses, indicateurs de suivi de routine, nettoyage avancé (variables calculées, classes, dates et durées, contrôles de cohérence, texte), empilement de fichiers, journal exporté en script R | Publiée |
-| 0.5 | Analyses libres selon le plan d'enquête, tableau des données avec corrections à la main, éditeur de formules, scripts R acceptés par ordinateur, contenu du rapport au choix | En cours de publication |
+| Version | Contenu |
+|---|---|
+| 0.1 à 0.5 | Enquêtes : cadre de résultats, indicateurs, import, nettoyage tracé, calculs par R, comparaisons, tests, analyses libres, rapport Word |
+| 1.0 | L'outil complet du S&E : fiche du projet et calendrier, réception et contrôle des données, suivi des indicateurs, Kobo, ODK et DHIS2, activités et budget, redevabilité et évaluations, rapports périodiques des bailleurs, agenda et tâches, portefeuille et tableau de bord, travail en équipe chiffré |
 
-Prochaines étapes envisagées : récupération directe des données depuis KoboToolbox, passage des données du format large au format long, autres méthodes d'évaluation d'impact (appariement), puis une phase bêta avec des utilisateurs de terrain. Le travail à plusieurs sur un même projet avec des droits par indicateur est prévu après la version 1.0.
+Les projets créés avec les versions 0.2 à 0.5 s'ouvrent dans la 1.0 sans perte ; une copie est faite avant leur mise à niveau.
 
 ## Organisation de ce document
 
-1. **Présentation** (ce chapitre).
-2. **Architecture et choix techniques** : les briques logicielles, leur rôle et les raisons de ces choix.
-3. **Manuel de l'application** : chaque écran, chaque option.
-4. **Contribuer au projet** : poste de développement, règles, cycle de travail, publication.
-5. **Tester l'application** : tests automatiques et kit de test pour les testeurs.
-6. **Annexes** : glossaire, méthodes statistiques, sources des données.
+1. **Présentation** (ce chapitre) et **architecture**.
+2. **Manuel de l'application** : chaque écran, dans l'ordre du travail.
+3. **Guides** : administrateur (équipe, sécurité), partenaire, installation du serveur relais, protection des données.
+4. **Contribuer**, **tester** et **test pilote**.
+5. **Annexes** : glossaire, méthodes statistiques, sources des données.
 
-Les captures d'écran proviennent de la version 0.3 en français, ouverte sur le projet d'exemple fourni avec l'application (enquêtes REACH en Irak, 2019 et 2020) et sur une enquête REACH-UNICEF au Bangladesh (2018).
+Une version anglaise de la documentation est disponible (section *English*).

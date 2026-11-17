@@ -11,8 +11,11 @@ import "@fontsource/source-serif-4/600.css";
 import "@fontsource/ibm-plex-mono/400.css";
 import "./styles.css";
 import { App } from "./App";
+import { applyDisplay } from "./display";
 import { I18nProvider } from "./i18n";
 import { ProjectProvider } from "./state";
+
+applyDisplay();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

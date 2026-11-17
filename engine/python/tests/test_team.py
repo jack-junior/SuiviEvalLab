@@ -302,3 +302,26 @@ def test_encryption_audit_documents_and_personal_data(team, tmp_path):
     with pytest.raises(sqlite3.DatabaseError, match="append-only"):
         conn.execute("DELETE FROM audit")
     conn.close()
+
+
+def test_change_log_only_for_teams_and_kept_small(team, tmp_path):
+    a = team("Ama")
+    path = tmp_path / "solo.sme"
+    a("project.create", {"path": str(path), "name": "Solo"})
+    node = a("framework.add", {"title": "Effet"})["created"]
+    for k in range(3):
+        a("framework.update", {"id": node, "title": f"Effet {k}"})
+    a("project.close")
+    conn = sqlite3.connect(path)
+    assert conn.execute("SELECT COUNT(*) FROM changes").fetchone()[0] == 0  # one person: no log
+    conn.close()
+
+    a("project.open", {"path": str(path)})
+    a("team.start", {"name": "Ama"})
+    for k in range(5):
+        a("framework.update", {"id": node, "title": f"Résultat {k}"})
+    a("project.close")
+    conn = sqlite3.connect(path)
+    n = conn.execute("SELECT COUNT(*) FROM changes WHERE tbl = 'framework_node' AND pk = ?", (node,)).fetchone()[0]
+    conn.close()
+    assert n == 2  # the latest change and its base

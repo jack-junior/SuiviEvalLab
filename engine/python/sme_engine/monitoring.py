@@ -98,7 +98,6 @@ CREATE TABLE IF NOT EXISTS value (
     UNIQUE (submission_id, indicator_id, cats)
 );
 CREATE INDEX IF NOT EXISTS value_indicator ON value(indicator_id, period);
-CREATE INDEX IF NOT EXISTS value_submission ON value(submission_id);
 CREATE INDEX IF NOT EXISTS value_period ON value(period);
 -- People counted by a submission, under a pseudonym (section 6.4): the original
 -- identifier is never stored, only a keyed hash of it.
@@ -382,6 +381,8 @@ def measures_sql(
             continue
         if scope.place_ids is not None and sub.get("place_id", "") not in scope.place_ids:
             continue
+        if period is not None and sub.get("period") != period:
+            continue  # the query of one period reads only the submissions of that period
         counted_subs[sid] = 0 if sub["status"] in ("validated", "locked") else 1
     if not counted_subs:
         return {}
@@ -431,34 +432,31 @@ def measures_sql(
     return out
 
 
-def _pack(measures: dict[str, dict[str, tuple[Measure, bool]]], period: str) -> str:
+def _sig(ind: dict[str, Any]) -> str:
+    """What a cached measure depends on in its indicator: its type and multiplier."""
+    return f"{ind.get('unit')}:{multiplier(ind)}"
+
+
+def _pack(inds: list[dict[str, Any]], measures: dict[str, tuple[Measure, bool]]) -> str:
     import json as _json
 
     return _json.dumps(
         {
-            ind: [m.value, m.num, m.den, m.n, m.reason, prov]
-            for ind, by_period in measures.items()
-            for per, (m, prov) in by_period.items()
-            if per == period
+            "s": {i["id"]: _sig(i) for i in inds},
+            "m": {ind: [m.value, m.num, m.den, m.n, m.reason, prov] for ind, (m, prov) in measures.items()},
         }
     )
 
 
-def _unpack(data: str) -> dict[str, tuple[Measure, bool]]:
+def _unpack(data: str) -> tuple[dict[str, str], dict[str, tuple[Measure, bool]]]:
     import json as _json
 
-    return {
-        ind: (Measure(v, num, den, n, reason), prov)
-        for ind, (v, num, den, n, reason, prov) in _json.loads(data).items()
+    raw = _json.loads(data)
+    if not isinstance(raw, dict) or "s" not in raw:
+        return {}, {}  # written by an earlier version: computed again
+    return raw["s"], {
+        ind: (Measure(v, num, den, n, reason), prov) for ind, (v, num, den, n, reason, prov) in raw["m"].items()
     }
-
-
-def signature(inds: list[dict[str, Any]]) -> str:
-    """What the measures depend on in the indicators: their type and multiplier."""
-    import hashlib
-
-    raw = "|".join(f"{i['id']}:{i.get('unit')}:{multiplier(i)}" for i in sorted(inds, key=lambda i: i["id"]))
-    return hashlib.sha1(raw.encode()).hexdigest()[:16]
 
 
 def measures_cached(
@@ -470,26 +468,34 @@ def measures_cached(
     revs: dict[str, str],
 ) -> dict[str, dict[str, tuple[Measure, bool]]]:
     """measures_sql, period by period, reusing what was computed while the period did
-    not change. Only the whole-project scopes are kept (validated, or provisional)."""
+    not change. Only the whole-project scopes are kept (validated, or provisional).
+
+    The cache of a period is kept per indicator: adding an indicator, or changing
+    the type of one, computes that indicator again, not the whole period."""
     if scope.place_ids is not None or scope.partner_id is not None or scope.cats:
         return measures_sql(conn, inds, subs, scope)
     key = "provisional" if scope.provisional else "validated"
-    sig = signature(inds)
     stored = {
         period: (rev, data)
         for period, rev, data in conn.execute("SELECT period, rev, data FROM measure_cache WHERE scope = ?", (key,))
     }
+    by_period: dict[str, list[str]] = {}
+    for sid, sub in subs.items():
+        by_period.setdefault(sub.get("period", ""), []).append(sid)
     out: dict[str, dict[str, tuple[Measure, bool]]] = {}
     fresh: list[tuple[str, str, str, str]] = []
     for period in periods:
-        rev = f"{revs.get(period, '0')}:{sig}"
+        rev = str(revs.get(period, "0"))
         hit = stored.get(period)
-        if hit and hit[0] == rev:
-            got = _unpack(hit[1])
-        else:
-            computed = measures_sql(conn, inds, subs, scope, period)
-            fresh.append((key, period, rev, _pack(computed, period)))
-            got = {ind: by[period] for ind, by in computed.items() if period in by}
+        sigs, got = _unpack(hit[1]) if hit and hit[0] == rev else ({}, {})
+        stale = [i for i in inds if sigs.get(i["id"]) != _sig(i)]
+        if stale:
+            in_period = {sid: subs[sid] for sid in by_period.get(period, [])}
+            computed = measures_sql(conn, stale, in_period, scope, period)
+            known = {i["id"] for i in inds}
+            got = {ind: item for ind, item in got.items() if ind in known and ind not in {i["id"] for i in stale}}
+            got.update({ind: by[period] for ind, by in computed.items() if period in by})
+            fresh.append((key, period, rev, _pack(inds, got)))
         for ind, item in got.items():
             out.setdefault(ind, {})[period] = item
     if fresh:

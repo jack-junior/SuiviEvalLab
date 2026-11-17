@@ -3,7 +3,7 @@
 
 // Minimal, typed bridge between the interface and the main process.
 
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, webFrame } from "electron";
 
 contextBridge.exposeInMainWorld("sme", {
   call: (method: string, params?: Record<string, unknown>) => ipcRenderer.invoke("engine:call", method, params ?? {}),
@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld("sme", {
     ipcRenderer.invoke("portfolio:export", kind, token, lang),
   archive: (file: string, archived: boolean) => ipcRenderer.invoke("project:archive", file, archived),
   duplicate: (file: string, token: string, name: string) => ipcRenderer.invoke("project:duplicate", file, token, name),
+  // Text size of the interface (accessibility), applied to the whole page.
+  zoom: (factor: number) => webFrame.setZoomFactor(factor),
   workspaceAgenda: (range: { start: string; end: string; lang: string }) =>
     ipcRenderer.invoke("workspace:agenda", range),
   updates: {

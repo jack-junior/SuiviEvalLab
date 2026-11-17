@@ -19,7 +19,7 @@ import {
 } from "../api";
 import { useI18n } from "../i18n";
 import { useProject } from "../state";
-import { Confirm, Empty, Field, Icon, IconButton, Panel } from "../ui";
+import { Confirm, Empty, Field, Icon, IconButton, Panel, rowOpen } from "../ui";
 import { RecommendationPanel } from "./Accountability";
 
 export function Evaluations() {
@@ -418,7 +418,7 @@ function Questions({ ev }: { ev: Evaluation }) {
                   .map((q, i) => ({ q, i }))
                   .filter(({ q }) => q.criterion === c)
                   .map(({ q, i }) => (
-                    <tr key={q.id ?? i} className="clickable" onClick={() => setEditing(i)} data-testid="evq-row">
+                    <tr key={q.id ?? i} className="clickable" {...rowOpen(() => setEditing(i))} data-testid="evq-row">
                       <td className="small">{t(`ev.crit_${c}`)}</td>
                       <td>{q.text}</td>
                       <td className="small">

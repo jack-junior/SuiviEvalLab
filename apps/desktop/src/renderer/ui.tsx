@@ -4,7 +4,7 @@
 // Shared interface pieces: icons, buttons, fields, side panel, confirm dialog,
 // empty states, status labels, progress bar and the results chart.
 
-import { ReactNode, useEffect, useId, useRef } from "react";
+import { KeyboardEvent as ReactKeyboardEvent, ReactNode, useEffect, useId, useRef } from "react";
 import type { Estimate, Status } from "./api";
 import { useI18n } from "./i18n";
 
@@ -142,10 +142,35 @@ export function Panel({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-  // Focus the first field once, when the panel opens.
+  // Focus the first field once, when the panel opens (the panel itself if it has
+  // none); give the focus back to where it was when the panel closes.
   useEffect(() => {
-    ref.current?.querySelector<HTMLElement>("input, textarea, select")?.focus();
+    const before = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const first = ref.current?.querySelector<HTMLElement>("input, textarea, select");
+    (first ?? ref.current)?.focus();
+    return () => {
+      if (before?.isConnected) before.focus();
+    };
   }, []);
+  // Tab stays inside the panel while it is open.
+  const trap = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "Tab" || !ref.current) return;
+    const items = [
+      ...ref.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]',
+      ),
+    ].filter((el) => el.offsetParent !== null);
+    if (!items.length) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (e.shiftKey && (document.activeElement === first || document.activeElement === ref.current)) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
   return (
     <div className="panel-layer" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div
@@ -154,6 +179,8 @@ export function Panel({
         aria-modal="true"
         aria-label={title}
         ref={ref}
+        tabIndex={-1}
+        onKeyDown={trap}
         data-testid={testId}
       >
         <div className="panel-head">
@@ -314,6 +341,20 @@ export function ResultChart({
       )}
     </svg>
   );
+}
+
+/** Props of a table row that opens something: reachable with Tab, opened with Enter or Space. */
+export function rowOpen(open: () => void) {
+  return {
+    tabIndex: 0,
+    onClick: open,
+    onKeyDown: (e: ReactKeyboardEvent<HTMLElement>) => {
+      if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
+        e.preventDefault();
+        open();
+      }
+    },
+  };
 }
 
 export function Notice({ kind = "info", children }: { kind?: "info" | "error" | "ok"; children: ReactNode }) {

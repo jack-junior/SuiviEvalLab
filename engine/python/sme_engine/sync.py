@@ -40,14 +40,26 @@ from . import security
 from .rpc import INVALID_PARAMS, RpcError
 
 SYNC_FORMAT = "suivievallab-sync"
-SYNC_MAGIC = b"SMESYNC1"
+SYNC_MAGIC = b"SMESYNC2"
 JOIN_MAGIC = b"SMEJOIN1"
 LOCAL_TABLES = {"changes", "conflict", "audit", "measure_cache", "sqlite_sequence", "lineage"}
 ROLES = ("admin", "officer", "partner", "validator", "feedback", "reader")
 # Tables a partner focal point may change, always within its own partners.
 PARTNER_TABLES = {"submission", "value", "person", "attachment"}
-# Meta keys that belong to one copy only.
-LOCAL_META = ("updated_at", "opened_at", "previous_open")
+# Meta keys that belong to one copy only. The office key and the partner keys are
+# handed over in invitations, never in changes.
+LOCAL_META = ("updated_at", "opened_at", "previous_open", "office_key")
+DESIGN_TABLES = {
+    "framework_node",
+    "indicator",
+    "period",
+    "place",
+    "partner",
+    "disaggregation",
+    "target",
+    "member",
+    "meta",
+}
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS changes (
@@ -168,25 +180,45 @@ def shared_tables(conn: Any) -> dict[str, list[str]]:
 
 
 def install_triggers(conn: Any) -> None:
+    """Changes are logged once the team is set up (a member exists): a project used
+    by one person carries no log; setting up the team logs what it holds then."""
     conn.executescript(SCHEMA)
+    team = "EXISTS (SELECT 1 FROM member)"
     for table, cols in shared_tables(conn).items():
         new, old = _key_expr(table, cols, "NEW"), _key_expr(table, cols, "OLD")
-        when_new = when_old = ""
+        when_new = when_old = f" WHEN {team}"
         if table == "meta":
-            skip = " AND ".join(f"{{r}}.key <> '{k}'" for k in LOCAL_META) + " AND {r}.key NOT LIKE 'rev:%'"
-            when_new = " WHEN " + skip.format(r="NEW")
-            when_old = " WHEN " + skip.format(r="OLD")
+            skip = (
+                " AND ".join(f"{{r}}.key <> '{k}'" for k in LOCAL_META)
+                + " AND {r}.key NOT LIKE 'rev:%' AND {r}.key NOT LIKE 'partner_key:%'"
+            )
+            when_new = f" WHEN {team} AND " + skip.format(r="NEW")
+            when_old = f" WHEN {team} AND " + skip.format(r="OLD")
         body = "INSERT INTO changes(tbl, pk, op, hlc, origin) VALUES ('{t}', {k}, '{o}', sme_hlc(), sme_origin());"
         conn.executescript(
             f"""
-CREATE TRIGGER IF NOT EXISTS sync_{table}_i AFTER INSERT ON {table}{when_new}
+DROP TRIGGER IF EXISTS sync_{table}_i;
+DROP TRIGGER IF EXISTS sync_{table}_u;
+DROP TRIGGER IF EXISTS sync_{table}_d;
+CREATE TRIGGER sync_{table}_i AFTER INSERT ON {table}{when_new}
 BEGIN {body.format(t=table, k=new, o="u")} END;
-CREATE TRIGGER IF NOT EXISTS sync_{table}_u AFTER UPDATE ON {table}{when_new}
+CREATE TRIGGER sync_{table}_u AFTER UPDATE ON {table}{when_new}
 BEGIN {body.format(t=table, k=new, o="u")} END;
-CREATE TRIGGER IF NOT EXISTS sync_{table}_d AFTER DELETE ON {table}{when_old}
+CREATE TRIGGER sync_{table}_d AFTER DELETE ON {table}{when_old}
 BEGIN {body.format(t=table, k=old, o="d")} END;
 """
         )
+
+
+def compact(conn: Any) -> int:
+    """Keep the two latest changes of each row: the latest is sent, the one before
+    is its base. Returns how many were removed."""
+    with conn:
+        cur = conn.execute(
+            "DELETE FROM changes WHERE seq IN (SELECT seq FROM (SELECT seq, ROW_NUMBER() OVER "
+            "(PARTITION BY tbl, pk ORDER BY hlc DESC, seq DESC) AS n FROM changes) WHERE n > 2)"
+        )
+    return cur.rowcount
 
 
 # ----- members and their rights ---------------------------------------------------------------------
@@ -237,6 +269,7 @@ def start_team(p: Any, name: str) -> None:
         raise _err("The team is already set up", "team_exists")
     me = security.identity(name or None)
     p.set_meta("sync_key", security.b64(security.secrets.token_bytes(32)))
+    p.set_meta("office_key", security.b64(security.secrets.token_bytes(32)))
     p.conn.execute(
         "INSERT OR REPLACE INTO member(id, position, spec) VALUES (?, 1, ?)",
         (
@@ -317,7 +350,7 @@ def allowed(p: Any, author: dict[str, Any], table: str, row: dict[str, Any] | No
     if "admin" in roles:
         return True
     if table in ("member",) or (
-        table == "meta" and row and row.get("key") in ("owner", "owner_key", "members_sig", "sync_key")
+        table == "meta" and row and row.get("key") in ("owner", "owner_key", "members_sig", "sync_key", "office_key")
     ):
         return False
     if "reader" in roles and len(roles) == 1:
@@ -397,7 +430,8 @@ def collect(p: Any, origin: str | None, after: int, keep=None) -> tuple[list[dic
         if table not in tables:
             continue
         top = p.conn.execute(
-            "SELECT op, hlc, origin FROM changes WHERE tbl = ? AND pk = ? ORDER BY hlc DESC LIMIT 2", (table, pk)
+            "SELECT op, hlc, origin FROM changes WHERE tbl = ? AND pk = ? ORDER BY hlc DESC, seq DESC LIMIT 2",
+            (table, pk),
         ).fetchall()
         op, hlc, who = top[0]
         if origin is not None and who != origin:
@@ -429,7 +463,8 @@ def apply(p: Any, clock: Clock, ops: list[dict[str, Any]], authors: dict[str, di
             stats["skipped"] += 1
             continue
         local = p.conn.execute(
-            "SELECT hlc, origin FROM changes WHERE tbl = ? AND pk = ? ORDER BY hlc DESC LIMIT 1", (table, pk)
+            "SELECT hlc, origin FROM changes WHERE tbl = ? AND pk = ? ORDER BY hlc DESC, seq DESC LIMIT 1",
+            (table, pk),
         ).fetchone()
         if local and local[0] >= hlc:
             if local[0] > hlc and local[1] != who and not _superseded(p, table, pk, hlc, who):
@@ -489,10 +524,18 @@ def _write(p: Any, table: str, pk: str, op: str, row: dict[str, Any] | None) -> 
         return
     if table in ("value", "person"):
         names = ["submission_id", "indicator_id", "cats"] + (["pid"] if table == "person" else [])
-        parts = pk.split("|")
-        p.conn.execute(f"DELETE FROM {table} WHERE " + " AND ".join(f"{n} = ?" for n in names), parts[: len(names)])
-        if op == "u" and row:
-            row = {k: v for k, v in row.items() if k != "id"}
+        parts = pk.split("|")[: len(names)]
+        where = " AND ".join(f"{n} = ?" for n in names)
+        if op != "u" or not row:
+            p.conn.execute(f"DELETE FROM {table} WHERE {where}", parts)
+            return
+        # Updated in place, or added: one change logged, never a deletion with the same
+        # time as the new version (which one came last could not be told).
+        row = {k: v for k, v in row.items() if k != "id"}
+        cur = p.conn.execute(
+            f"UPDATE {table} SET {', '.join(f'{k} = ?' for k in row)} WHERE {where}", [*row.values(), *parts]
+        )
+        if cur.rowcount == 0:
             p.conn.execute(
                 f"INSERT INTO {table}({', '.join(row)}) VALUES ({', '.join('?' for _ in row)})", list(row.values())
             )
@@ -563,29 +606,101 @@ def _sync_key(p: Any) -> bytes:
     return security.unb64(key)
 
 
-def pack(p: Any, ops: list[dict[str, Any]]) -> bytes:
+# Who may read a file (section 7.3). Each file is encrypted for one audience:
+#   "all"           the design of the project, with the key every member has;
+#   "office"        everything else, with the office key, which partners do not have;
+#   "partner:<id>"  the data of one partner, with a key derived from the office key and
+#                   given only to that partner's focal points.
+# A file in a shared folder or on the server can thus be fetched by every member, but
+# read only by those it is for.
+
+
+def partner_key(office_key: bytes, partner_id: str) -> bytes:
+    import hashlib
+    import hmac
+
+    return hmac.new(office_key, b"partner:" + partner_id.encode(), hashlib.sha256).digest()
+
+
+def audience_key(p: Any, audience: str) -> bytes | None:
+    meta = p.meta()
+    if audience == "all":
+        return _sync_key(p)
+    office = meta.get("office_key")
+    if audience == "office":
+        return security.unb64(office) if office else None
+    if audience.startswith("partner:"):
+        pid = audience.split(":", 1)[1]
+        if office:
+            return partner_key(security.unb64(office), pid)
+        own = meta.get(f"partner_key:{pid}")
+        return security.unb64(own) if own else None
+    return None
+
+
+def audience_of(p: Any, op: dict[str, Any]) -> str:
+    table = op["t"]
+    if table in DESIGN_TABLES:
+        return "all"
+    if table in PARTNER_TABLES:
+        row = _decode(op["r"]) if op.get("r") else None
+        if row is None and table in ("value", "person", "submission"):
+            sub_id = op["k"] if table == "submission" else op["k"].split("|", 1)[0]
+            got = p.conn.execute("SELECT spec FROM submission WHERE id = ?", (sub_id,)).fetchone()
+            partner = json.loads(got[0]).get("partner_id", "") if got else ""
+        else:
+            partner = _sub_partner(p, row, table) if row is not None else ""
+        if partner:
+            return f"partner:{partner}"
+    return "office"
+
+
+def pack(p: Any, ops: list[dict[str, Any]], audience: str = "office") -> bytes:
     me = security.identity()
     payload = gzip.compress(
         security.canonical(
             {
                 "format": SYNC_FORMAT,
-                "version": 1,
+                "version": 2,
                 "project": p.meta().get("uid", ""),
                 "author": me["id"],
                 "created": now(),
+                "audience": audience,
                 "ops": ops,
             }
         )
     )
+    key = audience_key(p, audience)
+    if key is None:
+        raise _err("This copy cannot write for this audience", "not_allowed")
     envelope = security.canonical({"author": me["id"], "sig": security.sign(payload), "payload": security.b64(payload)})
-    return SYNC_MAGIC + security.seal(_sync_key(p), envelope, SYNC_MAGIC)
+    head = SYNC_MAGIC + bytes([len(audience)]) + audience.encode()
+    return head + security.seal(key, envelope, head)
+
+
+def packs(p: Any, ops: list[dict[str, Any]]) -> list[tuple[str, bytes, int]]:
+    """Operations split by audience, one file each: (audience, file, number of operations)."""
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for op in ops:
+        groups.setdefault(audience_of(p, op), []).append(op)
+    return [(aud, pack(p, items, aud), len(items)) for aud, items in sorted(groups.items())]
+
+
+def file_audience(blob: bytes) -> str:
+    if not blob.startswith(SYNC_MAGIC) or len(blob) < len(SYNC_MAGIC) + 1:
+        raise _err("This file is not a synchronisation file", "sync_invalid")
+    n = blob[len(SYNC_MAGIC)]
+    return blob[len(SYNC_MAGIC) + 1 : len(SYNC_MAGIC) + 1 + n].decode("ascii", "replace")
 
 
 def unpack(p: Any, blob: bytes) -> tuple[dict[str, Any], dict[str, Any]]:
-    if not blob.startswith(SYNC_MAGIC):
-        raise _err("This file is not a synchronisation file", "sync_invalid")
+    audience = file_audience(blob)
+    head = blob[: len(SYNC_MAGIC) + 1 + len(audience.encode())]
+    key = audience_key(p, audience)
+    if key is None:
+        raise _err("This file is for other members of the team", "sync_not_for_me")
     try:
-        envelope = json.loads(security.unseal(_sync_key(p), blob[len(SYNC_MAGIC) :], SYNC_MAGIC))
+        envelope = json.loads(security.unseal(key, blob[len(head) :], head))
     except RpcError:
         raise _err("This file belongs to another project", "sync_other_project") from None
     if not members_trusted(p):
@@ -597,7 +712,7 @@ def unpack(p: Any, blob: bytes) -> tuple[dict[str, Any], dict[str, Any]]:
     if not security.verify(author["public_key"], payload, envelope["sig"]):
         raise _err("The signature of this file is not valid", "sync_bad_signature")
     data = json.loads(gzip.decompress(payload))
-    if data.get("project") != p.meta().get("uid"):
+    if data.get("project") != p.meta().get("uid") or data.get("audience") != audience:
         raise _err("This file belongs to another project", "sync_other_project")
     return data, author
 
@@ -605,7 +720,13 @@ def unpack(p: Any, blob: bytes) -> tuple[dict[str, Any], dict[str, Any]]:
 def receive(p: Any, clock: Clock, blob: bytes) -> dict[str, Any]:
     data, sender = unpack(p, blob)
     # Operations relayed in a package keep their own author; each is judged by its author's rights.
+    # Only an administrator relays the operations of others: from anyone else, an operation
+    # under another author's name is refused (a member cannot act in another's name).
     authors = {m["id"]: m for m in members(p) if m.get("active", True)}
+    relay_ok = "admin" in (authors.get(sender["id"], {}).get("roles") or [])
+    forged = [o for o in data["ops"] if o["a"] != sender["id"] and not relay_ok]
+    if forged:
+        data = {**data, "ops": [o for o in data["ops"] if o not in forged]}
     # Member list changes from the administrator come first, then the rest under the new list.
     first = [
         o
@@ -617,9 +738,15 @@ def receive(p: Any, clock: Clock, blob: bytes) -> dict[str, Any]:
     if first and not members_trusted(p):
         raise _err("The member list received is not signed by the administrator", "members_untrusted")
     authors = {m["id"]: m for m in members(p) if m.get("active", True)}
-    more = apply(p, clock, rest, authors)
-    for k, v in stats.items():
-        more[k] += v
+    # Submissions before their values: only the latest version of a row is sent, so a
+    # submission (submitted after its values were typed) can be newer than its values,
+    # and the rights on a value are read from its submission.
+    more = apply(p, clock, [o for o in rest if o["t"] == "submission"], authors)
+    later = apply(p, clock, [o for o in rest if o["t"] != "submission"], authors)
+    for part in (stats, later):
+        for k, v in part.items():
+            more[k] += v
+    more["refused"] += len(forged)
     security.audit(p.conn, "sync_received", sender["id"], more)
     return more
 
@@ -657,7 +784,7 @@ def scope_filter(p: Any, member: dict[str, Any]):
     """What a member may receive: a partner focal point only its own data and the design."""
     if set(member["roles"]) != {"partner"}:
         return None
-    design = {"framework_node", "indicator", "period", "place", "partner", "disaggregation", "target", "member", "meta"}
+    design = DESIGN_TABLES
     mine = set(member.get("partner_ids") or [])
 
     def keep(table: str, pk: str, row: dict[str, Any] | None) -> bool:
@@ -673,6 +800,15 @@ def scope_filter(p: Any, member: dict[str, Any]):
     return keep
 
 
+def _my_audience(p: Any) -> str:
+    """The audience this copy writes its own files for when it has no other choice."""
+    meta = p.meta()
+    if meta.get("office_key"):
+        return "office"
+    own = sorted(k.split(":", 1)[1] for k in meta if k.startswith("partner_key:"))
+    return f"partner:{own[0]}" if own else "all"
+
+
 def package_for(p: Any, member_id: Any) -> tuple[bytes, int]:
     """A package for one member: all changes since the last package sent to them."""
     member = next((m for m in members(p) if m["id"] == member_id), None)
@@ -682,21 +818,33 @@ def package_for(p: Any, member_id: Any) -> tuple[bytes, int]:
     sent = config(uid).get("sent", {}).get(member_id, 0)
     ops, last = collect(p, None, sent, scope_filter(p, member))
     ops = [o for o in ops if o["a"] != member_id]
-    blob = pack(p, ops)
+    # Encrypted for the one who receives it: a partner's own key, or the office key.
+    theirs = sorted(member.get("partner_ids") or [])
+    if set(member["roles"]) == {"partner"} and theirs and p.meta().get("office_key"):
+        audience = f"partner:{theirs[0]}"
+    else:
+        audience = _my_audience(p)
+    blob = pack(p, ops, audience)
     cfg = config(uid)
     save_config(uid, {"sent": {**cfg.get("sent", {}), member_id: last}})
     security.audit(p.conn, "package_written", member_id, {"ops": len(ops)})
     return blob, len(ops)
 
 
-def _own_since(p: Any, key: str) -> tuple[bytes | None, int, int]:
+def _own_since(p: Any, key: str) -> tuple[list[tuple[str, bytes, int]], int]:
+    """Files for a shared channel: one per audience, so that each member reads only
+    what is for them although every member can fetch every file."""
     uid = p.meta().get("uid", "")
     me = security.identity()["id"]
     after = config(uid).get(key, 0)
-    ops, last = collect(p, me, after)
+    # An administrator also passes on what it received from the others (packages from
+    # partners, say), so that a team using several ways ends with the same data.
+    ops, last = collect(p, None if "admin" in my_roles(p) else me, after)
     if not ops:
-        return None, last, 0
-    return pack(p, ops), last, len(ops)
+        return [], last
+    if not p.meta().get("office_key"):
+        return [(_my_audience(p), pack(p, ops, _my_audience(p)), len(ops))], last
+    return packs(p, ops), last
 
 
 def folder_run(p: Any, clock: Clock, folder: Path) -> dict[str, Any]:
@@ -707,14 +855,15 @@ def folder_run(p: Any, clock: Clock, folder: Path) -> dict[str, Any]:
         raise _err("The shared folder cannot be reached", "folder_missing")
     box = folder / f"suivievallab-{uid[:12]}"
     box.mkdir(exist_ok=True)
-    blob, last, n = _own_since(p, "folder_sent")
+    files_out, last = _own_since(p, "folder_sent")
     written = 0
-    if blob:
-        name = f"{me}-{int(time.time() * 1000):013d}.smesync"
+    stamp = int(time.time() * 1000)
+    for k, (_aud, blob, n) in enumerate(files_out):
+        name = f"{me}-{stamp:013d}-{k}.smesync"
         tmp = box / (name + ".part")
         tmp.write_bytes(blob)
         tmp.replace(box / name)  # others never read a half-written file
-        written = n
+        written += n
     save_config(uid, {"folder_sent": last, "folder": str(folder)})
     done = set(config(uid).get("folder_read", []))
     owner = p.meta().get("owner", "")
@@ -731,7 +880,11 @@ def folder_run(p: Any, clock: Clock, folder: Path) -> dict[str, Any]:
                 totals[k] += got.get(k, 0)
             done.add(f.name)
         except RpcError as exc:
-            errors.append({"file": f.name, "key": (exc.data or {}).get("key")})
+            key = (exc.data or {}).get("key")
+            if key == "sync_not_for_me":
+                done.add(f.name)  # for other members: not an error
+                continue
+            errors.append({"file": f.name, "key": key})
     save_config(uid, {"folder_read": sorted(done)[-5000:], "last_run": now()})
     return {"written": written, "read": len(files) - len(errors), "errors": errors, **totals}
 
@@ -759,8 +912,8 @@ def server_run(p: Any, clock: Clock, url: str, token: str) -> dict[str, Any]:
         except (urllib.error.URLError, OSError):
             raise _err("The server cannot be reached", "server_unreachable") from None
 
-    blob, last, n = _own_since(p, "server_sent")
-    if blob:
+    files_out, last = _own_since(p, "server_sent")
+    for _aud, blob, _n in files_out:
         call("/files", blob, {"X-Author": me, "Content-Type": "application/octet-stream"})
     save_config(uid, {"server_sent": last, "server": url})
     after = config(uid).get("server_read", 0)
@@ -777,6 +930,9 @@ def server_run(p: Any, clock: Clock, url: str, token: str) -> dict[str, Any]:
             for k in totals:
                 totals[k] += got.get(k, 0)
         except RpcError as exc:
-            errors.append({"file": str(item["seq"]), "key": (exc.data or {}).get("key")})
+            key = (exc.data or {}).get("key")
+            if key != "sync_not_for_me":  # a file for other members is not an error
+                errors.append({"file": str(item["seq"]), "key": key})
     save_config(uid, {"server_read": top, "last_run": now()})
-    return {"written": n if blob else 0, "read": len(listing.get("files", [])), "errors": errors, **totals}
+    written = sum(n for _a, _b, n in files_out)
+    return {"written": written, "read": len(listing.get("files", [])), "errors": errors, **totals}
