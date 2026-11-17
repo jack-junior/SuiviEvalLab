@@ -840,13 +840,34 @@ try {
   if ((await page.locator(".ind-row").count()) !== before + 1)
     throw new Error("Library indicator not added");
 
+  // Team and security: set up the team, read the audit trail, then encrypt the
+  // project. Done last: an encrypted project asks for its password when reopened.
+  await id("nav-setup").click();
+  await id("setup-tab-team").click();
+  await id("team-name").fill("Responsable S&E");
+  await id("team-start").click();
+  await id("member-add").waitFor({ timeout: 60_000 });
+  await page.locator('[data-testid="audit"] summary').click();
+  const trail = await id("audit").innerText();
+  if (!/intact/.test(trail))
+    throw new Error(`Audit trail not intact: ${trail}`);
+  await id("sec-set").click();
+  await id("sec-password").fill("e2e-password-1");
+  await id("sec-password2").fill("e2e-password-1");
+  await id("sec-confirm").click();
+  await page
+    .locator('[data-testid="protection"] .notice')
+    .first()
+    .waitFor({ timeout: 60_000 });
+  await shot("team");
+
   // Updates section (in this test build, checks are off: the update test does them).
   await id("engines-link").click();
   await id("updates-section").waitFor({ timeout: 30_000 });
   notice("E2E updates", await id("update-status").innerText());
   notice(
     "E2E",
-    "Full path verified: project sheet, framework, import, cleaning, indicator, monitoring plan, periodic entry, reception and validation, tracking, gap comment, project today, agenda, work plan and budget, feedback, recommendations, risks, meetings, evaluation with coded notes, periodic report in a donor format, tracking export, analysis, report, SPSS, quality, merge, dashboard, checks, plan export, workspace today, workspace, portfolio dashboard and note, sample size, example, test, logframe matrix, Kobo server sync, languages, indicator library",
+    "Full path verified: project sheet, framework, import, cleaning, indicator, monitoring plan, periodic entry, reception and validation, tracking, gap comment, project today, agenda, work plan and budget, feedback, recommendations, risks, meetings, evaluation with coded notes, periodic report in a donor format, tracking export, analysis, report, SPSS, quality, merge, dashboard, checks, plan export, workspace today, workspace, portfolio dashboard and note, sample size, example, test, logframe matrix, Kobo server sync, languages, indicator library, team, audit trail, encryption",
   );
 } catch (e) {
   // The screen at the moment of failure, kept with the other screenshots.

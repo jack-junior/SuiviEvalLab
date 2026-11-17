@@ -4,7 +4,7 @@
 // Application shell: sidebar navigation, top bar, and the screen for the current view.
 
 import { useCallback, useEffect, useState } from "react";
-import { appInfo, AppInfo, call, EngineCallError, recents, Versions } from "./api";
+import { appInfo, AppInfo, call, EngineCallError, onEngineEvent, recents, Versions } from "./api";
 import { Lang, useI18n } from "./i18n";
 import logo from "./logo.svg";
 import { Accountability } from "./screens/Accountability";
@@ -110,6 +110,15 @@ export function App() {
       .catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Changes received in the background from the team's shared folder.
+  useEffect(
+    () =>
+      onEngineEvent((e) => {
+        if (e.method === "sync.done") void run("project.get");
+      }),
+    [run],
+  );
 
   useEffect(() => {
     appInfo()

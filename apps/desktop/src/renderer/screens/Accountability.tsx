@@ -8,6 +8,7 @@
 import { useState } from "react";
 import {
   ACTION_STATES,
+  call,
   CHANNELS,
   Decision,
   Feedback,
@@ -27,6 +28,7 @@ import {
   Snapshot,
 } from "../api";
 import { useI18n } from "../i18n";
+import { Attachments } from "../Attachments";
 import { useProject } from "../state";
 import { Confirm, Empty, Field, Icon, IconButton, Notice, Panel } from "../ui";
 
@@ -242,12 +244,22 @@ function FeedbackPanel({ item, onClose }: { item: Feedback | null; onClose: () =
     >
       {!revealed ? (
         <div className="stack">
-          <Notice>{t("fb.sensitiveHidden")}</Notice>
-          <div>
-            <button className="btn" onClick={() => setRevealed(true)} data-testid="fb-reveal">
-              {t("fb.reveal")}
-            </button>
-          </div>
+          <Notice>{t(item?.masked ? "fb.maskedText" : "fb.sensitiveHidden")}</Notice>
+          {!item?.masked && (
+            <div>
+              <button
+                className="btn"
+                onClick={async () => {
+                  // Each reading of a sensitive case is written in the audit trail.
+                  await call("feedback.reveal", { id: item!.id });
+                  setRevealed(true);
+                }}
+                data-testid="fb-reveal"
+              >
+                {t("fb.reveal")}
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <>
@@ -425,6 +437,7 @@ function FeedbackPanel({ item, onClose }: { item: Feedback | null; onClose: () =
           )}
         </>
       )}
+      {revealed && <Attachments kind="feedback" id={item?.id} />}
       {confirm && (
         <Confirm
           text={t("fb.deleteConfirm")}
@@ -803,6 +816,7 @@ export function RecommendationPanel({
           </div>
         </>
       )}
+      <Attachments kind="recommendation" id={item?.id} />
       {confirm && (
         <Confirm
           text={t("recs.deleteConfirm")}

@@ -20,16 +20,17 @@ import {
 import { useI18n } from "../i18n";
 import { useProject } from "../state";
 import { Confirm, Empty, Field, Icon, IconButton, Notice, Panel } from "../ui";
+import { Team } from "./Team";
 
-type Tab = "profile" | "calendar" | "places" | "partners" | "disaggregations";
-const TABS: Tab[] = ["profile", "calendar", "places", "partners", "disaggregations"];
+type Tab = "profile" | "calendar" | "places" | "partners" | "disaggregations" | "team";
+const TABS: Tab[] = ["profile", "calendar", "places", "partners", "disaggregations", "team"];
 const FREQUENCIES: Frequency[] = ["monthly", "quarterly", "semiannual", "annual"];
 const ROLES: PartnerRole[] = ["implementing", "funding", "technical", "government", "community", "research", "other"];
 
 export function Setup() {
   const { t } = useI18n();
-  const { snap } = useProject();
-  const [tab, setTab] = useState<Tab>("profile");
+  const { snap, focus } = useProject();
+  const [tab, setTab] = useState<Tab>(focus === "team" ? "team" : "profile");
   if (!snap) return null;
   const counts: Partial<Record<Tab, number>> = {
     calendar: snap.periods.length,
@@ -63,6 +64,7 @@ export function Setup() {
       {tab === "places" && <Places />}
       {tab === "partners" && <Partners />}
       {tab === "disaggregations" && <Disaggregations />}
+      {tab === "team" && <Team />}
     </div>
   );
 }

@@ -23,6 +23,7 @@ import { cellsOf, defaultPeriod, entryKind, periodLabel, toNumber, todayIso, uni
 import { useProject } from "../state";
 import { Empty, Field, Icon, Notice, Panel } from "../ui";
 import { ConnectionsPanel } from "./Connections";
+import { Attachments } from "../Attachments";
 
 export function Reception() {
   const { t, lang, day } = useI18n();
@@ -873,6 +874,7 @@ function EntryPanel({
           }}
         />
       )}
+      <Attachments kind="submission" id={subId} />
       {pasting && (
         <PeopleDialog
           name={pasting.ind.name}

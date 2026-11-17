@@ -36,6 +36,9 @@ def state(p: Project, day: str | None = None) -> dict[str, Any]:
     for r in p.records("risk"):
         due = rg.risk_review_due(r)
         risks.append({**r, "level": rg.risk_level(r), "review_due": due, "review_late": bool(due and due < day)})
+    from . import team_rpc
+
+    feedback = team_rpc.mask(p, feedback)
     return {
         "activities": workplan.activities_view(p, day),
         "budget_lines": p.records("budget_line"),
@@ -201,6 +204,11 @@ def register_registers(server: Server, svc: Service) -> None:
     @server.method("feedback.save")
     def feedback_save(params: dict[str, Any]) -> dict[str, Any]:
         p = project()
+        from . import sync
+
+        if params.get("id") and p.record("feedback", params["id"]).get("sensitive"):
+            if not ({"admin", "feedback"} & sync.my_roles(p)):
+                raise rg._err("Only the feedback manager changes sensitive cases", "not_allowed")
         key = reception.person_key(p)
         spec = rg.validate_feedback(
             params.get("feedback"),
@@ -208,6 +216,10 @@ def register_registers(server: Server, svc: Service) -> None:
             current("feedback", params),
             lambda raw: reception.pseudonym(key, raw),
         )
+        if spec["sensitive"]:
+            from . import team_rpc
+
+            team_rpc.require_encryption(p)
         return save("feedback", params, spec)
 
     @server.method("feedback.delete")

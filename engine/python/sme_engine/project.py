@@ -22,7 +22,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from . import frameworks, monitoring, registers
+from . import frameworks, monitoring, registers, security
 from .rpc import INVALID_PARAMS, RpcError
 
 APPLICATION_ID = 0x534D4531  # "SME1": marks a file as a SuiviEvalLab project
@@ -121,6 +121,15 @@ CREATE TABLE cleaning_rule (
 """
 
 # Version 6: monitoring. JSON records, plus the value table of monitoring.py.
+_ATTACHMENT_SCHEMA = """
+CREATE TABLE IF NOT EXISTS attachment (
+    id          TEXT PRIMARY KEY,
+    position    INTEGER NOT NULL,
+    spec        TEXT NOT NULL,           -- JSON, see attachments.py
+    data        BLOB NOT NULL
+);
+"""
+
 _V6_SCHEMA = (
     """
 CREATE TABLE IF NOT EXISTS submission (
@@ -163,6 +172,8 @@ CREATE TABLE IF NOT EXISTS event (
 """
     + monitoring.SCHEMA
     + registers.SCHEMA
+    + security.AUDIT_SCHEMA
+    + _ATTACHMENT_SCHEMA
 )
 
 
@@ -189,9 +200,33 @@ def _text(params: dict[str, Any], name: str, *, required: bool = True, max_len: 
 class Project:
     """An open .sme file."""
 
-    def __init__(self, path: Path, conn: sqlite3.Connection):
-        self.path = path
+    def __init__(
+        self, path: Path, conn: sqlite3.Connection, work: Path | None = None, key: tuple[bytes, bytes] | None = None
+    ):
+        from . import sync
+
+        self.path = path  # the file the user knows; for an encrypted project, the encrypted one
         self.conn = conn
+        self.work = work  # the private decrypted copy of an encrypted project
+        self.key = key  # (key, salt) of an encrypted project
+        self.clock = sync.CLOCKS.pop(id(conn), None) or sync.attach(conn)
+        try:
+            sync.install_triggers(conn)
+        except sqlite3.OperationalError:
+            pass  # a project read without being changed (workspace, portfolio)
+
+    @property
+    def encrypted(self) -> bool:
+        return self.work is not None
+
+    def flush(self) -> None:
+        """Write the decrypted working copy back to the encrypted file."""
+        if self.work is None or self.key is None:
+            return
+        from . import security
+
+        self.conn.commit()
+        security.encrypt_file(self.work, self.path, key_salt=self.key)
 
     # ----- opening and creating -------------------------------------------------
 
@@ -226,12 +261,36 @@ class Project:
         return cls(path, conn)
 
     @classmethod
-    def open(cls, path: str | Path) -> Project:
+    def open(cls, path: str | Path, password: str | None = None) -> Project:
+        from . import security
+
         path = Path(path)
         if not path.is_file():
             raise _err(f"File not found: {path}", "project_not_found")
+        work, key = None, None
+        if security.is_encrypted(path):
+            if not password:
+                raise _err("This project is protected by a password", "password_required")
+            plain, k, salt = security.decrypt_file(path, password)
+            work, key = security.work_path(path), (k, salt)
+            # A working copy left by a stop of the computer is newer than the file: keep it.
+            keep = False
+            if work.is_file():
+                try:
+                    with sqlite3.connect(work) as old:
+                        left = old.execute("SELECT value FROM meta WHERE key = 'updated_at'").fetchone()
+                    tmp = work.with_suffix(".check")
+                    tmp.write_bytes(plain)
+                    with sqlite3.connect(tmp) as fresh:
+                        saved = fresh.execute("SELECT value FROM meta WHERE key = 'updated_at'").fetchone()
+                    tmp.unlink()
+                    keep = bool(left and saved and left[0] > saved[0])
+                except sqlite3.DatabaseError:
+                    keep = False
+            if not keep:
+                work.write_bytes(plain)
         try:
-            conn = cls._connect(path)
+            conn = cls._connect(work or path)
             app_id = conn.execute("PRAGMA application_id").fetchone()[0]
             version = conn.execute("PRAGMA user_version").fetchone()[0]
         except sqlite3.DatabaseError:
@@ -245,7 +304,8 @@ class Project:
         try:
             from . import backups
 
-            backups.snapshot(conn, path)  # before any migration, so the old version is kept too
+            if work is None:  # a copy of an encrypted project would be written in clear
+                backups.snapshot(conn, path)  # before any migration, so the old version is kept too
         except (OSError, sqlite3.Error):
             pass  # a copy that cannot be written must not stop the user from working
         cls._migrate(conn, version)
@@ -257,7 +317,7 @@ class Project:
                 "INSERT OR REPLACE INTO meta(key, value) VALUES ('previous_open', ?)", (row[0] if row else "",)
             )
             conn.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('opened_at', ?)", (_now(),))
-        return cls(path, conn)
+        return cls(path, conn, work, key)
 
     @staticmethod
     def _migrate(conn: sqlite3.Connection, version: int) -> None:
@@ -358,10 +418,16 @@ class Project:
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
         conn.execute("PRAGMA journal_mode = DELETE")  # a single file the user can copy or email
+        from . import sync
+
+        sync.CLOCKS[id(conn)] = sync.attach(conn)  # the triggers of shared tables call it
         return conn
 
     def close(self) -> None:
+        self.flush()
         self.conn.close()
+        if self.work is not None:
+            self.work.unlink(missing_ok=True)
 
     # ----- metadata -------------------------------------------------------------
 
@@ -376,6 +442,8 @@ class Project:
         }
         return {
             "path": str(self.path),
+            "uid": meta.get("uid", ""),
+            "encrypted": self.encrypted,
             "name": meta.get("name", self.path.stem),
             "created_at": meta.get("created_at"),
             "updated_at": meta.get("updated_at"),
@@ -553,6 +621,8 @@ class Project:
         "event": None,
         "quality_review": "indicator_id",
         "connection": None,
+        "member": None,
+        "attachment": None,
         **{t: None for t in registers.TABLES},
     }
 

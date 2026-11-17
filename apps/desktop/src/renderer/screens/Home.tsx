@@ -23,6 +23,7 @@ import { useProject } from "../state";
 import { Confirm, Field, Icon, IconButton, Notice, Panel } from "../ui";
 import { customValid, ModelPicker, useModels } from "./ModelPicker";
 import { SampleSizePanel } from "./SampleSize";
+import { JoinPanel } from "./Team";
 import { Deadlines, ProjectCard } from "./Workspace";
 
 const REOPEN_KEY = "sme.reopenLast";
@@ -48,6 +49,7 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
   const [reopen, setReopen] = useState(readReopen);
   const [history, setHistory] = useState<Recent | null>(null);
   const [sampling, setSampling] = useState(false);
+  const [joining, setJoining] = useState(false);
   const models = useModels();
   const [model, setModel] = useState<FrameworkModel | null>(null);
   const chosen = model ?? models?.[0] ?? null;
@@ -176,6 +178,11 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
           <Icon name="calc" /> {t("sample.open")}
         </button>{" "}
         {t("sample.openHint")}
+        <br />
+        <button className="link" onClick={() => setJoining(true)} disabled={!enginesReady} data-testid="open-join">
+          <Icon name="people" /> {t("team.joinLink")}
+        </button>{" "}
+        {t("team.joinHint")}
       </p>
 
       {list && <Deadlines list={list} onOpen={openRecent} />}
@@ -271,6 +278,15 @@ export function Home({ enginesReady }: { enginesReady: boolean }) {
         )}
       </section>
       {sampling && <SampleSizePanel onClose={() => setSampling(false)} />}
+      {joining && (
+        <JoinPanel
+          onClose={() => setJoining(false)}
+          onJoined={() => {
+            setJoining(false);
+            go("today");
+          }}
+        />
+      )}
       {creating && (
         <Panel
           title={t("home.newTitle")}

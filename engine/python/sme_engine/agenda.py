@@ -448,6 +448,12 @@ def _registers(p: Project, day: str, events: list[dict[str, Any]], tasks: list[d
                 }
             )
 
+    from . import team_rpc
+
+    old = team_rpc.purgeable(p, day)
+    if old:
+        tasks.append({"id": "auto:privacy", "auto": True, "kind": "privacy", "due": day, "name": str(len(old))})
+
     for m in p.records("meeting"):
         for d in m["decisions"]:
             if d["as_task"] and d["status"] != "done":

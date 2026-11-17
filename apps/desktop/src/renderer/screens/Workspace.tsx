@@ -7,7 +7,7 @@
 import { ReactNode } from "react";
 import { Recent } from "../api";
 import { useI18n } from "../i18n";
-import { Progress } from "../ui";
+import { Icon, Progress } from "../ui";
 
 const DAY = 86_400_000;
 
@@ -99,6 +99,11 @@ export function ProjectCard({
         {!r.exists && <span className="muted small">{t("home.missingFile")}</span>}
         {c?.state === "older" && <span className="muted small">{t("ws.older")}</span>}
         {c?.state === "too_new" && <span className="muted small">{t("ws.tooNew")}</span>}
+        {c?.state === "encrypted" && (
+          <span className="muted small">
+            <Icon name="lock" size={13} /> {t("ws.encrypted")}
+          </span>
+        )}
         {p?.start && p.end && (
           <span className="ws-time">
             <span className="small">

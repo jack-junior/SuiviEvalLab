@@ -145,6 +145,7 @@ def test_budget_execution_and_expense_import(call, tmp_path):
 
 def test_feedback_circuit_deadlines_and_pseudonyms(call, tmp_path):
     _project(call, tmp_path)
+    call("project.encrypt", {"password": "un mot de passe"})
     fb = call(
         "feedback.save",
         {
@@ -338,6 +339,7 @@ def test_periodic_reports_in_every_donor_format(call, tmp_path):
     )
     line = call("budget_line.save", {"line": {"name": "Formations", "planned": {codes[0]: 500}}})["created"]
     call("expense.save", {"expense": {"line_id": line, "date": snap["periods"][0]["start"], "amount": 120}})
+    call("project.encrypt", {"password": "un mot de passe"})
     call(
         "feedback.save", {"feedback": {"received": snap["periods"][0]["start"], "category": "sea", "summary": "Secret"}}
     )

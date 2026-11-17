@@ -12,6 +12,7 @@ import sqlite3
 import pytest
 
 from sme_engine import monitoring as m
+from sme_engine import sync
 from sme_engine.methods import register
 from sme_engine.r_bridge import RBridge
 from sme_engine.rpc import Server
@@ -326,6 +327,7 @@ def test_routine_values_of_version_5_are_migrated(call, tmp_path):
     )["saved"]
     call("project.close")
     conn = sqlite3.connect(path)
+    sync.attach(conn)
     rows = [
         {"period": "2025-T3", "end": "2025-09-30", "achieved": 20, "planned": 25, "by": {"Femmes": 12, "Hommes": 8}},
         {"period": "2025-T4", "end": "2025-12-31", "achieved": 30, "planned": 25, "by": {}},
@@ -352,6 +354,7 @@ def test_routine_values_of_version_5_are_migrated(call, tmp_path):
     assert an["current"] == 50 and an["by_total"] == {"Femmes": 12, "Hommes": 8}
     # The row without a date could not be placed: it is kept and listed.
     conn = sqlite3.connect(path)
+    sync.attach(conn)
     assert conn.execute("SELECT COUNT(*) FROM routine_value").fetchone()[0] == 3
     unplaced = json.loads(conn.execute("SELECT value FROM meta WHERE key = 'routine_unplaced'").fetchone()[0])
     assert unplaced == [{"indicator_id": ind, "period": "Avant"}]
@@ -694,6 +697,7 @@ def test_quality_review_reminder_and_changes_since_last_opening(call, tmp_path):
     import sqlite3 as _s
 
     conn = _s.connect(path)
+    sync.attach(conn)
     conn.execute("UPDATE meta SET value = '2026-01-01T00:00:00+00:00' WHERE key = 'opened_at'")
     conn.commit()
     conn.close()
@@ -707,6 +711,8 @@ def test_quality_review_reminder_and_changes_since_last_opening(call, tmp_path):
 
 def test_unique_people_are_counted_once(call, tmp_path):
     node = _project(call, tmp_path, reporting_by="partner")
+    # Identifiers of people need a protected project (section 8).
+    call("project.encrypt", {"password": "un mot de passe"})
     a = call("partner.save", {"partner": {"name": "A"}})["created"]
     b = call("partner.save", {"partner": {"name": "B"}})["created"]
     ind = call(

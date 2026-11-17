@@ -40,6 +40,7 @@ interface SmeBridge {
   archive?: (file: string, archived: boolean) => Promise<Recent[]>;
   duplicate?: (file: string, token: string, name: string) => Promise<CallResult<Recent[]>>;
   updates?: UpdatesBridge;
+  onEvent?: (listener: (event: { method: string; params: unknown }) => void) => () => void;
 }
 
 export type UpdateStatus =
@@ -81,6 +82,14 @@ export type PickKind =
   | "pack-save"
   | "pack-open"
   | "pdf-save"
+  | "smeid-save"
+  | "smeid-open"
+  | "join-save"
+  | "join-open"
+  | "sync-save"
+  | "sync-open"
+  | "any-open"
+  | "any-save"
   | "folder"
   | "template-open";
 export interface Picked {
@@ -101,7 +110,7 @@ export interface Recent {
 
 export interface ProjectCard {
   path: string;
-  state: "ok" | "older" | "missing" | "unreadable" | "too_new";
+  state: "ok" | "older" | "missing" | "unreadable" | "too_new" | "encrypted";
   name?: string;
   updated_at?: string;
   model?: string;
@@ -484,6 +493,8 @@ export interface Labels {
 
 export interface ProjectInfo {
   path: string;
+  uid: string;
+  encrypted: boolean;
   name: string;
   created_at: string;
   updated_at: string;
@@ -528,6 +539,71 @@ export interface Snapshot {
   evaluations: Evaluation[];
   qual_notes: QualNote[];
   qual_themes: QualTheme[];
+  team: TeamState;
+  /** Number of supporting documents by "kind:id" of the object they belong to. */
+  attachments: Record<string, number>;
+}
+
+// ----- sections 7 and 8: working together and security -----
+
+export const ROLES = ["admin", "officer", "partner", "validator", "feedback", "reader"] as const;
+export type Role = (typeof ROLES)[number];
+export interface Member {
+  id: string;
+  name: string;
+  roles: Role[];
+  partner_ids: string[];
+  public_key: string;
+  active: boolean;
+  fingerprint: string;
+  me: boolean;
+}
+export interface Conflict {
+  id: string;
+  kind: "conflict" | "request";
+  table: string;
+  pk: string;
+  at: string;
+  author: string;
+  op: "u" | "d";
+  row: Record<string, unknown> | null;
+}
+export interface TeamState {
+  on: boolean;
+  me: { id: string; name: string; public_key: string; fingerprint: string };
+  roles: Role[];
+  owner: string;
+  trusted: boolean;
+  members: Member[];
+  conflicts: Conflict[];
+  folder: string;
+  server: string;
+  last_run: string;
+  encrypted: boolean;
+  sensitive: boolean;
+  retention_months: number;
+}
+export interface Attachment {
+  id: string;
+  owner_kind: string;
+  owner_id: string;
+  name: string;
+  size: number;
+  sha256: string;
+  mime: string;
+  description: string;
+  added_at: string;
+  added_by: string;
+}
+export interface SyncResult {
+  written?: number;
+  read?: number;
+  applied: number;
+  skipped: number;
+  refused: number;
+  conflicts: number;
+  requests: number;
+  errors?: { file: string; key: string }[];
 }
 
 // ----- M12 report formats -----
@@ -681,6 +757,8 @@ export interface Feedback {
   closed_at: string | null;
   deadline: string;
   overdue: boolean;
+  /** The content is hidden from this member's role. */
+  masked?: boolean;
 }
 export const REC_SOURCES = ["evaluation", "mission", "review", "audit", "other"] as const;
 export const RESPONSES = ["pending", "accepted", "partial", "rejected"] as const;
@@ -1292,6 +1370,9 @@ export const appInfo = () => bridge.info();
 export const pick = (kind: PickKind, defaultName?: string) => bridge.pick?.(kind, defaultName) ?? Promise.resolve(null);
 export const recents = () => bridge.recents?.() ?? Promise.resolve([]);
 export const recentToken = (file: string) => bridge.recentToken?.(file) ?? Promise.resolve(null);
+/** Events the engine sends on its own (a synchronisation made in the background). */
+export const onEngineEvent = (listener: (event: { method: string; params: unknown }) => void) =>
+  bridge.onEvent?.(listener) ?? (() => undefined);
 export const archiveProject = (file: string, archived: boolean) =>
   bridge.archive?.(file, archived) ?? Promise.resolve([] as Recent[]);
 export async function duplicateProject(file: string, token: string, name: string): Promise<Recent[]> {

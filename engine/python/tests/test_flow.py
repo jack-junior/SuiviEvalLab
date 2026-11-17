@@ -19,6 +19,7 @@ import polars as pl
 import pytest
 from docx import Document
 
+from sme_engine import sync
 from sme_engine.methods import register
 from sme_engine.r_bridge import RBridge, find_rscript
 from sme_engine.rpc import Server
@@ -260,6 +261,7 @@ def test_test_assistant_on_real_data(engine, tmp_path):
     engine("project.create", {"path": str(old), "name": "ancien"})
     engine("project.close")
     con = sqlite3.connect(old)
+    sync.attach(con)
     con.execute("DROP TABLE saved_test")
     con.execute("PRAGMA user_version = 1")
     con.commit()

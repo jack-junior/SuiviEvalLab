@@ -48,6 +48,10 @@ def summary(path: str, today: str | None = None, lang: str = "fr") -> dict[str, 
     file = Path(path)
     if not file.is_file():
         return {"path": path, "state": "missing"}
+    from . import security
+
+    if security.is_encrypted(file):
+        return {"path": path, "state": "encrypted", "name": file.stem}
     try:
         conn = sqlite3.connect(f"{file.resolve().as_uri()}?mode=ro", uri=True)
     except sqlite3.Error:

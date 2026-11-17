@@ -11,7 +11,7 @@ import sqlite3
 
 import pytest
 
-from sme_engine import frameworks, schedule
+from sme_engine import frameworks, schedule, sync
 from sme_engine.methods import register
 from sme_engine.r_bridge import RBridge
 from sme_engine.rpc import Server
@@ -241,6 +241,7 @@ def test_migration_from_version_4(call, tmp_path):
     call("indicator.save", {"node_id": ir, "indicator": {"name": "Routes", "unit": "count"}})
     call("project.close")
     conn = sqlite3.connect(path)
+    sync.attach(conn)
     conn.execute("PRAGMA foreign_keys = OFF")
     conn.executescript(
         """
@@ -266,6 +267,7 @@ def test_migration_from_version_4(call, tmp_path):
     assert len(snap["indicators"]) == 1 and len(snap["framework"]) == 2
     assert snap["periods"] == [] and snap["targets"] == {}
     conn = sqlite3.connect(path)
+    sync.attach(conn)
     assert conn.execute("PRAGMA user_version").fetchone()[0] == 6
     assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
     sql = conn.execute("SELECT sql FROM sqlite_master WHERE name = 'indicator'").fetchone()[0]
@@ -357,6 +359,7 @@ def test_workspace_summaries(call, tmp_path):
     call("project.create", {"path": str(b), "name": "Projet B"})
     # Old project: schema 4 file, read without being migrated.
     conn = sqlite3.connect(b)
+    sync.attach(conn)
     conn.execute("PRAGMA user_version = 4")
     conn.commit()
     conn.close()
@@ -381,5 +384,6 @@ def test_workspace_summaries(call, tmp_path):
     assert pb["state"] == "older" and pb["phase"] == "unset"
     assert pj["state"] == "unreadable" and pg["state"] == "missing"
     conn = sqlite3.connect(b)
+    sync.attach(conn)
     assert conn.execute("PRAGMA user_version").fetchone()[0] == 4  # not migrated
     conn.close()

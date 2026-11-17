@@ -93,6 +93,9 @@ def register_reception(server: Server, svc: Service) -> None:
 
     @server.method("people.save")
     def people_save(params: dict[str, Any]) -> dict[str, Any]:
+        from . import team_rpc
+
+        team_rpc.require_encryption(project())
         n = rc.save_people(
             project(), params.get("id"), params.get("indicator_id"), params.get("ids"), params.get("cats")
         )

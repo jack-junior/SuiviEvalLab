@@ -12,7 +12,7 @@ import sqlite3
 import pytest
 from docx import Document
 
-from sme_engine import frameworks, project, routine
+from sme_engine import frameworks, project, routine, sync
 from sme_engine.methods import register
 from sme_engine.r_bridge import RBridge, find_rscript
 from sme_engine.rpc import Server
@@ -93,6 +93,7 @@ def test_migration_from_version_2(tmp_path, call):
     call("framework.add", {"title": "Impact"})
     call("project.close")
     conn = sqlite3.connect(path)
+    sync.attach(conn)
     conn.executescript(
         "ALTER TABLE framework_node DROP COLUMN assumptions; DROP TABLE routine_value; PRAGMA user_version = 2;"
     )

@@ -21,6 +21,7 @@ import polars as pl
 from . import (
     __version__,
     analyses,
+    attachments,
     cleaning,
     cleaning_free,
     cleaning_more,
@@ -40,6 +41,7 @@ from . import (
     report_content,
     rscript,
     stattests,
+    team_rpc,
     trust,
     xlsform,
 )
@@ -124,6 +126,8 @@ class Service:
             **project_setup.state(p),
             **reception_rpc.state(p),
             **registers_rpc.state(p),
+            "team": team_rpc.team_state(p),
+            "attachments": attachments.counts(p),
             "connections": p.records("connection"),
         }
 
@@ -1014,7 +1018,8 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
 
     @server.method("project.open")
     def open_(params: dict[str, Any]) -> dict[str, Any]:
-        return opened(Project.open(_text(params, "path", max_len=4000)))
+        password = params.get("password") if isinstance(params.get("password"), str) else None
+        return opened(Project.open(_text(params, "path", max_len=4000), password))
 
     @server.method("project.backups")
     def backups_list(params: dict[str, Any]) -> dict[str, Any]:
@@ -1413,4 +1418,5 @@ def register(server: Server, workspace: Workspace, bridge: RBridge) -> Service:
     reception_rpc.register_canevas(server, svc)
     connectors_rpc.register_connectors(server, svc)
     registers_rpc.register_registers(server, svc)
+    team_rpc.register_team(server, svc)
     return svc

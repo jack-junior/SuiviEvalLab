@@ -14,7 +14,7 @@ import { Updates } from "./updates";
 // Engine methods the interface is allowed to call (allowlist). Methods that read or
 // write files never receive a path from the interface: they receive a `file_token`
 // obtained from a file dialog, which the main process swaps for the real path.
-const SECRET_METHODS = new Set(["connection.forms", "connection.sync", "dhis2.search", "dhis2.import"]);
+const SECRET_METHODS = new Set(["connection.forms", "connection.sync", "dhis2.search", "dhis2.import", "sync.server"]);
 const ALLOWED = new Set([
   "system.ping",
   "system.versions",
@@ -177,6 +177,31 @@ const ALLOWED = new Set([
   "portfolio.settings",
   "portfolio.import_pack",
   "portfolio.remove_pack",
+  "identity.get",
+  "identity.set_name",
+  "identity.export",
+  "team.start",
+  "member.add",
+  "member.update",
+  "team.join_file",
+  "team.join",
+  "sync.package",
+  "sync.receive",
+  "sync.folder",
+  "sync.server",
+  "conflict.resolve",
+  "project.encrypt",
+  "project.change_password",
+  "project.decrypt",
+  "project.flush",
+  "audit.list",
+  "feedback.reveal",
+  "privacy.settings",
+  "privacy.purge",
+  "attachment.add",
+  "attachment.list",
+  "attachment.delete",
+  "attachment.save_as",
 ]);
 
 // Paths chosen by the user in a dialog, by token. Tokens live for the session.
@@ -197,6 +222,14 @@ type DialogKind =
   | "pack-save"
   | "pack-open"
   | "pdf-save"
+  | "smeid-save"
+  | "smeid-open"
+  | "join-save"
+  | "join-open"
+  | "sync-save"
+  | "sync-open"
+  | "any-open"
+  | "any-save"
   | "folder"
   | "template-open";
 
@@ -218,7 +251,11 @@ async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token
       kind === "r-save" ||
       kind === "ics-save" ||
       kind === "pack-save" ||
-      kind === "pdf-save"
+      kind === "pdf-save" ||
+      kind === "smeid-save" ||
+      kind === "join-save" ||
+      kind === "sync-save" ||
+      kind === "any-save"
     ) {
       const filter = {
         "project-save": { name: "SuiviEvalLab", extensions: ["sme"], file: "Projet.sme" },
@@ -230,6 +267,10 @@ async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token
         "ics-save": { name: "iCalendar", extensions: ["ics"], file: "Agenda.ics" },
         "pack-save": { name: "SuiviEvalLab", extensions: ["smepack"], file: "Paquet.smepack" },
         "pdf-save": { name: "PDF", extensions: ["pdf"], file: "Portefeuille.pdf" },
+        "smeid-save": { name: "SuiviEvalLab", extensions: ["smeid"], file: "Identite.smeid" },
+        "join-save": { name: "SuiviEvalLab", extensions: ["smejoin"], file: "Invitation.smejoin" },
+        "sync-save": { name: "SuiviEvalLab", extensions: ["smesync"], file: "Paquet.smesync" },
+        "any-save": { name: "*", extensions: ["*"], file: "Document" },
       }[kind];
       const res = await dialog.showSaveDialog(win, {
         defaultPath: path.join(docs, defaultName ?? filter.file),
@@ -252,7 +293,23 @@ async function pickFile(kind: DialogKind, defaultName?: string): Promise<{ token
         "ics-open": [{ name: "iCalendar", extensions: ["ics"] }],
         "xlsx-open": [{ name: "Excel", extensions: ["xlsx", "xlsm"] }],
         "pack-open": [{ name: "SuiviEvalLab", extensions: ["smepack"] }],
-      }[kind as "project-open" | "data-open" | "template-open" | "ics-open" | "xlsx-open" | "pack-open"];
+        "smeid-open": [{ name: "SuiviEvalLab", extensions: ["smeid"] }],
+        "join-open": [{ name: "SuiviEvalLab", extensions: ["smejoin"] }],
+        "sync-open": [{ name: "SuiviEvalLab", extensions: ["smesync"] }],
+        "any-open": [{ name: "*", extensions: ["*"] }],
+      }[
+        kind as
+          | "project-open"
+          | "data-open"
+          | "template-open"
+          | "ics-open"
+          | "xlsx-open"
+          | "pack-open"
+          | "smeid-open"
+          | "join-open"
+          | "sync-open"
+          | "any-open"
+      ];
       const res = await dialog.showOpenDialog(win, { defaultPath: docs, properties: ["openFile"], filters });
       chosen = res.canceled ? undefined : res.filePaths[0];
     }
@@ -401,6 +458,18 @@ app.whenReady().then(() => {
     (method, params) => win?.webContents.send("engine:event", { method, params }),
   );
   engine.start();
+  // An encrypted project is written back to its file every minute, and the shared
+  // folder of a team is read and written every five minutes (section 7.2).
+  setInterval(() => void engine?.call("project.flush", {}).catch(() => undefined), 60_000);
+  setInterval(() => {
+    void engine
+      ?.call("sync.folder", {})
+      .then((r) => {
+        const sync = (r as { sync?: { applied?: number } }).sync;
+        if (sync && sync.applied) win?.webContents.send("engine:event", { method: "sync.done", params: sync });
+      })
+      .catch(() => undefined);
+  }, 300_000);
 
   ipcMain.handle("engine:call", async (_e, method: unknown, params: unknown) => {
     if (typeof method !== "string" || !ALLOWED.has(method)) {
@@ -414,9 +483,19 @@ app.whenReady().then(() => {
       args.path = file;
       delete args.file_token;
     }
+    delete args.target; // a second file (where a joined project is written) also comes from a dialog
+    if (typeof args.target_token === "string") {
+      const file = pickedFiles.get(args.target_token);
+      if (!file) return { ok: false, error: "Unknown file token", key: "file_token" };
+      args.target = file;
+      delete args.target_token;
+    }
     // A secret typed for a server goes to the encrypted store, not to the engine;
     // the calls to that server receive it from there.
     const typedSecret = method === "connection.save" && typeof args.secret === "string" ? args.secret : null;
+    // The access key of the relay server is kept like the other secrets, under the project's own id.
+    if (method === "sync.server" && typeof args.secret === "string" && typeof args.connection_id === "string")
+      setSecret(args.connection_id, args.secret);
     delete args.secret;
     if (SECRET_METHODS.has(method) && typeof args.connection_id === "string") {
       const secret = getSecret(args.connection_id);
@@ -431,7 +510,13 @@ app.whenReady().then(() => {
       // Whether each server connection has its secret stored, for the interface.
       const snap = result as { connections?: { id: string; has_secret?: boolean }[] } | null;
       if (snap && Array.isArray(snap.connections)) for (const c of snap.connections) c.has_secret = hasSecret(c.id);
-      if ((method === "project.create" || method === "project.open" || method === "project.rename") && result) {
+      if (
+        (method === "project.create" ||
+          method === "project.open" ||
+          method === "project.rename" ||
+          method === "team.join") &&
+        result
+      ) {
         const info = (result as { project?: { path: string; name: string } }).project;
         if (info) {
           rememberProject(info.path, info.name);
@@ -461,6 +546,14 @@ app.whenReady().then(() => {
       "pack-save",
       "pack-open",
       "pdf-save",
+      "smeid-save",
+      "smeid-open",
+      "join-save",
+      "join-open",
+      "sync-save",
+      "sync-open",
+      "any-open",
+      "any-save",
       "folder",
       "template-open",
     ];
@@ -630,5 +723,8 @@ let quitting = false;
 app.on("window-all-closed", () => {
   if (quitting) return;
   quitting = true;
-  void (engine ? engine.stopAndWait(5000) : Promise.resolve()).finally(() => app.quit());
+  // Closing the project writes an encrypted one back and removes its decrypted copy.
+  void (engine ? engine.call("project.close", {}).catch(() => undefined) : Promise.resolve())
+    .then(() => (engine ? engine.stopAndWait(5000) : undefined))
+    .finally(() => app.quit());
 });

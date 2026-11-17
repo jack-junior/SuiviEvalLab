@@ -12,3 +12,7 @@ narwhals==2.27.1
 xlsxwriter==3.2.9
 openpyxl==3.1.5
 et-xmlfile==2.0.0
+# Signatures of synchronised changes, encryption of projects and packages (section 8).
+cryptography==50.0.1
+cffi==2.1.1
+pycparser==3.0

@@ -8,6 +8,7 @@
 import { useMemo, useState } from "react";
 import { Activity, ACTIVITY_STATES, BudgetLine, call, Expense, ExpenseImport, ME_KINDS, pick, Snapshot } from "../api";
 import { useI18n } from "../i18n";
+import { Attachments } from "../Attachments";
 import { periodLabel } from "../monitoring";
 import { useProject } from "../state";
 import { Confirm, Empty, Field, Icon, IconButton, Notice, Panel, Progress } from "../ui";
@@ -515,6 +516,7 @@ function ActivityPanel({
           />
         )}
       </Field>
+      <Attachments kind="activity" id={activity?.id} />
       {confirm && (
         <Confirm
           text={hasKids ? t("wp.deleteWithSubs") : t("wp.deleteOne")}
