@@ -1147,6 +1147,22 @@ export interface Place {
   code: string;
   level: number;
   parent_id: string;
+  lat?: number;
+  lon?: number;
+  geo_id?: string;
+}
+export interface Country {
+  iso3: string;
+  iso2: string;
+  fr: string;
+  en: string;
+}
+export interface GeoResult {
+  name: string;
+  label: string;
+  kind: string;
+  lat: number;
+  lon: number;
 }
 export type PartnerRole = "implementing" | "funding" | "technical" | "government" | "community" | "research" | "other";
 export interface Partner {

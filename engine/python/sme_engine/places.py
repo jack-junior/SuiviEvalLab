@@ -9,7 +9,8 @@ the places where each works. Disaggregations are the categories results are brok
 down by (sex, age, disability...). Every disaggregation has an implicit category
 "not specified", so a total always equals the sum of its parts.
 
-    place:          {"name": "Kara", "code": "TG-K", "level": 0, "parent_id": ""}
+    place:          {"name": "Kara", "code": "TG-K", "level": 0, "parent_id": "",
+                     "lat": 9.55, "lon": 1.19, "geo_id": "..."}   (last three optional)
     partner:        {"name": "...", "acronym": "...", "role": "implementing",
                      "contact": "...", "place_ids": [...], "start": "", "end": ""}
     disaggregation: {"key": "sex", "name_fr": "Sexe", "name_en": "Sex",
@@ -76,7 +77,21 @@ def validate_place(spec: Any, places: list[dict[str, Any]], levels: list[str], o
     siblings = [p for p in places if p.get("parent_id", "") == parent_id and p["id"] != own_id]
     if any(p["name"].casefold() == name.casefold() for p in siblings):
         raise _err(f"{name} already exists at this place", "place_duplicate", name=name)
-    return {"name": name, "code": code, "level": level, "parent_id": parent_id}
+    out = {"name": name, "code": code, "level": level, "parent_id": parent_id}
+    # Position (from the map) and identifier of the administrative division it comes from.
+    lat, lon = spec.get("lat"), spec.get("lon")
+    if lat not in (None, "") or lon not in (None, ""):
+        try:
+            lat, lon = float(lat), float(lon)
+        except (TypeError, ValueError):
+            raise _err("Latitude and longitude must be numbers", "place_position_invalid") from None
+        if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+            raise _err("Latitude between -90 and 90, longitude between -180 and 180", "place_position_invalid")
+        out["lat"], out["lon"] = round(lat, 6), round(lon, 6)
+    geo_id = _str(spec.get("geo_id"), 60)
+    if geo_id:
+        out["geo_id"] = geo_id
+    return out
 
 
 def import_places(rows: Any, places: list[dict[str, Any]], levels: list[str]) -> list[dict[str, Any]]:

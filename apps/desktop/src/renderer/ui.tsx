@@ -13,6 +13,7 @@ const PATHS: Record<string, ReactNode> = {
   chat: <path d="M3 4.2h12v7.6H8.6L5.4 14.6v-2.8H3zM6 7.2h6M6 9.4h4" />,
   clipboard: <path d="M6.2 3.5H4.5v11.5h9V3.5h-1.7M6.5 2.6h5v2h-5zM6.5 8.2l1.5 1.5 3-3M6.5 12h5" />,
   plus: <path d="M9 3.5v11M3.5 9h11" />,
+  search: <path d="M8 13A5 5 0 1 0 8 3a5 5 0 0 0 0 10zM11.6 11.6L15 15" />,
   edit: <path d="M11.8 3.6l2.6 2.6-7.6 7.6-3.3.7.7-3.3zM10.4 5l2.6 2.6" />,
   trash: <path d="M3.5 5h11M7.2 5V3.6h3.6V5M5 5l.7 9.4h6.6L13 5M7.6 7.6v4.6M10.4 7.6v4.6" />,
   up: <path d="M9 14V4M4.8 8.2L9 4l4.2 4.2" />,

@@ -26,3 +26,9 @@ from the source above. A modified version should use another name.
 Third-party data shipped with the example project and the test kit keep their
 own licences (REACH Initiative, Humanitarian Data Exchange, CC BY 4.0); see the
 release notes and tools/test-kit/SOURCES.txt.
+
+Maps: administrative divisions are downloaded on request from geoBoundaries
+(William & Mary geoLab, gbOpen release, CC BY 4.0); map tiles and place search
+come from OpenStreetMap (data (C) OpenStreetMap contributors, ODbL) through
+Leaflet (BSD-2-Clause). Country names come from the ISO 3166 list of the Debian
+iso-codes project, as packaged by pycountry.

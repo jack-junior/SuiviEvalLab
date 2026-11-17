@@ -34,7 +34,7 @@ SuiviEvalLab garde ce lien de bout en bout :
 | Rédiger le rapport | Copier-coller les chiffres et les graphiques | Rapport Word produit à partir du projet, sur le modèle de l'organisation |
 | Vérifier un résultat | Difficile | Chaque résultat fournit le script R qui le reproduit |
 
-L'application fonctionne **sans connexion internet**. Les données restent sur les ordinateurs de l'équipe : rien n'est envoyé à l'éditeur. Les seules connexions sont celles que l'utilisateur choisit (serveurs de collecte, dossier partagé ou serveur relais de l'équipe) et la recherche de mises à jour, que l'organisation peut couper.
+L'application fonctionne **sans connexion internet**. Les données restent sur les ordinateurs de l'équipe : rien n'est envoyé à l'éditeur. Les seules connexions sont celles que l'utilisateur choisit (serveurs de collecte, dossier partagé ou serveur relais de l'équipe, carte et découpage administratif) et la recherche de mises à jour, que l'organisation peut couper.
 
 ## Le fichier projet
 

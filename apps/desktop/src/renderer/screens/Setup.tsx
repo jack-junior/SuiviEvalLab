@@ -5,9 +5,12 @@
 // with whom, and how its results are broken down.
 
 import { useEffect, useMemo, useState } from "react";
+import { MapPicker, Position } from "../map";
 import {
   call,
   Category,
+  Country,
+  GeoResult,
   Disaggregation,
   Donor,
   PeriodFrequency as Frequency,
@@ -550,6 +553,8 @@ function Places() {
   const places = snap!.places;
   const [editing, setEditing] = useState<{ place: Place | null; parent: Place | null } | null>(null);
   const [pasting, setPasting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [deleting, setDeleting] = useState<Place | null>(null);
 
   // Depth-first order, so each place shows under its parent.
@@ -579,6 +584,12 @@ function Places() {
         <button className="btn" onClick={() => setPasting(true)} data-testid="paste-places">
           {t("setup.pastePlaces")}
         </button>
+        <button className="btn" onClick={() => setImporting(true)} data-testid="geo-import">
+          <Icon name="pin" /> {t("geo.importButton")}
+        </button>
+        <button className="btn" onClick={() => setSearching(true)} data-testid="geo-search">
+          <Icon name="search" /> {t("geo.searchButton")}
+        </button>
       </div>
       {ordered.length === 0 ? (
         <Empty icon="pin" title={t("setup.noPlaces")} text={t("setup.noPlacesText")} />
@@ -588,6 +599,12 @@ function Places() {
             <li key={p.id} style={{ paddingLeft: `${p.level * 1.5}rem` }} data-testid={`place-${p.name}`}>
               <span className="muted small">{levels[p.level]}</span> <strong>{p.name}</strong>
               {p.code && <span className="muted small"> {p.code}</span>}
+              {p.lat !== undefined && p.lon !== undefined && (
+                <span className="muted small" title={t("geo.position")}>
+                  {" "}
+                  <Icon name="pin" /> {p.lat.toFixed(4)}, {p.lon.toFixed(4)}
+                </span>
+              )}
               <span className="row-actions">
                 {p.level + 1 < levels.length && (
                   <IconButton
@@ -614,6 +631,8 @@ function Places() {
       )}
       {editing && <PlacePanel {...editing} levels={levels} onClose={() => setEditing(null)} />}
       {pasting && <PastePlaces levels={levels} onClose={() => setPasting(false)} />}
+      {importing && <AdminImport levels={levels} onClose={() => setImporting(false)} />}
+      {searching && <MapSearch levels={levels} places={ordered} onClose={() => setSearching(false)} />}
       {deleting && (
         <Confirm
           text={t("setup.deletePlace", { name: deleting.name })}
@@ -644,9 +663,14 @@ function PlacePanel({
   const { run } = useProject();
   const [name, setName] = useState(place?.name ?? "");
   const [code, setCode] = useState(place?.code ?? "");
+  const [lat, setLat] = useState(place?.lat !== undefined ? String(place.lat) : "");
+  const [lon, setLon] = useState(place?.lon !== undefined ? String(place.lon) : "");
   const level = parent ? parent.level + 1 : 0;
   const save = async () => {
-    const s = await run("place.save", { id: place?.id, place: { name, code, parent_id: parent?.id ?? "" } });
+    const s = await run("place.save", {
+      id: place?.id,
+      place: { name, code, parent_id: parent?.id ?? "", lat, lon, geo_id: place?.geo_id ?? "" },
+    });
     if (s) onClose();
   };
   return (
@@ -680,6 +704,300 @@ function PlacePanel({
       <Field label={t("setup.placeCode")} hint={t("setup.placeCodeHint")}>
         {(id) => <input id={id} className="input" value={code} onChange={(e) => setCode(e.target.value)} />}
       </Field>
+      <div className="grid-2">
+        <Field label={t("geo.lat")} hint={t("geo.optional")}>
+          {(id) => (
+            <input id={id} className="input" inputMode="decimal" value={lat} onChange={(e) => setLat(e.target.value)} />
+          )}
+        </Field>
+        <Field label={t("geo.lon")}>
+          {(id) => (
+            <input id={id} className="input" inputMode="decimal" value={lon} onChange={(e) => setLon(e.target.value)} />
+          )}
+        </Field>
+      </div>
+    </Panel>
+  );
+}
+
+// ----- places from maps ------------------------------------------------------------
+
+/** The country chosen before, or the one whose name is in the profile. */
+function useCountries(): { countries: Country[]; initial: string } {
+  const { snap } = useProject();
+  const [state, setState] = useState<{ countries: Country[]; initial: string }>({ countries: [], initial: "" });
+  const profileCountry = (snap?.profile.countries[0] ?? "").trim().toLowerCase();
+  useEffect(() => {
+    void call<{ countries: Country[]; country: string }>("geo.countries").then((r) => {
+      const byName = r.countries.find(
+        (c) => c.fr.toLowerCase() === profileCountry || c.en.toLowerCase() === profileCountry,
+      );
+      setState({ countries: r.countries, initial: r.country || byName?.iso3 || "" });
+    });
+  }, [profileCountry]);
+  return state;
+}
+
+function AdminImport({ levels, onClose }: { levels: string[]; onClose: () => void }) {
+  const { t, lang } = useI18n();
+  const { run, describe } = useProject();
+  const { countries, initial } = useCountries();
+  const [iso, setIso] = useState("");
+  const [available, setAvailable] = useState<number[] | null>(null);
+  const [depth, setDepth] = useState(1);
+  const [counts, setCounts] = useState<number[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const country = iso || initial;
+  const sorted = useMemo(
+    () => [...countries].sort((a, b) => (lang === "fr" ? a.fr : a.en).localeCompare(lang === "fr" ? b.fr : b.en)),
+    [countries, lang],
+  );
+  // Levels geoBoundaries has for the country (asked over the network once).
+  useEffect(() => {
+    if (!country) return;
+    let live = true;
+    call<{ levels: number[] }>("geo.levels", { iso: country })
+      .then((r) => {
+        if (!live) return;
+        setAvailable(r.levels);
+        setDepth(Math.min(r.levels.length ? Math.max(...r.levels) : 1, Math.max(1, levels.length - 1)));
+      })
+      .catch((e) => live && setError(describe(e)));
+    return () => {
+      live = false;
+    };
+  }, [country, levels.length, describe]);
+  const maxDepth = Math.min(available?.length ? Math.max(...available) : 0, levels.length);
+  const preview = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      setCounts((await call<{ counts: number[] }>("geo.preview", { iso: country, depth })).counts);
+    } catch (e) {
+      setError(describe(e));
+    }
+    setBusy(false);
+  };
+  const save = async () => {
+    setBusy(true);
+    const s = await run("geo.import", { iso: country, depth });
+    setBusy(false);
+    if (s) onClose();
+  };
+  return (
+    <Panel
+      title={t("geo.importTitle")}
+      onClose={onClose}
+      testId="geo-import-panel"
+      footer={
+        <>
+          <button className="btn" onClick={onClose}>
+            {t("common.cancel")}
+          </button>
+          <button className="btn primary" disabled={!counts || busy} onClick={save} data-testid="geo-import-save">
+            {t("geo.importSave")}
+          </button>
+        </>
+      }
+    >
+      <p className="muted">{t("geo.importLead")}</p>
+      <Field label={t("geo.country")}>
+        {(id) => (
+          <select
+            id={id}
+            className="input"
+            value={country}
+            onChange={(e) => {
+              setIso(e.target.value);
+              setAvailable(null);
+              setCounts(null);
+              setError(null);
+            }}
+            data-testid="geo-country"
+          >
+            <option value="">{t("geo.chooseCountry")}</option>
+            {sorted.map((c) => (
+              <option key={c.iso3} value={c.iso3}>
+                {lang === "fr" ? c.fr : c.en}
+              </option>
+            ))}
+          </select>
+        )}
+      </Field>
+      {country && available === null && !error && <p className="muted">{t("geo.loading")}</p>}
+      {available && available.length === 0 && <Notice kind="info">{t("geo.noLevels")}</Notice>}
+      {available && maxDepth > 0 && (
+        <Field label={t("geo.depth")} hint={t("geo.depthHint")}>
+          {(id) => (
+            <select
+              id={id}
+              className="input"
+              value={depth}
+              onChange={(e) => {
+                setDepth(Number(e.target.value));
+                setCounts(null);
+              }}
+              data-testid="geo-depth"
+            >
+              {Array.from({ length: maxDepth }, (_, k) => k + 1).map((d) => (
+                <option key={d} value={d}>
+                  {levels.slice(0, d).join(" > ")}
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
+      )}
+      {available && maxDepth > 0 && (
+        <button className="btn" onClick={preview} disabled={busy} data-testid="geo-preview">
+          {busy && !counts ? t("geo.loading") : t("geo.preview")}
+        </button>
+      )}
+      {counts && (
+        <p data-testid="geo-counts">{counts.map((n, k) => t("geo.count", { n, level: levels[k] })).join(", ")}</p>
+      )}
+      {error && <Notice kind="error">{error}</Notice>}
+      <p className="muted small">{t("geo.importCredit")}</p>
+    </Panel>
+  );
+}
+
+function MapSearch({ levels, places, onClose }: { levels: string[]; places: Place[]; onClose: () => void }) {
+  const { t, lang } = useI18n();
+  const { run, describe } = useProject();
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<GeoResult[] | null>(null);
+  const [name, setName] = useState("");
+  const [position, setPosition] = useState<Position | null>(null);
+  const [parent, setParent] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  // A site sits under a place that is not on the last level.
+  const parents = places.filter((p) => p.level + 1 < levels.length);
+  const search = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      setResults((await call<{ results: GeoResult[] }>("geo.search", { q: query, lang })).results);
+    } catch (e) {
+      setError(describe(e));
+    }
+    setBusy(false);
+  };
+  // The place that contains the position, from the imported divisions.
+  const place = async (p: Position) => {
+    setPosition(p);
+    try {
+      const r = await call<{ place_id: string }>("geo.locate", { lat: p.lat, lon: p.lon });
+      if (r.place_id && parents.some((x) => x.id === r.place_id)) setParent(r.place_id);
+    } catch {
+      // without divisions, the user chooses
+    }
+  };
+  const choose = (r: GeoResult) => {
+    setName(r.name);
+    void place({ lat: r.lat, lon: r.lon });
+  };
+  const save = async () => {
+    const s = await run("place.save", {
+      place: { name, parent_id: parent, lat: position?.lat, lon: position?.lon },
+    });
+    if (s) onClose();
+  };
+  return (
+    <Panel
+      title={t("geo.searchTitle")}
+      onClose={onClose}
+      testId="geo-search-panel"
+      footer={
+        <>
+          <button className="btn" onClick={onClose}>
+            {t("common.cancel")}
+          </button>
+          <button
+            className="btn primary"
+            disabled={!name.trim() || !position}
+            onClick={save}
+            data-testid="geo-search-save"
+          >
+            {t("geo.addSite")}
+          </button>
+        </>
+      }
+    >
+      <form
+        className="row-actions start"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void search();
+        }}
+      >
+        <input
+          className="input grow"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t("geo.searchPlaceholder")}
+          aria-label={t("geo.searchPlaceholder")}
+          data-testid="geo-query"
+        />
+        <button className="btn" type="submit" disabled={busy || query.trim().length < 2}>
+          {t("geo.search")}
+        </button>
+      </form>
+      {error && <Notice kind="error">{error}</Notice>}
+      {results && results.length === 0 && <p className="muted">{t("geo.noResult")}</p>}
+      {results && results.length > 0 && (
+        <ul className="geo-results" data-testid="geo-results">
+          {results.map((r, k) => (
+            <li key={k}>
+              <button className="link" onClick={() => choose(r)}>
+                <strong>{r.name}</strong> <span className="muted small">{r.label}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="muted small">{t("geo.mapHint")}</p>
+      <MapPicker position={position} onPick={(p) => void place(p)} label={t("geo.mapLabel")} />
+      <div className="grid-2">
+        <Field label={t("setup.placeName")}>
+          {(id) => (
+            <input
+              id={id}
+              className="input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              data-testid="geo-name"
+            />
+          )}
+        </Field>
+        <Field label={t("geo.inside")}>
+          {(id) => (
+            <select
+              id={id}
+              className="input"
+              value={parent}
+              onChange={(e) => setParent(e.target.value)}
+              data-testid="geo-parent"
+            >
+              <option value="">{levels[0] ? t("geo.topLevel", { level: levels[0] }) : ""}</option>
+              {parents.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {"\u00a0\u00a0".repeat(p.level)}
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
+      </div>
+      {position && (
+        <p className="muted small" data-testid="geo-position">
+          {t("geo.position")} : {position.lat}, {position.lon}
+        </p>
+      )}
+      <p className="muted small">{t("geo.searchCredit")}</p>
     </Panel>
   );
 }

@@ -13,7 +13,7 @@ Ce chapitre décrit ce que fait l'application pour protéger les données person
 | Traçabilité | Journal d'audit non modifiable des lectures de cas sensibles, des validations, des changements de membres et des suppressions |
 | Limitation de la conservation | Durée de conservation réglable des données personnelles des retours, avec rappel et suppression |
 | Exports | Les rapports, les paquets de données, la page de partage et le tableau de bord ne contiennent aucune donnée personnelle ni aucun cas sensible |
-| Localisation | Les données restent sur les ordinateurs des membres et, si l'organisation le choisit, sur son propre serveur relais. Rien n'est envoyé à l'éditeur |
+| Localisation | Les données restent sur les ordinateurs des membres et, si l'organisation le choisit, sur son propre serveur relais. Rien n'est envoyé à l'éditeur. La recherche d'un site sur la carte envoie seulement le nom tapé au service de recherche d'OpenStreetMap ; ne cherchez pas de lieux qui identifieraient une personne (domicile d'un plaignant, par exemple) |
 
 ## Ce qui reste à l'organisation
 

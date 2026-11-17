@@ -179,6 +179,20 @@ try {
   await id("period-T1-2026").waitFor({ timeout: 60_000 });
   const periods = await page.locator('[data-testid^="period-T"]').count();
   if (periods !== 8) throw new Error(`Expected 8 quarters, got ${periods}`);
+  // Places: a site placed by clicking on the map (no network needed: the map
+  // takes the click even when its tiles cannot load).
+  await id("setup-tab-places").click();
+  await id("geo-search").click();
+  await id("geo-search-panel").waitFor({ timeout: 30_000 });
+  await id("map").click({ position: { x: 200, y: 150 } });
+  await id("geo-position").waitFor({ timeout: 30_000 });
+  await id("geo-name").fill("Site de la carte");
+  await shot("place-map");
+  await id("geo-search-save").click();
+  await id("place-Site de la carte").waitFor({ timeout: 30_000 });
+  const pin = await id("place-Site de la carte").innerText();
+  if (!/\d+\.\d{4}, -?\d+\.\d{4}/.test(pin))
+    throw new Error(`Position not shown: ${pin}`);
   await id("setup-tab-disaggregations").click();
   await id("preset-sex").click();
   await id("dis-sex").waitFor({ timeout: 60_000 });
@@ -884,7 +898,7 @@ try {
   notice("E2E updates", await id("update-status").innerText());
   notice(
     "E2E",
-    "Full path verified: project sheet, framework, import, cleaning, indicator, monitoring plan, periodic entry, reception and validation, tracking, gap comment, project today, agenda, work plan and budget, feedback, recommendations, risks, meetings, evaluation with coded notes, periodic report in a donor format, tracking export, analysis, report, SPSS, quality, merge, dashboard, checks, plan export, workspace today, workspace, portfolio dashboard and note, sample size, example, test, logframe matrix, Kobo server sync, languages, indicator library, keyboard and text size, team, audit trail, encryption",
+    "Full path verified: project sheet, framework, import, cleaning, indicator, monitoring plan, periodic entry, reception and validation, tracking, gap comment, project today, agenda, work plan and budget, feedback, recommendations, risks, meetings, evaluation with coded notes, periodic report in a donor format, tracking export, analysis, report, SPSS, quality, merge, dashboard, checks, plan export, workspace today, workspace, portfolio dashboard and note, sample size, example, test, logframe matrix, Kobo server sync, languages, indicator library, place from the map, keyboard and text size, team, audit trail, encryption",
   );
 } catch (e) {
   // The screen at the moment of failure, kept with the other screenshots.

@@ -3147,3 +3147,33 @@ ul.plain {
 tr.clickable:focus-visible {
   outline-offset: -2px;
 }
+
+/* Places from maps */
+.map-picker {
+  height: 320px;
+  border: 1px solid var(--ligne);
+  border-radius: 10px;
+  background: var(--surface-haute);
+}
+.geo-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 180px;
+  overflow: auto;
+  border: 1px solid var(--ligne);
+  border-radius: 8px;
+}
+.geo-results li {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--ligne);
+}
+.geo-results li:last-child {
+  border-bottom: none;
+}
+.geo-results button.link {
+  text-align: left;
+}
+.input.grow {
+  flex: 1;
+}

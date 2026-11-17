@@ -31,10 +31,14 @@ The **Project sheet** (bottom of the menu) describes what everything else builds
 |---|---|
 | Profile | Name, code, country, sectors, donors (agreement and reporting frequency), dates, currency, colour; **reporting by**: project, partner, place, or partner and place |
 | Calendar | Reporting periods generated from the dates, the frequency and the start of the financial year; two deadlines per period (data from partners, report to the donor) |
-| Places | A tree of areas and sites, typed or pasted from Excel |
+| Places | A tree of areas and sites, typed, pasted from Excel, imported from a country's administrative divisions, or placed on a map |
 | Partners | Organisations, their role and their sites |
 | Disaggregations | Sex, age groups (general or health), disability, residence status, area, and custom ones; each gets a "Not specified" category so totals stay right |
 | Team and security | Password, members, exchanges, audit trail (see the [administrator guide](administration.md)) |
+
+**Administrative divisions** adds the regions, districts or communes of a country at once: choose the country and the levels (keep the project's last level for sites), see what will be added, import. Each division goes under the one containing it; places already typed with the same name are kept, and importing again adds nothing twice. The divisions come from geoBoundaries (William & Mary geoLab, CC BY 4.0), are downloaded once and then available offline; boundaries and names may differ from the official ones in force.
+
+**Search on the map** adds a site with its position: type a name and choose a result, or click on the map. The site goes under the division containing it when divisions were imported; otherwise choose the place above it. Map and search come from OpenStreetMap and need an internet connection; only the name searched is sent. Latitude and longitude can also be typed in the place's sheet.
 
 A period is **open**, **reported** (the report was sent, data can still change) or **locked** (nothing changes). Locking needs every submission of the period to be validated; reopening needs a written reason, kept in the history and the audit trail.
 

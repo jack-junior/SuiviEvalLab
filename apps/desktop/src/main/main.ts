@@ -85,6 +85,12 @@ const ALLOWED = new Set([
   "period.set_state",
   "place.save",
   "place.import",
+  "geo.countries",
+  "geo.levels",
+  "geo.preview",
+  "geo.import",
+  "geo.search",
+  "geo.locate",
   "place.delete",
   "place.move",
   "partner.save",
@@ -447,6 +453,16 @@ function createWindow(): void {
     return { action: "deny" };
   });
   win.webContents.on("will-navigate", (e) => e.preventDefault());
+  // OpenStreetMap asks applications that show its map tiles to name themselves.
+  win.webContents.session.webRequest.onBeforeSendHeaders(
+    { urls: ["https://tile.openstreetmap.org/*"] },
+    (details, done) => {
+      details.requestHeaders["User-Agent"] =
+        `SuiviEvalLab/${app.getVersion()} (+https://github.com/jack-junior/SuiviEvalLab)`;
+      details.requestHeaders["Referer"] = "https://github.com/jack-junior/SuiviEvalLab";
+      done({ requestHeaders: details.requestHeaders });
+    },
+  );
   void win.loadFile(path.join(__dirname, "..", "renderer", "index.html"));
 }
 

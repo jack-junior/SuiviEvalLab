@@ -31,6 +31,7 @@ extraResources:
       - "**/*.py"
       - "examples/*.xlsx"
       - "library/*.json"
+      - "data/*.json"
   # R statistical engine
   - from: ../../engine/r
     to: engine/r

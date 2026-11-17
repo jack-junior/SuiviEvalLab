@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
+from . import geo as geo_
 from . import library, schedule, targets
 from . import places as pl_
 from .project import Project, _err
@@ -183,6 +184,82 @@ def register_setup(server: Server, svc: Service) -> None:
                 "place", {"name": item["name"], "code": "", "level": item["level"], "parent_id": parent}
             )
         return {**svc.snapshot(), "added": len(todo)}
+
+    # ----- places from maps (geo.py) -----
+
+    @server.method("geo.countries")
+    def geo_countries(params: dict[str, Any]) -> dict[str, Any]:
+        return {"countries": geo_.countries(), "country": project().meta().get("geo_country", "")}
+
+    @server.method("geo.levels")
+    def geo_levels(params: dict[str, Any]) -> dict[str, Any]:
+        return {"levels": geo_.levels_available(params.get("iso"))}
+
+    @server.method("geo.preview")
+    def geo_preview(params: dict[str, Any]) -> dict[str, Any]:
+        items = geo_.tree(params.get("iso"), int(params.get("depth") or 1))
+        counts = [sum(1 for i in items if i["level"] == k) for k in range(int(params.get("depth") or 1))]
+        return {"counts": counts}
+
+    @server.method("geo.import")
+    def geo_import(params: dict[str, Any]) -> dict[str, Any]:
+        """The divisions of a country, levels 1 to depth, merged with the places already
+        there (same name under the same place)."""
+        p = project()
+        iso = str(params.get("iso") or "").upper()
+        depth = int(params.get("depth") or 1)
+        if depth > len(levels()):
+            raise _err("More levels than the project has", "geo_too_deep")
+        items = geo_.tree(iso, depth)
+        places = p.records("place")
+        by_key = {(x.get("parent_id", ""), x["name"].casefold()): x for x in places}
+        by_gid = {x["geo_id"]: x for x in places if x.get("geo_id")}
+        ids: dict[str, str] = {}
+        added = 0
+        for item in items:
+            parent = ids.get(item["parent_gid"], "") if item["parent_gid"] else ""
+            if item["parent_gid"] and not parent:
+                continue
+            found = by_gid.get(item["gid"]) or by_key.get((parent, item["name"].casefold()))
+            if found:
+                if not found.get("geo_id"):
+                    keep = {k: v for k, v in found.items() if k != "id"}
+                    p.update_record("place", found["id"], {**keep, "geo_id": item["gid"]})
+                ids[item["gid"]] = found["id"]
+                continue
+            spec = {
+                "name": item["name"],
+                "code": "",
+                "level": item["level"],
+                "parent_id": parent,
+                "geo_id": item["gid"],
+            }
+            ids[item["gid"]] = p.insert_record("place", spec)
+            added += 1
+        p.set_meta("geo_country", iso)
+        return {**svc.snapshot(), "added": added}
+
+    @server.method("geo.search")
+    def geo_search(params: dict[str, Any]) -> dict[str, Any]:
+        iso = project().meta().get("geo_country", "")
+        iso2 = next((c["iso2"] for c in geo_.countries() if c["iso3"] == iso), "")
+        return {"results": geo_.search(params.get("q"), iso2, str(params.get("lang") or "fr"))}
+
+    @server.method("geo.locate")
+    def geo_locate(params: dict[str, Any]) -> dict[str, Any]:
+        """The deepest place of the project that contains a point (from the imported divisions)."""
+        p = project()
+        iso = p.meta().get("geo_country", "")
+        try:
+            lat, lon = float(params.get("lat")), float(params.get("lon"))
+        except (TypeError, ValueError):
+            raise _err("Latitude and longitude must be numbers", "place_position_invalid") from None
+        if not iso:
+            return {"place_id": ""}
+        gids = geo_.locate(iso, len(levels()), lat, lon)
+        by_gid = {x["geo_id"]: x["id"] for x in p.records("place") if x.get("geo_id")}
+        hit = next((by_gid[g] for g in reversed(gids) if g in by_gid), "")
+        return {"place_id": hit}
 
     @server.method("place.delete")
     def place_delete(params: dict[str, Any]) -> dict[str, Any]:

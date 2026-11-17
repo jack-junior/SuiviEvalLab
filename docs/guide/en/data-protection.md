@@ -13,7 +13,7 @@ This chapter describes what the application does to protect personal data and wh
 | Accountability | Tamper-evident audit trail of sensitive readings, validations, member changes and removals |
 | Storage limitation | Retention period of feedback personal data, with reminder and removal |
 | Exports | Reports, data packs, the sharing page and the dashboard hold no personal data and no sensitive case |
-| Location | Data stays on the members' computers and, if the organisation chooses, on its own relay server. Nothing is sent to the publisher |
+| Location | Data stays on the members' computers and, if the organisation chooses, on its own relay server. Nothing is sent to the publisher. Searching a site on the map sends only the typed name to OpenStreetMap's search service; do not search places that would identify a person (a complainant's home, for example) |
 
 ## What remains with the organisation
 
