@@ -131,8 +131,12 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: |
           $v = (Get-Content apps/desktop/package.json -Raw | ConvertFrom-Json).version
-          $p = $v.Split(".")
-          $next = "{0}.{1}.{2}" -f $p[0], $p[1], ([int]$p[2] + 1)
+          if ($v -match '^(.+)\.(\d+)$') {
+            # 0.5.2 gives 0.5.3; 1.0.0-beta.1 gives 1.0.0-beta.2
+            $next = "{0}.{1}" -f $Matches[1], ([int]$Matches[2] + 1)
+          } else {
+            Write-Error "Unexpected version $v"; exit 1
+          }
           Push-Location apps/desktop
           npx electron-builder --win nsis --publish never "-c.extraMetadata.version=$next" "-c.directories.output=release-next"
           $code = $LASTEXITCODE

@@ -10,6 +10,9 @@ files:
 asar: true
 # Automatic updates read the GitHub releases (latest.yml, installer and block map).
 # The release workflow uploads these files itself; electron-builder only writes them.
+# A test version such as 1.0.0-beta.1 still writes latest.yml (not beta.yml), so
+# every installed version reads the same file.
+detectUpdateChannel: false
 publish:
   provider: github
   owner: jack-junior

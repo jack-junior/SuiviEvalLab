@@ -148,7 +148,7 @@ jobs:
             run gh release upload "$tag" "$exe" "$blockmap" "$latest" SHA256SUMS.txt --repo "$REPO" --clobber
           else
             flags=()
-            case "$version" in 0.*) flags+=(--prerelease) ;; esac
+            case "$version" in 0.* | *-*) flags+=(--prerelease) ;; esac  # 0.x and 1.0.0-beta.1 style
             run gh release create "$tag" "$exe" "$blockmap" "$latest" SHA256SUMS.txt --repo "$REPO" --verify-tag \
               --title "SuiviEvalLab $version" --notes-file notes.md "${flags[@]}"
           fi
