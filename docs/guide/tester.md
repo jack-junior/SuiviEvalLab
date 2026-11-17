@@ -28,6 +28,7 @@ Le kit de test est un dossier à remettre aux testeurs. Il contient :
 | `donnees/01` à `04` | Les fichiers originaux de quatre enquêtes publiques (Irak 2019 et 2020, Bangladesh 2018 référence et suivi), identiques octet pour octet à ceux publiés sur HDX |
 | `donnees/05` | Un extrait au format SPSS et Stata, avec libellés |
 | `modeles/` | Un modèle Word d'organisation pour tester le rapport |
+| `FICHE-RETOUR-PILOTE.docx` | La fiche de retour du test pilote de la version 1.0 (voir [Test pilote](recette.md)) |
 | `LISEZMOI.txt`, `SOURCES.txt` | Mode d'emploi, origine, licence et empreinte de chaque fichier |
 
 Les **résultats attendus** du guide ont été obtenus deux fois : par l'application, en suivant exactement les étapes, puis directement dans R avec le package `survey` à partir des fichiers bruts, sans l'application. Les deux concordent à la dernière décimale affichée. Si un testeur obtient autre chose, c'est un problème à signaler.
